@@ -517,7 +517,7 @@ export default function SobrePage() {
                 Falar sobre meu projeto
               </a>
               <a
-                href="/portfolio"
+                href="/produtos"
                 style={{
                   padding: '14px 32px',
                   borderRadius: '10px',
@@ -539,7 +539,7 @@ export default function SobrePage() {
                   (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.7)';
                 }}
               >
-                Ver portfólio
+                Ver produtos
               </a>
             </div>
           </div>

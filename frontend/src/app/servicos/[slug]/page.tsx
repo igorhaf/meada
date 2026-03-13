@@ -260,10 +260,10 @@ export default function ServicePage({ params }: { params: Promise<{ slug: string
                   onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = '1'; (e.currentTarget as HTMLElement).style.transform = 'translateY(0)'; }}>
                   Falar sobre meu projeto →
                 </Link>
-                <Link href="/portfolio" style={{ padding: '14px 32px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.65)', fontWeight: '600', fontSize: '15px', textDecoration: 'none', display: 'inline-block', transition: 'border-color 0.2s, color 0.2s' }}
+                <Link href="/produtos" style={{ padding: '14px 32px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.65)', fontWeight: '600', fontSize: '15px', textDecoration: 'none', display: 'inline-block', transition: 'border-color 0.2s, color 0.2s' }}
                   onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.35)'; (e.currentTarget as HTMLElement).style.color = '#fff'; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.15)'; (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.65)'; }}>
-                  Ver portfólio
+                  Ver produtos
                 </Link>
               </div>
             </div>

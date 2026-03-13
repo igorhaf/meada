@@ -108,7 +108,7 @@ export default function Footer() {
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
               {[
                 { label: 'Sobre Nós', href: '/sobre' },
-                { label: 'Portfólio', href: '/portfolio' },
+                { label: 'Produtos', href: '/produtos' },
                 { label: 'Blog', href: '/blog' },
                 { label: 'Carreiras', href: '/carreiras' },
               ].map((item) => (

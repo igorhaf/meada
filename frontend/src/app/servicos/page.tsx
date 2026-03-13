@@ -554,7 +554,7 @@ export default function ServicosPage() {
                   (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.7)';
                 }}
               >
-                Ver portfólio
+                Ver produtos
               </a>
             </div>
           </div>
