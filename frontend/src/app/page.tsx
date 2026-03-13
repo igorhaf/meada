@@ -171,11 +171,11 @@ export default function Home() {
               </p>
 
               <div style={{ display: 'flex', gap: '1rem', marginBottom: '4.5rem', flexWrap: 'wrap' }}>
-                <button style={{ padding: '15px 34px', background: 'linear-gradient(135deg, #3b82f6, #6366f1)', border: 'none', borderRadius: '10px', color: 'white', fontWeight: '600', fontSize: '15px', cursor: 'pointer', boxShadow: '0 14px 32px rgba(59,130,246,0.38)', transition: 'all 0.3s ease' }}
+                <Link href="/contato" style={{ padding: '15px 34px', background: 'linear-gradient(135deg, #3b82f6, #6366f1)', borderRadius: '10px', color: 'white', fontWeight: '600', fontSize: '15px', textDecoration: 'none', display: 'inline-block', boxShadow: '0 14px 32px rgba(59,130,246,0.38)', transition: 'all 0.3s ease' }}
                   onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 20px 44px rgba(59,130,246,0.48)'; }}
                   onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 14px 32px rgba(59,130,246,0.38)'; }}>
                   Comece Agora →
-                </button>
+                </Link>
                 <button style={{ padding: '15px 34px', background: 'transparent', border: '1px solid rgba(59,130,246,0.28)', borderRadius: '10px', color: 'rgb(96,165,250)', fontWeight: '600', fontSize: '15px', cursor: 'pointer', transition: 'all 0.3s ease' }}
                   onMouseEnter={e => { e.currentTarget.style.background = 'rgba(59,130,246,0.08)'; e.currentTarget.style.borderColor = 'rgba(59,130,246,0.5)'; }}
                   onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(59,130,246,0.28)'; }}>

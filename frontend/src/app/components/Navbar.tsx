@@ -113,32 +113,6 @@ export default function Navbar() {
             );
           })}
 
-          {/* CTA Button */}
-          <Link
-            href="/contato"
-            style={{
-              textDecoration: 'none',
-              padding: '10px 22px',
-              borderRadius: '8px',
-              background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
-              color: '#fff',
-              fontSize: '14px',
-              fontWeight: 600,
-              letterSpacing: '0.2px',
-              transition: 'opacity 0.2s ease, transform 0.2s ease',
-              display: 'inline-block',
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.opacity = '0.88';
-              (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.opacity = '1';
-              (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-            }}
-          >
-            Começar
-          </Link>
         </div>
       </div>
     </nav>
