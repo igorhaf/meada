@@ -75,7 +75,7 @@ export default function Navbar() {
               Meada
             </span>
             <span style={{ fontSize: '9.5px', fontWeight: 600, color: 'rgba(148,163,184,0.7)', letterSpacing: '0.12em', textTransform: 'uppercase', lineHeight: 1.4 }}>
-              Tecnologia
+              Digital
             </span>
           </div>
         </Link>
