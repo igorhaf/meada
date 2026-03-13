@@ -84,7 +84,6 @@ export default function Footer() {
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
               {[
                 { label: 'Sites Profissionais', href: '/servicos' },
-                { label: 'Lojas Virtuais', href: '/servicos' },
                 { label: 'IA para Negócios', href: '/servicos' },
                 { label: 'Sistemas sob Medida', href: '/servicos' },
               ].map((item) => (
