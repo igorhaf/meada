@@ -217,13 +217,7 @@ export default function ServicosPage() {
 
       {/* Services Grid */}
       <section style={{ padding: '0 2rem 6rem', maxWidth: '1360px', margin: '0 auto' }}>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '1.5rem',
-          }}
-        >
+        <div className="meada-grid-3" style={{ gap: '1.5rem' }}>
           {services.map((service) => {
             const Icon = service.icon;
             return (
@@ -341,13 +335,7 @@ export default function ServicosPage() {
             </p>
           </div>
 
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: '1.5rem',
-            }}
-          >
+          <div className="meada-grid-4" style={{ gap: '1.5rem' }}>
             {processSteps.map((step) => (
               <div
                 key={step.number}

@@ -154,8 +154,8 @@ export default function Home() {
           <div style={{ position: 'absolute', bottom: '-20%', left: '25%', width: '600px', height: '600px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(236,72,153,0.12) 0%, transparent 68%)', filter: 'blur(60px)', animation: 'float 13s ease-in-out infinite', animationDelay: '4s' }} />
         </div>
 
-        <div style={{ position: 'relative', zIndex: 1, maxWidth: '1360px', margin: '0 auto', padding: '0 4rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '7rem', alignItems: 'center' }}>
+        <div className="meada-inner-pad" style={{ position: 'relative', zIndex: 1, maxWidth: '1360px', margin: '0 auto' }}>
+          <div className="meada-grid-hero" style={{ gap: '7rem', alignItems: 'center' }}>
 
             {/* Left */}
             <div>
@@ -183,7 +183,7 @@ export default function Home() {
                 </Link>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2rem', paddingTop: '3rem', borderTop: '1px solid rgba(71,85,105,0.25)' }}>
+              <div className="meada-grid-stats3" style={{ gap: '2rem', paddingTop: '3rem', borderTop: '1px solid rgba(71,85,105,0.25)' }}>
                 {[
                   { n: '50+', l: 'Projetos', g: 'linear-gradient(90deg, #60a5fa, #a855f7)' },
                   { n: '20+', l: 'Tecnologias', g: 'linear-gradient(90deg, #a855f7, #ec4899)' },
@@ -198,7 +198,7 @@ export default function Home() {
             </div>
 
             {/* Right - Chat IA real */}
-            <div style={{ position: 'relative', height: '520px' }}>
+            <div className="meada-chat-widget" style={{ position: 'relative', height: '520px' }}>
               <style>{`
                 @keyframes msgIn {
                   from { opacity: 0; transform: translateY(10px); }
@@ -316,7 +316,7 @@ export default function Home() {
             <h2 style={{ fontSize: 'clamp(2.2rem, 4vw, 3.2rem)', fontWeight: '900', lineHeight: '1.2', marginTop: '1rem' }}>Tudo o Que Você Precisa para Crescer</h2>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2rem' }}>
+          <div className="meada-grid-3" style={{ gap: '2rem' }}>
             {services.map((s, i) => (
               <div key={i} style={{ padding: '2.5rem', borderRadius: '16px', border: '1px solid rgba(59,130,246,0.1)', background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(12px)', cursor: 'pointer', transition: 'all 0.3s ease', display: 'flex', flexDirection: 'column' }}
                 onMouseEnter={e => { e.currentTarget.style.border = `1px solid ${s.color}40`; e.currentTarget.style.transform = 'translateY(-6px)'; e.currentTarget.style.boxShadow = `0 20px 44px ${s.color}15`; e.currentTarget.style.background = 'rgba(15,23,42,0.7)'; }}
@@ -358,7 +358,7 @@ export default function Home() {
             </a>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem' }}>
+          <div className="meada-grid-4" style={{ gap: '1.5rem' }}>
             {[
               {
                 name: 'AmigoPet',

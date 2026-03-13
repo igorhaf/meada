@@ -171,11 +171,10 @@ export default function SobrePage() {
       {/* Story Section */}
       <section style={{ padding: '2rem 2rem 6rem' }}>
         <div
+          className="meada-grid-story"
           style={{
             maxWidth: '1360px',
             margin: '0 auto',
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
             gap: '5rem',
             alignItems: 'start',
           }}
@@ -314,13 +313,7 @@ export default function SobrePage() {
             </p>
           </div>
 
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(2, 1fr)',
-              gap: '1.5rem',
-            }}
-          >
+          <div className="meada-grid-2" style={{ gap: '1.5rem' }}>
             {values.map((value) => {
               const Icon = value.icon;
               return (
@@ -402,13 +395,7 @@ export default function SobrePage() {
             </p>
           </div>
 
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: '1.5rem',
-            }}
-          >
+          <div className="meada-grid-4" style={{ gap: '1.5rem' }}>
             {stats.map((stat) => (
               <div
                 key={stat.label}

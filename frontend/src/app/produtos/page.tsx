@@ -121,7 +121,7 @@ export default function ProdutosPage() {
     <div style={{ backgroundColor: '#000812', color: '#fff', minHeight: '100vh' }}>
       <Navbar />
 
-      <section style={{ paddingTop: '148px', paddingBottom: '100px', padding: '148px 4rem 100px' }}>
+      <section style={{ paddingTop: '148px', paddingBottom: '100px', paddingLeft: '4rem', paddingRight: '4rem' }}>
         <div style={{ maxWidth: '1360px', margin: '0 auto' }}>
 
           {/* Header */}
@@ -136,7 +136,7 @@ export default function ProdutosPage() {
           </div>
 
           {/* Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem' }}>
+          <div className="meada-grid-4" style={{ gap: '1.5rem' }}>
             {PRODUTOS.map((p, i) => (
               <a
                 key={i}

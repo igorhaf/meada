@@ -188,11 +188,10 @@ export default function ContatoPage() {
       {/* Main Content: Form + Info */}
       <section style={{ padding: '2rem 2rem 5rem' }}>
         <div
+          className="meada-grid-contato"
           style={{
             maxWidth: '1360px',
             margin: '0 auto',
-            display: 'grid',
-            gridTemplateColumns: '3fr 2fr',
             gap: '3rem',
             alignItems: 'start',
           }}
@@ -240,7 +239,7 @@ export default function ContatoPage() {
                 </div>
 
                 {/* Email + Telefone Row */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="meada-grid-form-row" style={{ gap: '1rem' }}>
                   <div>
                     <label style={labelStyle} htmlFor="email">
                       Email <span style={{ color: '#3b82f6' }}>*</span>
@@ -600,9 +599,8 @@ export default function ContatoPage() {
           </div>
 
           <div
+            className="meada-grid-2"
             style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(2, 1fr)',
               gap: '1.25rem',
               maxWidth: '960px',
               margin: '0 auto',

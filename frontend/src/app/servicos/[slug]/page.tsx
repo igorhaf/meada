@@ -173,7 +173,7 @@ export default function ServicePage({ params }: { params: Promise<{ slug: string
         <div style={{ position: 'absolute', top: '-20%', left: '-10%', width: '700px', height: '700px', borderRadius: '50%', background: `radial-gradient(circle, ${color}22 0%, transparent 68%)`, filter: 'blur(80px)', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', top: '10%', right: '-10%', width: '500px', height: '500px', borderRadius: '50%', background: `radial-gradient(circle, ${color}12 0%, transparent 68%)`, filter: 'blur(60px)', pointerEvents: 'none' }} />
 
-        <div style={{ maxWidth: '1360px', margin: '0 auto', padding: '0 4rem', position: 'relative', zIndex: 1 }}>
+        <div className="meada-inner-pad" style={{ maxWidth: '1360px', margin: '0 auto', position: 'relative', zIndex: 1 }}>
           <Link href="/servicos" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'rgba(255,255,255,0.45)', textDecoration: 'none', marginBottom: '2.5rem', transition: 'color 0.2s' }}
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.8)'; }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.45)'; }}>
@@ -199,7 +199,7 @@ export default function ServicePage({ params }: { params: Promise<{ slug: string
         <div style={{ maxWidth: '1360px', margin: '0 auto' }}>
           <h2 style={{ fontSize: 'clamp(1.8rem, 3vw, 2.4rem)', fontWeight: '900', marginBottom: '0.75rem' }}>O que está incluso</h2>
           <p style={{ fontSize: '15px', color: 'rgba(148,163,184,0.8)', marginBottom: '3rem' }}>Tudo o que você recebe ao contratar este serviço.</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem' }}>
+          <div className="meada-grid-3" style={{ gap: '1.25rem' }}>
             {features.map((f, i) => (
               <div key={i} style={{ display: 'flex', gap: '1rem', padding: '1.5rem', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.06)', background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(12px)' }}>
                 <div style={{ flexShrink: 0, marginTop: '2px' }}><CheckCircleIcon size={17} color={color} /></div>
@@ -218,7 +218,7 @@ export default function ServicePage({ params }: { params: Promise<{ slug: string
         <div style={{ maxWidth: '1360px', margin: '0 auto' }}>
           <h2 style={{ fontSize: 'clamp(1.8rem, 3vw, 2.4rem)', fontWeight: '900', marginBottom: '0.75rem' }}>Quando faz sentido</h2>
           <p style={{ fontSize: '15px', color: 'rgba(148,163,184,0.8)', marginBottom: '3rem' }}>Exemplos reais de quando este serviço se aplica ao seu negócio.</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2rem' }}>
+          <div className="meada-grid-3" style={{ gap: '2rem' }}>
             {useCases.map((u, i) => (
               <div key={i} style={{ padding: '2.25rem', borderRadius: '18px', border: `1px solid ${color}22`, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(12px)', transition: 'border-color 0.3s, transform 0.3s' }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = `${color}50`; (e.currentTarget as HTMLElement).style.transform = 'translateY(-4px)'; }}
@@ -235,7 +235,7 @@ export default function ServicePage({ params }: { params: Promise<{ slug: string
       {/* CTA */}
       <section style={{ padding: '6rem 4rem 8rem' }}>
         <div style={{ maxWidth: '1360px', margin: '0 auto' }}>
-          <div style={{ borderRadius: '24px', padding: '4rem 5rem', background: `linear-gradient(135deg, ${color}10, rgba(15,23,42,0.7))`, border: `1px solid ${color}20`, position: 'relative', overflow: 'hidden' }}>
+          <div style={{ borderRadius: '24px', padding: '3rem 2.5rem', background: `linear-gradient(135deg, ${color}10, rgba(15,23,42,0.7))`, border: `1px solid ${color}20`, position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', top: '-20%', right: '-5%', width: '400px', height: '400px', borderRadius: '50%', background: `radial-gradient(circle, ${color}18 0%, transparent 65%)`, filter: 'blur(60px)', pointerEvents: 'none' }} />
             <div style={{ position: 'relative', zIndex: 1, maxWidth: '560px' }}>
               <h2 style={{ fontSize: 'clamp(1.8rem, 3vw, 2.8rem)', fontWeight: '900', lineHeight: '1.2', marginBottom: '1.25rem' }}>Pronto para começar?</h2>

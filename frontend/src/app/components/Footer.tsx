@@ -14,9 +14,8 @@ export default function Footer() {
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
         {/* Top Row */}
         <div
+          className="meada-grid-footer"
           style={{
-            display: 'grid',
-            gridTemplateColumns: '2fr 1fr 1fr 1fr',
             gap: '3rem',
             marginBottom: '4rem',
           }}
