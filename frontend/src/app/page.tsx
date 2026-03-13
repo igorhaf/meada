@@ -531,11 +531,11 @@ export default function Home() {
             Do site institucional ao sistema completo. Com integração de IA quando faz sentido. Sem enrolação, com resultado.
           </p>
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button style={{ padding: '13px 32px', background: 'linear-gradient(135deg, #3b82f6, #6366f1)', border: 'none', borderRadius: '12px', color: 'white', fontWeight: '600', fontSize: '15px', cursor: 'pointer', boxShadow: '0 8px 24px rgba(59,130,246,0.3)', transition: 'all 0.22s ease', letterSpacing: '0.01em' }}
+            <Link href="/contato" style={{ padding: '13px 32px', background: 'linear-gradient(135deg, #3b82f6, #6366f1)', borderRadius: '12px', color: 'white', fontWeight: '600', fontSize: '15px', textDecoration: 'none', display: 'inline-block', boxShadow: '0 8px 24px rgba(59,130,246,0.3)', transition: 'all 0.22s ease', letterSpacing: '0.01em' }}
               onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 16px 36px rgba(59,130,246,0.45)'; }}
               onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(59,130,246,0.3)'; }}>
               Agendar Consultoria
-            </button>
+            </Link>
             <Link href="/produtos" style={{ padding: '13px 32px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '12px', color: 'rgba(255,255,255,0.75)', fontWeight: '600', fontSize: '15px', textDecoration: 'none', display: 'inline-block', transition: 'all 0.22s ease', letterSpacing: '0.01em' }}
               onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'; e.currentTarget.style.color = 'white'; }}
               onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = 'rgba(255,255,255,0.75)'; }}>
