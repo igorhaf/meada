@@ -49,13 +49,12 @@ export async function POST(req: NextRequest) {
   const { message, session_id } = await req.json()
 
   const claudioEndpoint = process.env.CLAUDE_ADDRESS ?? 'http://claudio.local/v1/messages'
-  const claudioApiKey = process.env.CLAUDE_API_KEY ?? ''
 
   const upstream = await fetch(claudioEndpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      ...(claudioApiKey ? { 'x-api-key': claudioApiKey } : {}),
+      'x-api-key': '123456789',
     },
     body: JSON.stringify({
       model: 'claude-haiku-4-5',
