@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import { MEADA_SYSTEM_PROMPT } from '@/lib/meada-prompt'
 
 export async function POST(req: NextRequest) {
   const { message, session_id } = await req.json()
@@ -12,7 +13,7 @@ export async function POST(req: NextRequest) {
       'Content-Type': 'application/json',
       'x-api-key': '123456789',
     },
-    body: JSON.stringify({ message, session_id }),
+    body: JSON.stringify({ message, session_id, system_prompt: MEADA_SYSTEM_PROMPT }),
   })
 
   if (!upstream.ok) {

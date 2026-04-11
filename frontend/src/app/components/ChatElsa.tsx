@@ -23,7 +23,9 @@ export default function ChatElsa() {
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    sessionId.current = crypto.randomUUID()
+    sessionId.current = typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2) + Date.now().toString(36)
   }, [])
 
   useEffect(() => {
