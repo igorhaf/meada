@@ -1,0 +1,121 @@
+package com.meada.whatsapp.messaging;
+
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
+
+/**
+ * Acesso a {@code contacts}. Resolve ou cria o contato (cliente final) de uma
+ * mensagem inbound, de forma idempotente sob concorrência.
+ */
+@Repository
+public class ContactRepository {
+
+    private static final RowMapper<Contact> ROW_MAPPER = (rs, rowNum) ->
+        new Contact(
+            (UUID) rs.getObject("id"),
+            (UUID) rs.getObject("company_id"),
+            rs.getString("phone_number"),
+            rs.getString("name"));
+
+    // Caminho quente: contato recorrente já existe (a maioria das mensagens).
+    private static final String SELECT_ACTIVE =
+        "select id, company_id, phone_number, name from contacts "
+            + "where company_id = ? and phone_number = ? and deleted_at is null";
+
+    // Upsert. ON CONFLICT repete o predicado parcial (WHERE deleted_at IS NULL)
+    // para o Postgres reconhecer uq_contacts_company_phone_active como arbiter.
+    // DO UPDATE com WHERE name IS NULL: preenche a lacuna de nome sem sobrescrever
+    // um nome já conhecido. RETURNING:
+    //   - INSERT novo → retorna a linha criada;
+    //   - conflito + name era NULL → o UPDATE casa, retorna a linha atualizada;
+    //   - conflito + name já preenchido → o WHERE do UPDATE não casa, RETURNING
+    //     vem VAZIO (cai no reselect).
+    // (Só é alcançado quando o contato NÃO existia no SELECT do passo 1.)
+    private static final String UPSERT =
+        "insert into contacts (company_id, phone_number, name) values (?, ?, ?) "
+            + "on conflict (company_id, phone_number) where deleted_at is null "
+            + "do update set name = excluded.name where contacts.name is null "
+            + "returning id, company_id, phone_number, name";
+
+    // Preenche o nome de um contato JÁ EXISTENTE cujo name estava null (lacuna),
+    // detectado no caminho quente (passo 1). WHERE name IS NULL é proteção contra
+    // race: se outra thread preencheu entre o SELECT e este UPDATE, não casa →
+    // RETURNING vazio → reselect.
+    private static final String FILL_NAME =
+        "update contacts set name = ? where id = ? and name is null "
+            + "returning id, company_id, phone_number, name";
+
+    private final JdbcTemplate jdbcTemplate;
+
+    public ContactRepository(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
+
+    /**
+     * Resolve o contato ativo de {@code (companyId, phoneNumber)}, criando-o se
+     * não existir. Idempotente: chamadas concorrentes convergem para o mesmo
+     * contato. O {@code name} (pushName do WhatsApp) só preenche a lacuna quando
+     * o contato existente ainda não tem nome — nunca sobrescreve.
+     *
+     * <p>Padrão select-then-upsert-then-reselect (otimiza o caminho quente:
+     * contato recorrente sai no passo 1, sem INSERT):
+     * <ol>
+     *   <li>SELECT ativo — se achou, retorna (caminho dominante).
+     *   <li>UPSERT — se RETURNING traz linha (novo, ou nome preenchido agora), retorna.
+     *   <li>Reselect — RETURNING vazio significa que o contato existe com nome já
+     *       preenchido OU outra thread o criou entre 1 e 2; em ambos, reselect resolve.
+     * </ol>
+     *
+     * @return o contato persistido (o {@code name} reflete o estado do banco).
+     */
+    public Contact resolveOrCreate(UUID companyId, String phoneNumber, String name) {
+        Objects.requireNonNull(companyId, "companyId must not be null");
+        Objects.requireNonNull(phoneNumber, "phoneNumber must not be null");
+
+        // 1. caminho quente: contato recorrente já existe.
+        Optional<Contact> existing = selectActive(companyId, phoneNumber);
+        if (existing.isPresent()) {
+            Contact contact = existing.get();
+            // Preenche a lacuna de nome SEM sobrescrever: contato existe sem name
+            // e agora chegou um pushName. Se já tem name, retorna como está (puro
+            // caminho quente — só o SELECT). O SELECT-primeiro retornaria o name
+            // null sem o upsert nunca rodar, por isso o preenchimento é explícito aqui.
+            if (contact.name() == null && name != null) {
+                List<Contact> filled = jdbcTemplate.query(FILL_NAME, ROW_MAPPER, name, contact.id());
+                if (!filled.isEmpty()) {
+                    return filled.get(0);
+                }
+                // Race: outra thread preencheu name entre o SELECT e o UPDATE. Reselect.
+                return selectActive(companyId, phoneNumber)
+                    .orElseThrow(() -> new IllegalStateException(
+                        "Contact disappeared during fillName for company=" + companyId
+                            + " phone=" + phoneNumber));
+            }
+            return contact;
+        }
+
+        // 2. upsert
+        List<Contact> upserted = jdbcTemplate.query(UPSERT, ROW_MAPPER, companyId, phoneNumber, name);
+        if (!upserted.isEmpty()) {
+            return upserted.get(0);
+        }
+
+        // 3. reselect (race genuína, ou conflito com nome já preenchido)
+        return selectActive(companyId, phoneNumber)
+            .orElseThrow(() -> new IllegalStateException(
+                "Contact disappeared after ON CONFLICT for company=" + companyId
+                    + " phone=" + phoneNumber));
+    }
+
+    private Optional<Contact> selectActive(UUID companyId, String phoneNumber) {
+        return jdbcTemplate.query(SELECT_ACTIVE, ROW_MAPPER, companyId, phoneNumber)
+            .stream()
+            .findFirst();
+    }
+}
