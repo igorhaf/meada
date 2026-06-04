@@ -1,0 +1,57 @@
+# Evolution API v2 local — para validação E2E do backend whatsapp.
+# Sobe Evolution + Postgres (estado da Evolution) + Redis, isolados. NÃO confundir
+# o Postgres daqui com o Supabase do produto: este guarda o estado interno da
+# Evolution (instâncias/sessões); o backend whatsapp fala com o Supabase remoto.
+#
+#   cd evolution-local && docker compose up -d
+#
+# Imagem: evoapicloud/evolution-api:v2.3.1 — o repositório ATIVO (o antigo
+# atendai/ parou em v2.2.3 há +1 ano, com Baileys velho demais para o protocolo
+# WhatsApp de 2026, que não completa o handshake/QR). Os endpoints que o
+# EvolutionClient usa (/message/sendText/{instance}, /webhook/set) são estáveis
+# em toda a linha v2 — confirmado no cenário PROCESSED da validação.
+services:
+  evolution-api:
+    image: evoapicloud/evolution-api:v2.3.1
+    container_name: evolution-local-api
+    restart: unless-stopped
+    ports:
+      - "8086:8080"          # host 8086 → container 8080 (8095 é do backend)
+    env_file:
+      - .env
+    # host.docker.internal permite o container chamar o backend que roda no HOST
+    # (WSL), na porta 8095. No Docker Linux/WSL2 isso exige o host-gateway abaixo.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - evolution_instances:/evolution/instances
+    depends_on:
+      - evolution-postgres
+      - evolution-redis
+
+  evolution-postgres:
+    image: postgres:16-alpine
+    container_name: evolution-local-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: evolution
+      POSTGRES_PASSWORD: evolution_local
+      POSTGRES_DB: evolution
+    ports:
+      - "5433:5432"          # host 5433 (5432 evita colisão com outros Postgres locais)
+    volumes:
+      - evolution_pgdata:/var/lib/postgresql/data
+
+  evolution-redis:
+    image: redis:7-alpine
+    container_name: evolution-local-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"          # host 6380 (6379 pode estar em uso)
+    volumes:
+      - evolution_redis:/data
+
+volumes:
+  evolution_instances:
+  evolution_pgdata:
+  evolution_redis:

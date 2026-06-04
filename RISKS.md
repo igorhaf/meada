@@ -42,10 +42,11 @@ Template por item:
 
 ## Nome do modelo Gemini vigente a confirmar antes do deploy
 
-- **Status:** Aberto.
-- **Bloqueante para:** Validação manual da Fase 3.4 (e deploy de produção da camada 3).
+- **Status:** Mitigado (2026-06-04).
+- **Bloqueante para:** ~~Validação manual da Fase 3.4~~ — resolvido.
 - **Razão:** A doc oficial da Gemini cita variantes de nome diferentes em exemplos diferentes (gemini-1.5-flash, 2.0-flash, 2.5-flash, 3.5-flash). O Google renomeia modelos com frequência, e um nome desatualizado faz a API recusar a chamada. O `GeminiProvider` lê o modelo de `GEMINI_MODEL` (env, sem default no código — fail-fast) justamente para não enterrar um nome que envelhece silenciosamente. Os testes (MockWebServer) usam um valor qualquer e não validam o nome real.
 - **Plano de mitigação:** Na validação manual da Fase 3.4, confirmar o nome do modelo flash vigente contra a API real (`GET /v1beta/models` ou doc atual) e preencher `GEMINI_MODEL` com o nome confirmado antes do deploy. Documentar o nome validado aqui (mudando o Status para Mitigado).
+- **Mitigação aplicada:** `GET /v1beta/models` (2026-06-04) autenticou (HTTP 200) e listou `models/gemini-3.5-flash` no catálogo. `GEMINI_MODEL=gemini-3.5-flash` confirmado vigente e disponível. A chamada real `generateContent` ainda será exercida no cenário PROCESSED, mas o nome do modelo deixa de ser incógnita.
 - **Detectado em:** Camada 3 (IA), Fase 3.2, ao desenhar o `GeminiProvider`.
 
 ---
@@ -67,3 +68,15 @@ Template por item:
 - **Razão:** Se o `evolution_token` ou o `instance_name` de um tenant estiverem errados, TODO envio outbound falha com erro fatal (401/404). A decisão (matriz do OutboundService, caso 8) é NÃO fazer flip para humano — porque o atendente humano usaria o mesmo canal quebrado, e flip empilharia conversas em `handled_by='human'` sem ninguém poder responder (backlog invisível). Em vez disso: log ERROR, `handled_by` continua 'ai', e cada nova mensagem tenta enviar e falha igual — até um admin corrigir a config. Consequência: o tenant fica efetivamente sem responder (inbound persiste, IA gera resposta, mas não entrega) até a intervenção.
 - **Plano de mitigação:** O log ERROR (com `reason` evolution_auth_failed/evolution_instance_not_found, instance, company_id) deve ser ALERTÁVEL no monitoramento — é como o problema é descoberto, não por flip silencioso. Operação corrige token/instance na config do tenant. Pós-MVP: um health-check de instância no onboarding/periódico evitaria o tenant entrar quebrado.
 - **Detectado em:** Camada 3 (IA), Fase 3.3, na matriz de fluxo do OutboundService.
+
+---
+
+## WhatsApp @lid em mensagens reais é silenciosamente ignorado (sem perda de dado, mas sem resposta)
+
+- **Status:** Aceito (com alerta WARN — mitigação já no código).
+- **Bloqueante para:** N/A — comportamento defensivo correto; sem solução técnica enquanto o número não vier no payload.
+- **Razão:** A Evolution v2.3.1 emite `remoteJid: <opaco>@lid` em mensagens reais (LID = Local Identifier do WhatsApp, privacidade — migração iniciada em 2023, irreversível), SEM trazer `remoteJidAlt` nem `senderPn` em formato `@s.whatsapp.net` (validado contra 39 mensagens reais na sessão de validação E2E: 0 traziam o número). O `MessagePayloadNormalizer` classifica `@lid` como `JidType.UNKNOWN` e o webhook retorna `IGNORED_UNKNOWN_JID`. É o comportamento correto — NÃO há como inventar o número de telefone a partir do LID (o mapeamento LID→número é unidirecional e não exposto no payload) — mas significa que essas mensagens do cliente não são processadas nem respondidas pela IA. Correlação reportada em discussões da comunidade Baileys (NÃO confirmada por testes nossos): ocorreria tipicamente com remetente Android, enquanto iPhone tende a enviar `@s.whatsapp.net`. Útil como hipótese diagnóstica, não como fato cravado — nosso fato validado é apenas "39/39 @lid sem número lateral".
+- **Mitigação no código (já existe desde a camada 2):** `IGNORED_UNKNOWN_JID` já é nível `WARN` (não INFO) e o log já inclui `raw_jid=...@lid` literal — operador detecta via filtro de log. Nenhuma mensagem é corrompida ou perdida no banco (a inbound simplesmente não é persistida, pois não há contato resolvível); não há flip nem backlog falso.
+- **Plano de mitigação futura:** quando aparecer um payload real de WEBHOOK `@lid` que inclua `remoteJidAlt` ou `senderPn` em formato `@s.whatsapp.net` (versão futura da Evolution, ou conta WhatsApp Business com config diferente), capturar o payload BRUTO, cravar a estrutura real observada, e só então adicionar um ramo "recupera" ao `MessagePayloadNormalizer` (classificar como `USER` com o número do campo lateral). Sem código especulativo — a v2.3.1 atual não traz esses campos, então o ramo não tem caso real para validar hoje.
+- **Produto futuro (não codificar agora):** quando o volume de `@lid` ignorado virar dor real, decidir entre (a) painel/dashboard expondo mensagens perdidas para o admin investigar manualmente, ou (b) endpoint de reenvio quando a Evolution expuser o número. Métrica/contador é melhor obtida por agregação de log (`outcome=IGNORED_UNKNOWN_JID` por janela) do que por código novo — YAGNI até haver consumidor.
+- **Detectado em:** Validação E2E Camada 3, sessão 2026-06-04, ao inspecionar `/chat/findMessages/meada-delta-01`.

@@ -54,3 +54,8 @@ A porta local pode colidir com o Orbit (8080) — usar `SERVER_PORT=8088` em dev
   tests sobem PostgreSQL 17-alpine via Testcontainers.
 - **Maven** 3.8.7+ no PATH.
 - **JDK 17 Temurin** (ver acima).
+
+## Follow-ups técnicos
+
+### Evolution: investigar tag que exponha `remoteJidAlt` em 1:1
+A `evoapicloud/evolution-api:v2.3.1` (usada na validação E2E local) **não** expõe `remoteJidAlt` nem `senderPn` (`@s.whatsapp.net`) em mensagens `@lid` 1:1 — validado contra 39 mensagens reais (0 traziam o número). Investigar se há uma tag mais recente de `evoapicloud/evolution-api` que exponha `remoteJidAlt` de forma consistente em 1:1. Se houver, subir essa versão **é frente própria** (operação de infra Docker, exige nova validação E2E — como foi o salto v2.1.1 → v2.3.1 que destravou o pareamento), separada do código. Com o campo disponível, capturar o payload real e adicionar o ramo de recuperação ao `MessagePayloadNormalizer` (ver item "@lid" no [RISKS.md](RISKS.md)).
