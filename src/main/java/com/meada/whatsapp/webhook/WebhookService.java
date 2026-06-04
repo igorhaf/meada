@@ -12,10 +12,12 @@ import com.meada.whatsapp.messaging.MessageSender;
 import com.meada.whatsapp.messaging.NormalizedJid;
 import com.meada.whatsapp.messaging.WhatsappInstance;
 import com.meada.whatsapp.messaging.WhatsappInstanceRepository;
+import com.meada.whatsapp.outbound.MessageInboundProcessedEvent;
 import com.meada.whatsapp.webhook.dto.EvolutionWebhookPayload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,6 +44,10 @@ import java.util.Optional;
  * <p>Spring é escritor único de messages (via service_role). @Transactional torna
  * contato+conversa+message+touch atômicos: se a inserção falhar, o contato/conversa
  * criados nesta chamada revertem.
+ *
+ * <p>No ramo PROCESSED publica um {@link MessageInboundProcessedEvent} (dentro da
+ * transação); o OutboundEventListener o consome em AFTER_COMMIT/async e dispara a
+ * resposta da IA. O próprio envio outbound continua sendo de outra camada (3.3).
  */
 @Service
 public class WebhookService {
@@ -55,17 +61,20 @@ public class WebhookService {
     private final ConversationRepository conversationRepository;
     private final MessageRepository messageRepository;
     private final MessagePayloadNormalizer normalizer;
+    private final ApplicationEventPublisher eventPublisher;
 
     public WebhookService(WhatsappInstanceRepository instanceRepository,
                           ContactRepository contactRepository,
                           ConversationRepository conversationRepository,
                           MessageRepository messageRepository,
-                          MessagePayloadNormalizer normalizer) {
+                          MessagePayloadNormalizer normalizer,
+                          ApplicationEventPublisher eventPublisher) {
         this.instanceRepository = instanceRepository;
         this.contactRepository = contactRepository;
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
         this.normalizer = normalizer;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -131,6 +140,14 @@ public class WebhookService {
         }
 
         conversationRepository.touchLastMessageAt(conversation.id(), resolveTimestamp(data.messageTimestamp()));
+
+        // Dispara o pipeline de resposta da IA. Publicado DENTRO da transação: o
+        // OutboundEventListener é @TransactionalEventListener(AFTER_COMMIT), então só
+        // processa depois que esta inbound está durável (ele relê handled_by/phone/
+        // histórico do banco). Só no ramo PROCESSED (inbound NOVA de cliente) — nunca
+        // em IGNORED_* (duplicata/eco/grupo não disparam IA).
+        eventPublisher.publishEvent(new MessageInboundProcessedEvent(
+            wi.companyId(), conversation.id(), wi.id(), content));
         return logOutcome(WebhookOutcome.PROCESSED, "instance", payload.instance());
     }
 

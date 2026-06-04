@@ -104,9 +104,8 @@ public class OutboundService {
         // ---- BLOCO 0 — pré-condição: só processa IA se a conversa ainda é 'ai' ----
         Optional<String> handledBy = conversationRepository.findHandledBy(conversationId);
         if (handledBy.isEmpty() || !"ai".equals(handledBy.get())) {
-            log.info("outbound skipped: conversation {} not handled by ai (handledBy={})",
-                conversationId, handledBy.orElse("<absent>"));
-            return OutboundOutcome.SKIPPED_NOT_AI;
+            // IA não rodou → sem aiResponse, sem reason.
+            return logOutcome(OutboundOutcome.SKIPPED_NOT_AI, event, null, null);
         }
 
         // ---- BLOCO 1 — monta o prompt e chama a IA com retry ----
@@ -124,9 +123,9 @@ public class OutboundService {
             // AiException pega AMBOS — transient esgotada (após N tentativas) e fatal —
             // porque AiTransientException extends AiException. Casos 4+5 colapsam aqui.
             conversationRepository.markHandledByHuman(conversationId);
-            log.warn("outbound: AI failed for conversation {} ({}), flipped to human",
-                conversationId, e.getMessage());
-            return OutboundOutcome.FLIPPED_AI_EXHAUSTED;
+            // IA falhou (sem AiResponse válido); o detalhe do erro vai no warn abaixo.
+            log.warn("outbound: AI call failed for conversation {} ({})", conversationId, e.getMessage());
+            return logOutcome(OutboundOutcome.FLIPPED_AI_EXHAUSTED, event, null, null);
         }
 
         // ---- BLOCO 2 — branching pelo AiResponse ----
@@ -135,19 +134,16 @@ public class OutboundService {
         if (aiResponse.needsHuman()) {
             if (hasReply) {
                 // caso 1: envia a resposta-ponte ao cliente, grava, depois flipa.
-                Optional<OutboundOutcome> sendFailure = sendAndPersist(event, conversationId, aiResponse.reply());
+                Optional<OutboundOutcome> sendFailure = sendAndPersist(event, conversationId, aiResponse);
                 if (sendFailure.isPresent()) {
-                    return sendFailure.get();   // falha de envio domina (casos 7/8/9)
+                    return sendFailure.get();   // falha de envio domina (casos 7/8/9) — já logado lá
                 }
                 conversationRepository.markHandledByHuman(conversationId);
-                log.info("outbound: AI needs human (with bridge reply) for conversation {}, flipped",
-                    conversationId);
-                return OutboundOutcome.FLIPPED_AI_HANDOFF;
+                return logOutcome(OutboundOutcome.FLIPPED_AI_HANDOFF, event, aiResponse, null);
             }
             // caso 2: precisa de humano e não há reply — flipa direto, sem enviar.
             conversationRepository.markHandledByHuman(conversationId);
-            log.info("outbound: AI needs human (no reply) for conversation {}, flipped", conversationId);
-            return OutboundOutcome.FLIPPED_AI_HANDOFF;
+            return logOutcome(OutboundOutcome.FLIPPED_AI_HANDOFF, event, aiResponse, null);
         }
 
         // needsHuman == false
@@ -155,18 +151,15 @@ public class OutboundService {
             // caso 3: contrato quebrado — a IA disse que NÃO precisa de humano mas não
             // produziu resposta. Flipa e sinaliza para investigar prompt/modelo.
             conversationRepository.markHandledByHuman(conversationId);
-            log.warn("outbound: AI returned empty reply without needsHuman for conversation {} "
-                + "(broken contract), flipped to human", conversationId);
-            return OutboundOutcome.FLIPPED_AI_BAD_REPLY;
+            return logOutcome(OutboundOutcome.FLIPPED_AI_BAD_REPLY, event, aiResponse, null);
         }
 
         // caso 6: caminho feliz — envia e grava.
-        Optional<OutboundOutcome> sendFailure = sendAndPersist(event, conversationId, aiResponse.reply());
+        Optional<OutboundOutcome> sendFailure = sendAndPersist(event, conversationId, aiResponse);
         if (sendFailure.isPresent()) {
-            return sendFailure.get();   // casos 7/8/9
+            return sendFailure.get();   // casos 7/8/9 — já logado lá
         }
-        log.info("outbound: processed conversation {}", conversationId);
-        return OutboundOutcome.PROCESSED;
+        return logOutcome(OutboundOutcome.PROCESSED, event, aiResponse, null);
     }
 
     /**
@@ -179,7 +172,9 @@ public class OutboundService {
      *         não conclua — o caller propaga esse outcome direto.
      */
     private Optional<OutboundOutcome> sendAndPersist(MessageInboundProcessedEvent event,
-                                                     UUID conversationId, String reply) {
+                                                     UUID conversationId, AiResponse aiResponse) {
+        String reply = aiResponse.reply();
+
         // ---- BLOCO 3a — destinatário ----
         Optional<String> phone = contactRepository.findPhoneByConversationId(conversationId);
         if (phone.isEmpty() || phone.get().isBlank()) {
@@ -188,9 +183,8 @@ public class OutboundService {
             // caminho de APLICAÇÃO é inalcançável (phone_number NOT NULL, FK contact_id
             // ON DELETE RESTRICT, JOIN não filtra deleted_at) — por isso sem teste de
             // integração. Simétrico ao guard de credenciais em 3b. SEM flip.
-            log.error("outbound: missing phone for conversation {} (reason=missing_phone), no flip",
-                conversationId);
-            return Optional.of(OutboundOutcome.EVOLUTION_CONFIG_ERROR);
+            return Optional.of(logOutcome(
+                OutboundOutcome.EVOLUTION_CONFIG_ERROR, event, aiResponse, "missing_phone"));
         }
 
         // ---- BLOCO 3b — credenciais da instância ----
@@ -198,9 +192,8 @@ public class OutboundService {
             whatsappInstanceRepository.findEvolutionCredentials(event.whatsappInstanceId());
         if (creds.isEmpty()) {
             // caso 9.2: instância sumiu. SEM flip.
-            log.error("outbound: missing credentials for instance {} (reason=missing_credentials), no flip",
-                event.whatsappInstanceId());
-            return Optional.of(OutboundOutcome.EVOLUTION_CONFIG_ERROR);
+            return Optional.of(logOutcome(
+                OutboundOutcome.EVOLUTION_CONFIG_ERROR, event, aiResponse, "missing_credentials"));
         }
 
         // ---- BLOCO 3c — envio com retry ----
@@ -213,14 +206,14 @@ public class OutboundService {
         } catch (EvolutionTransientException e) {
             // caso 7: transient esgotado após retries — flipa (humano tenta de novo).
             conversationRepository.markHandledByHuman(conversationId);
-            log.warn("outbound: Evolution transient exhausted for conversation {} ({}), flipped to human",
-                conversationId, e.getMessage());
-            return Optional.of(OutboundOutcome.FLIPPED_EVOLUTION_EXHAUSTED);
+            log.warn("outbound: Evolution transient exhausted ({})", e.getMessage());
+            return Optional.of(logOutcome(
+                OutboundOutcome.FLIPPED_EVOLUTION_EXHAUSTED, event, aiResponse, null));
         } catch (EvolutionException e) {
             // caso 8: fatal (4xx/parse) — canal quebrado, SEM flip (humano falharia igual).
-            log.error("outbound: Evolution fatal error for conversation {} ({}, reason=evolution_fatal), no flip",
-                conversationId, e.getMessage());
-            return Optional.of(OutboundOutcome.EVOLUTION_CONFIG_ERROR);
+            log.warn("outbound: Evolution fatal error ({})", e.getMessage());
+            return Optional.of(logOutcome(
+                OutboundOutcome.EVOLUTION_CONFIG_ERROR, event, aiResponse, "evolution_fatal"));
         }
 
         // ---- BLOCO 4 — persiste a outbound ----
@@ -233,6 +226,42 @@ public class OutboundService {
             log.warn("outbound: evolution_message_id {} already persisted for conversation {} "
                 + "(duplicate processing?)", keyId, conversationId);
         }
-        return Optional.empty();   // sucesso
+        return Optional.empty();   // sucesso (o caller loga o outcome final PROCESSED/HANDOFF)
+    }
+
+    /**
+     * Log estruturado (key=value, espelha o WebhookService da camada 2) do desfecho.
+     * Nível pelo {@link OutboundOutcome#logLevel()}. Nunca loga reply/conteúdo (PII).
+     *
+     * <p>Campos: sempre {@code outcome, company_id, conversation_id}; se
+     * {@code aiResponse != null} (IA rodou com sucesso) também {@code tokens_in,
+     * tokens_out, latency_ms, needs_human}; se {@code reason != null} (ramos ERROR)
+     * também {@code reason}. Retorna o outcome para o caller encadear no return.
+     *
+     * @param aiResponse métricas da IA, ou null se a IA não rodou (SKIPPED) ou falhou
+     *                   (FLIPPED_AI_EXHAUSTED) — nesses casos não há tokens a logar.
+     * @param reason     motivo dos EVOLUTION_CONFIG_ERROR (missing_phone /
+     *                   missing_credentials / evolution_fatal); null nos demais.
+     */
+    private OutboundOutcome logOutcome(OutboundOutcome outcome, MessageInboundProcessedEvent event,
+                                       AiResponse aiResponse, String reason) {
+        StringBuilder msg = new StringBuilder("outbound outcome=").append(outcome.name())
+            .append(" company_id=").append(event.companyId())
+            .append(" conversation_id=").append(event.conversationId());
+        if (aiResponse != null) {
+            msg.append(" tokens_in=").append(aiResponse.tokensIn())
+               .append(" tokens_out=").append(aiResponse.tokensOut())
+               .append(" latency_ms=").append(aiResponse.latencyMs())
+               .append(" needs_human=").append(aiResponse.needsHuman());
+        }
+        if (reason != null) {
+            msg.append(" reason=").append(reason);
+        }
+        switch (outcome.logLevel()) {
+            case ERROR -> log.error(msg.toString());
+            case WARN -> log.warn(msg.toString());
+            default -> log.info(msg.toString());
+        }
+        return outcome;
     }
 }
