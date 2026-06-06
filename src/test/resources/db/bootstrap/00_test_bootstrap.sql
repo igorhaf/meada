@@ -85,3 +85,11 @@ create role anon noinherit;
 -- current_user resolve para o superuser real em qualquer ambiente: 'test' no
 -- Testcontainers, 'postgres' no Supabase. Sem hardcode.
 grant service_role, authenticated, anon to current_user;
+
+-- ARTIFÍCIO DE TESTE: permite o service_role inserir em auth.users no seed de teste
+-- (seedTenantAdmin). Em PRODUÇÃO, quem escreve em auth.users é a plataforma Supabase
+-- Auth, não o backend service_role — este grant existe SÓ para o seed simular a
+-- pré-condição (linha em auth.users antes da FK de public.users). Não reflete privilégio
+-- de produção. DEVE vir depois do `create role service_role` acima.
+grant usage on schema auth to service_role;
+grant insert, select on auth.users to service_role;

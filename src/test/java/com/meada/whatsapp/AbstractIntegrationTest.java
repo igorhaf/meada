@@ -51,6 +51,12 @@ import java.sql.SQLException;
 @Testcontainers
 public abstract class AbstractIntegrationTest {
 
+    /** Secret HS256 de teste (>= 32 bytes). FONTE ÚNICA: injetado em supabase.jwt-secret
+     *  via @DynamicPropertySource (abaixo) E usado pelo mintToken do AbstractAdminIntegrationTest
+     *  para assinar tokens. O mesmo secret nos dois lados é o que faz a assinatura validar. */
+    protected static final String TEST_JWT_SECRET =
+        "test-secret-with-at-least-32-bytes-for-hs256-please";
+
     static final PostgreSQLContainer<?> POSTGRES =
         new PostgreSQLContainer<>("postgres:17-alpine");
 
@@ -112,6 +118,16 @@ public abstract class AbstractIntegrationTest {
         // placeholder para o contexto subir nos testes de integração. O teste do
         // EvolutionClient em si aponta o base-url para o MockWebServer.
         registry.add("evolution.base-url", () -> "http://localhost:0");
+        // Admin (camada 4.1): o JwtAuthenticationFilter instancia o MACVerifier no boot
+        //   com supabase.jwt-secret — precisa de >= 32 bytes (HS256). admin.cors-allowed-origins
+        //   fixo (o AdminCorsConfig lê no boot).
+        // admin.super-admin-emails NÃO é registrado aqui de propósito: @DynamicPropertySource
+        //   tem precedência sobre @TestPropertySource, então registrar "" aqui venceria
+        //   qualquer override de subclasse. Sem registro → o filtro lê null → requireNonNullElse
+        //   → allowlist vazia (correto para os testes não-admin). Os testes admin definem a
+        //   allowlist via @DynamicPropertySource próprio (AbstractAdminIntegrationTest).
+        registry.add("supabase.jwt-secret", () -> TEST_JWT_SECRET);
+        registry.add("admin.cors-allowed-origins", () -> "http://localhost:3000");
     }
 
     /**
