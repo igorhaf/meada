@@ -7,6 +7,8 @@ import org.junit.jupiter.api.Test;
 import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -21,6 +23,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class JwtAuthenticationFilterIntegrationTest extends AbstractAdminIntegrationTest {
 
     private static final UUID SUB = UUID.fromString("11111111-1111-1111-1111-111111111111");
+
+    // ---- preflight CORS -----------------------------------------------------
+
+    @Test
+    @DisplayName("OPTIONS /admin/me (preflight CORS) → NÃO bloqueado pelo filtro (200 + Access-Control-Allow-Origin)")
+    void preflightOptionsIsNotBlockedByAuthFilter() throws Exception {
+        mockMvc.perform(options("/admin/me")
+                .header("Origin", "http://localhost:3000")
+                .header("Access-Control-Request-Method", "GET")
+                .header("Access-Control-Request-Headers", "authorization"))
+            .andExpect(status().isOk())
+            .andExpect(header().exists("Access-Control-Allow-Origin"));
+    }
 
     // ---- problemas de header ------------------------------------------------
 
@@ -52,9 +67,9 @@ class JwtAuthenticationFilterIntegrationTest extends AbstractAdminIntegrationTes
     }
 
     @Test
-    @DisplayName("assinatura inválida (secret errado) → 401 invalid_signature")
-    void wrongSecret_returns401() throws Exception {
-        String token = mintTokenWithWrongSecret(SUPER_ADMIN_EMAIL, SUB);
+    @DisplayName("assinatura inválida (key errada / kid não encontrada no JWKS) → 401 invalid_signature")
+    void wrongKey_returns401() throws Exception {
+        String token = mintTokenWithWrongKey(SUPER_ADMIN_EMAIL, SUB);
         mockMvc.perform(get("/admin/me").header("Authorization", "Bearer " + token))
             .andExpect(status().isUnauthorized())
             .andExpect(jsonPath("$.reason").value("invalid_signature"));
@@ -74,7 +89,7 @@ class JwtAuthenticationFilterIntegrationTest extends AbstractAdminIntegrationTes
     @Test
     @DisplayName("token sem claim email → 401 invalid_claims")
     void tokenWithoutEmailIsInvalidClaims() throws Exception {
-        String token = mintTokenRawSub(null, SUB.toString(), TEST_JWT_SECRET, oneHourFromNow());
+        String token = mintTokenRawSub(null, SUB.toString(), TestJwtKeys.SIGNING_KEY, oneHourFromNow());
         mockMvc.perform(get("/admin/me").header("Authorization", "Bearer " + token))
             .andExpect(status().isUnauthorized())
             .andExpect(jsonPath("$.reason").value("invalid_claims"));
@@ -83,7 +98,7 @@ class JwtAuthenticationFilterIntegrationTest extends AbstractAdminIntegrationTes
     @Test
     @DisplayName("token sem claim sub → 401 invalid_claims")
     void tokenWithoutSubIsInvalidClaims() throws Exception {
-        String token = mintTokenRawSub(SUPER_ADMIN_EMAIL, null, TEST_JWT_SECRET, oneHourFromNow());
+        String token = mintTokenRawSub(SUPER_ADMIN_EMAIL, null, TestJwtKeys.SIGNING_KEY, oneHourFromNow());
         mockMvc.perform(get("/admin/me").header("Authorization", "Bearer " + token))
             .andExpect(status().isUnauthorized())
             .andExpect(jsonPath("$.reason").value("invalid_claims"));
@@ -92,7 +107,7 @@ class JwtAuthenticationFilterIntegrationTest extends AbstractAdminIntegrationTes
     @Test
     @DisplayName("token com sub não-UUID → 401 invalid_claims")
     void tokenWithNonUuidSubIsInvalidClaims() throws Exception {
-        String token = mintTokenRawSub(SUPER_ADMIN_EMAIL, "not-a-uuid", TEST_JWT_SECRET, oneHourFromNow());
+        String token = mintTokenRawSub(SUPER_ADMIN_EMAIL, "not-a-uuid", TestJwtKeys.SIGNING_KEY, oneHourFromNow());
         mockMvc.perform(get("/admin/me").header("Authorization", "Bearer " + token))
             .andExpect(status().isUnauthorized())
             .andExpect(jsonPath("$.reason").value("invalid_claims"));

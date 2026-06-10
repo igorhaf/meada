@@ -2,9 +2,15 @@ package com.meada.whatsapp.admin.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.crypto.MACVerifier;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.jwk.source.JWKSource;
+import com.nimbusds.jose.proc.BadJOSEException;
+import com.nimbusds.jose.proc.JWSVerificationKeySelector;
+import com.nimbusds.jose.proc.SecurityContext;
 import com.nimbusds.jwt.JWTClaimsSet;
-import com.nimbusds.jwt.SignedJWT;
+import com.nimbusds.jwt.proc.BadJWTException;
+import com.nimbusds.jwt.proc.ConfigurableJWTProcessor;
+import com.nimbusds.jwt.proc.DefaultJWTProcessor;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,9 +25,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -30,9 +34,15 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * Autentica requests a {@code /admin/**} validando o JWT do Supabase (HS256) e
- * resolvendo a identidade de forma EAGER (decisão B2): produz um {@link AuthenticatedUser}
- * completo que os controllers leem via {@code @RequestAttribute("authenticatedUser")}.
+ * Autentica requests a {@code /admin/**} validando o JWT do Supabase (ES256, chaves
+ * assimétricas via JWKS — ver {@link JwksConfig}) e resolvendo a identidade de forma
+ * EAGER (decisão B2): produz um {@link AuthenticatedUser} completo que os controllers
+ * leem via {@code @RequestAttribute("authenticatedUser")}.
+ *
+ * <p>A verificação é feita por um {@link DefaultJWTProcessor} com
+ * {@link JWSVerificationKeySelector}(ES256) sobre o {@link JWKSource} injetado: o
+ * processor seleciona a chave pública pela {@code kid} do token e verifica a assinatura.
+ * Suporta rotação automática de keys (o RemoteJWKSet re-busca quando a kid muda).
  *
  * <p>@Order(2): roda depois do WebhookSecretFilter (@Order(1)); cada filtro só atua no
  * seu prefixo de path (shouldNotFilter). Espelha o padrão do WebhookSecretFilter.
@@ -59,24 +69,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final String SELECT_COMPANY_ID =
         "select company_id from users where id = ?";
 
-    private final MACVerifier macVerifier;
+    private final ConfigurableJWTProcessor<SecurityContext> jwtProcessor;
     private final Set<String> allowlistLower;
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
 
     public JwtAuthenticationFilter(AdminProperties adminProperties,
-                                   @Value("${supabase.jwt-secret}") String jwtSecret,
+                                   JWKSource<SecurityContext> jwkSource,
                                    JdbcTemplate jdbcTemplate,
                                    ObjectMapper objectMapper) {
         this.jdbcTemplate = jdbcTemplate;
         this.objectMapper = objectMapper;
-        try {
-            // HS256 exige secret >= 256 bits (32 bytes); MACVerifier lança no boot se curto.
-            this.macVerifier = new MACVerifier(jwtSecret.getBytes(StandardCharsets.UTF_8));
-        } catch (JOSEException e) {
-            throw new IllegalStateException(
-                "Invalid supabase.jwt-secret for HS256 (must be >= 32 bytes)", e);
-        }
+        // Processor que verifica a assinatura ES256 selecionando a chave pública pela kid
+        // do token (via JWKSource) E valida claims (exp/nbf) pelo DefaultJWTClaimsVerifier
+        // padrão do nimbus — com tolerância a clock skew, que a validação manual não tinha.
+        // exp expirado vira BadJWTException, mapeada para token_expired em parseAndVerify.
+        DefaultJWTProcessor<SecurityContext> processor = new DefaultJWTProcessor<>();
+        processor.setJWSKeySelector(new JWSVerificationKeySelector<>(JWSAlgorithm.ES256, jwkSource));
+        this.jwtProcessor = processor;
         // allowlist normalizada (lowercase) uma vez no boot; null-safe se a key faltar no YAML.
         this.allowlistLower = Objects.requireNonNullElse(
                 adminProperties.superAdminEmails(), List.<String>of())
@@ -85,10 +95,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             .collect(Collectors.toSet());
     }
 
-    /** Só filtra /admin/**. Demais rotas (webhook, futuro health) passam direto. */
+    /** Só filtra /admin/**. Demais rotas (webhook, futuro health) passam direto.
+     * OPTIONS (preflight CORS do browser) também passa direto — preflight não tem
+     * credenciais e deve ser respondido pelo handler de CORS do Spring (AdminCorsConfig),
+     * não pelo filtro de auth. Sem essa exclusão, o filtro responderia 401 e mataria o
+     * preflight antes do CORS, quebrando todo request cross-origin do browser. */
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !request.getRequestURI().startsWith(ADMIN_PATH_PREFIX);
+        return "OPTIONS".equals(request.getMethod())
+            || !request.getRequestURI().startsWith(ADMIN_PATH_PREFIX);
     }
 
     @Override
@@ -128,34 +143,30 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return header.substring(BEARER_PREFIX.length());
     }
 
-    /** Parseia, verifica assinatura HS256, valida exp e extrai email+userId. */
+    /** Parseia, verifica assinatura ES256 (via JWKS) + exp/nbf, e extrai email+userId. */
     private VerifiedClaims parseAndVerify(String token) {
-        SignedJWT signedJWT;
-        try {
-            signedJWT = SignedJWT.parse(token);
-        } catch (ParseException e) {
-            throw new AuthRejectException(401, "malformed_token");
-        }
-
-        try {
-            if (!signedJWT.verify(macVerifier)) {
-                throw new AuthRejectException(401, "invalid_signature");
-            }
-        } catch (JOSEException e) {
-            throw new AuthRejectException(401, "invalid_signature");
-        }
-
+        // process() faz, num passo: parse + seleção da chave pública pela kid +
+        // verificação ES256 + validação de claims (exp/nbf) pelo DefaultJWTClaimsVerifier
+        // padrão do nimbus (que inclui tolerância a clock skew). Mapeamento das exceções
+        // (ordem importa: subclasse BadJWTException ANTES de BadJOSEException):
+        //   ParseException    → malformed_token (não é um JWT parseável)
+        //   BadJWTException   → token_expired (claims-level: exp/nbf)
+        //   BadJOSEException  → invalid_signature (BadJWSException: assinatura/kid)
+        //   JOSEException     → invalid_signature (erro genérico de crypto)
         JWTClaimsSet claims;
         try {
-            claims = signedJWT.getJWTClaimsSet();
+            claims = jwtProcessor.process(token, null);
         } catch (ParseException e) {
             throw new AuthRejectException(401, "malformed_token");
-        }
-
-        // verify() só checa assinatura — exp é validado manualmente.
-        Date exp = claims.getExpirationTime();
-        if (exp == null || exp.before(new Date())) {
+        } catch (BadJWTException e) {
+            // O DefaultJWTClaimsVerifier por padrão só valida exp e nbf — em MVP mapeamos
+            // genericamente para token_expired. Se um dia configurarmos requiredClaims,
+            // este catch precisa diferenciar (via e.getMessage() ou inspeção).
             throw new AuthRejectException(401, "token_expired");
+        } catch (BadJOSEException e) {
+            throw new AuthRejectException(401, "invalid_signature");
+        } catch (JOSEException e) {
+            throw new AuthRejectException(401, "invalid_signature");
         }
 
         String email;

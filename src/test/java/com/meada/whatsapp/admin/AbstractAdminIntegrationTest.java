@@ -1,36 +1,41 @@
 package com.meada.whatsapp.admin;
 
 import com.meada.whatsapp.AbstractIntegrationTest;
+import com.meada.whatsapp.admin.security.AdminTestJwksConfig;
+import com.meada.whatsapp.admin.security.TestJwtKeys;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
-import com.nimbusds.jose.crypto.MACSigner;
+import com.nimbusds.jose.crypto.ECDSASigner;
+import com.nimbusds.jose.jwk.Curve;
+import com.nimbusds.jose.jwk.ECKey;
+import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.TestPropertySource;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.UUID;
 
 /**
  * Base dos testes de integração do painel admin. Herda toda a infra do
- * {@link AbstractIntegrationTest} (Testcontainers + @DynamicPropertySource com o
- * supabase.jwt-secret de teste) e adiciona:
+ * {@link AbstractIntegrationTest} (Testcontainers + @DynamicPropertySource) e adiciona:
  * <ul>
- *   <li>allowlist FIXA de super-admin ({@code superadmin@test.dev}) via @TestPropertySource
- *       — um contexto admin compartilhado por todos os testes admin (evita N contextos);
- *   <li>helpers {@code mintToken*} que geram JWT HS256 via nimbus (mesma lib do prod),
- *       assinados com {@link #TEST_JWT_SECRET} (o mesmo que o filtro verifica);
+ *   <li>allowlist FIXA de super-admin ({@code superadmin@test.dev}) via @TestPropertySource —
+ *       funciona porque a classe-mãe NÃO registra admin.super-admin-emails no
+ *       @DynamicPropertySource (que teria precedência); sem esse conflito, o
+ *       @TestPropertySource vale;
+ *   <li>{@link AdminTestJwksConfig} (via @Import) sobrescrevendo o JWKSource de prod por um
+ *       local com a chave pública de teste ({@link TestJwtKeys});
+ *   <li>helpers {@code mintToken*} que geram JWT ES256 via nimbus (mesma lib do prod),
+ *       assinados com {@link TestJwtKeys#SIGNING_KEY} (a public correspondente está no
+ *       JWKSource de teste → o filtro verifica por kid);
  *   <li>helper {@code seedTenantAdmin} que provisiona company + linha em public.users.
  * </ul>
- *
- * <p>A allowlist é definida via @DynamicPropertySource AQUI (não @TestPropertySource):
- * o @DynamicPropertySource tem precedência sobre @TestPropertySource, então a allowlist
- * só "vence" se vier por DynamicPropertySource. A classe-mãe NÃO registra
- * admin.super-admin-emails (justamente para não vencer este override).
  */
+@Import(AdminTestJwksConfig.class)
+@TestPropertySource(properties = "admin.super-admin-emails=superadmin@test.dev")
 public abstract class AbstractAdminIntegrationTest extends AbstractIntegrationTest {
 
     /** Email na allowlist — cenário super-admin. */
@@ -38,24 +43,26 @@ public abstract class AbstractAdminIntegrationTest extends AbstractIntegrationTe
     /** Email FORA da allowlist — cenário tenant-admin (resolvido via public.users). */
     protected static final String TENANT_ADMIN_EMAIL = "tenant@test.dev";
 
-    /** Allowlist de teste: SUPER_ADMIN_EMAIL é super-admin. Via DynamicPropertySource
-     *  (não TestPropertySource) por causa da precedência — ver javadoc da classe. */
-    @DynamicPropertySource
-    static void adminAllowlist(DynamicPropertyRegistry registry) {
-        registry.add("admin.super-admin-emails", () -> SUPER_ADMIN_EMAIL);
-    }
+    /** 2º par EC P-256, kid DIFERENTE do que está no JWKSource de teste — para o caso
+     *  invalid_signature: o JWSVerificationKeySelector não acha a kid → falha. */
+    private static final ECKey WRONG_SIGNING_KEY;
 
-    /** Secret diferente do TEST_JWT_SECRET, também >= 32 bytes (43) — MACSigner valida
-     *  tamanho no assinar, não só no verificar. Para o caso invalid_signature. */
-    private static final String WRONG_SECRET = "wrong-secret-also-32-bytes-long-please-yes";
+    static {
+        try {
+            WRONG_SIGNING_KEY = new ECKeyGenerator(Curve.P_256).keyID("test-key-id-wrong").generate();
+        } catch (JOSEException e) {
+            throw new IllegalStateException("failed to generate wrong test EC key", e);
+        }
+    }
 
     // ---- mint de tokens (API tipada) ----------------------------------------
 
     /**
-     * Gera um JWT HS256 assinado com {@code secret}, claims email+sub e o exp dado.
-     * {@code email} nullable: quando null, o claim é omitido (cobre invalid_claims).
+     * Gera um JWT ES256 assinado com {@code signingKey}, claims email+sub e o exp dado.
+     * O header carrega a kid da {@code signingKey} — o filtro a usa para selecionar a chave
+     * pública no JWKSource. {@code email} nullable: quando null, o claim é omitido.
      */
-    protected String mintToken(String email, UUID sub, String secret, Date exp) {
+    protected String mintToken(String email, UUID sub, ECKey signingKey, Date exp) {
         try {
             JWTClaimsSet.Builder claims = new JWTClaimsSet.Builder().subject(sub.toString());
             if (email != null) {
@@ -64,8 +71,11 @@ public abstract class AbstractAdminIntegrationTest extends AbstractIntegrationTe
             if (exp != null) {
                 claims.expirationTime(exp);
             }
-            SignedJWT jwt = new SignedJWT(new JWSHeader(JWSAlgorithm.HS256), claims.build());
-            jwt.sign(new MACSigner(secret.getBytes(StandardCharsets.UTF_8)));
+            JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
+                .keyID(signingKey.getKeyID())
+                .build();
+            SignedJWT jwt = new SignedJWT(header, claims.build());
+            jwt.sign(new ECDSASigner(signingKey));
             return jwt.serialize();
         } catch (JOSEException e) {
             throw new IllegalStateException("failed to mint test JWT", e);
@@ -78,9 +88,9 @@ public abstract class AbstractAdminIntegrationTest extends AbstractIntegrationTe
      * Variação "raw" para cobrir os 3 ramos de invalid_claims do filtro (email ausente,
      * sub ausente, sub não-UUID). API insegura: aceita {@code rawSub} como String para
      * permitir null/blank/não-UUID. Use só nos testes negativos de claims malformados;
-     * para casos positivos, use {@link #mintToken(String, UUID, String, Date)}.
+     * para casos positivos, use {@link #mintToken(String, UUID, ECKey, Date)}.
      */
-    protected String mintTokenRawSub(String email, String rawSub, String secret, Date exp) {
+    protected String mintTokenRawSub(String email, String rawSub, ECKey signingKey, Date exp) {
         try {
             JWTClaimsSet.Builder claims = new JWTClaimsSet.Builder();
             if (rawSub != null) {
@@ -92,8 +102,11 @@ public abstract class AbstractAdminIntegrationTest extends AbstractIntegrationTe
             if (exp != null) {
                 claims.expirationTime(exp);
             }
-            SignedJWT jwt = new SignedJWT(new JWSHeader(JWSAlgorithm.HS256), claims.build());
-            jwt.sign(new MACSigner(secret.getBytes(StandardCharsets.UTF_8)));
+            JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
+                .keyID(signingKey.getKeyID())
+                .build();
+            SignedJWT jwt = new SignedJWT(header, claims.build());
+            jwt.sign(new ECDSASigner(signingKey));
             return jwt.serialize();
         } catch (JOSEException e) {
             throw new IllegalStateException("failed to mint raw test JWT", e);
@@ -102,19 +115,19 @@ public abstract class AbstractAdminIntegrationTest extends AbstractIntegrationTe
 
     // ---- convenções por cenário ---------------------------------------------
 
-    /** Token válido: exp = agora + 1h, assinado com o secret correto. */
+    /** Token válido: exp = agora + 1h, assinado com a chave de teste (kid no JWKSource). */
     protected String mintValidToken(String email, UUID sub) {
-        return mintToken(email, sub, TEST_JWT_SECRET, oneHourFromNow());
+        return mintToken(email, sub, TestJwtKeys.SIGNING_KEY, oneHourFromNow());
     }
 
-    /** Token expirado: exp = agora - 1h, secret correto. */
+    /** Token expirado: exp = agora - 1h, chave correta. */
     protected String mintExpiredToken(String email, UUID sub) {
-        return mintToken(email, sub, TEST_JWT_SECRET, oneHourAgo());
+        return mintToken(email, sub, TestJwtKeys.SIGNING_KEY, oneHourAgo());
     }
 
-    /** Token assinado com secret ERRADO (→ invalid_signature). exp válido. */
-    protected String mintTokenWithWrongSecret(String email, UUID sub) {
-        return mintToken(email, sub, WRONG_SECRET, oneHourFromNow());
+    /** Token assinado com chave ERRADA (kid ausente do JWKSource) → invalid_signature. */
+    protected String mintTokenWithWrongKey(String email, UUID sub) {
+        return mintToken(email, sub, WRONG_SIGNING_KEY, oneHourFromNow());
     }
 
     /** protected (não private): as subclasses de teste usam direto para montar exp. */

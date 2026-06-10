@@ -89,7 +89,12 @@ a linha de produção recomendada pela própria Supabase, sem alternativa mais m
 é abandono nem beta — não "migrar para 1.0" achando que 0.x é provisório.
 
 ### P1 cravado: validação do JWT Supabase no Spring (input para 4.1)
-O Supabase meada-delta-01 assina o JWT com **HS256 + secret compartilhada** (Settings →
+> **SUPERADO (2026-06-06):** esta nota descrevia HS256, que era verdade no início da 4.1.
+> O Supabase rotacionou para ES256 (chaves assimétricas) e o filtro foi migrado para
+> JWKS no 4.1.1. Ver a seção canônica "JWT do Supabase: ES256 via JWKS" abaixo. O texto
+> abaixo fica como registro histórico.
+
+O Supabase meada-delta-01 assinava o JWT com **HS256 + secret compartilhada** (Settings →
 API → JWT Settings: Algorithm HS256, JWT Secret estático; SEM JWKS URL, sem chave
 assimétrica). Detalhamento técnico completo + onde o filtro mora: ver seção
 "Camada 4.1 — decisões de auth/admin" abaixo (fonte canônica).
@@ -108,6 +113,21 @@ assimétrica). Detalhamento técnico completo + onde o filtro mora: ver seção
 3. **Critério de "fechado" do 4.0 (e padrão para 4.x frontend):** `mvn -B clean test`
    verde (backend intacto) + `next build` limpo + smoke test manual sobre o estado
    PÓS-build (não sobre estado intermediário).
+
+### Lições de processo (camada 4.1.1 — JWT/JWKS)
+4. **`@DynamicPropertySource` tem precedência MAIOR que `@TestPropertySource`.** Uma
+   subclasse de teste NÃO consegue sobrescrever via `@TestPropertySource` uma prop que a
+   classe-mãe registra via `@DynamicPropertySource` — o DynamicPropertySource vence.
+   (Pego no 4.1: a allowlist `admin.super-admin-emails=""` da mãe vencia o override da
+   filha → super-admin nunca reconhecido.) Solução: a filha também usa
+   `@DynamicPropertySource`, OU a mãe não registra a prop (deixa a filha definir).
+5. **`DefaultJWTProcessor` tem um `DefaultJWTClaimsVerifier` ativo por padrão** — ele
+   valida `exp`/`nbf` automaticamente (com tolerância a clock skew), mesmo sem você
+   chamar `setJWTClaimsSetVerifier`. Premissa errada de que "sem setter = sem validação"
+   custou um ciclo de teste vermelho. Consequência: `exp` expirado lança
+   `BadJWTException` (subclasse de `BadJOSEException`). Para preservar um reason distinto
+   (`token_expired` vs `invalid_signature`), capturar `BadJWTException` ANTES de
+   `BadJOSEException` no parseAndVerify (subclasse antes da superclasse).
 
 ## Camada 4.1 — decisões de auth/admin
 
@@ -178,11 +198,25 @@ no .env raiz. No .env.example raiz com comentário apontando onde pegar.
   insuficiente para o endpoint (tenant-admin em /admin/companies) → erro de AUTORIZAÇÃO
   (você pode fazer isso?).
 
-### JWT do Supabase: HS256 (fonte canônica)
-meada-delta-01 assina com HS256 + secret compartilhada. O JwtAuthenticationFilter (em
-`com.meada.whatsapp.admin.security`) lê `SUPABASE_JWT_SECRET` e valida via MACVerifier do
-nimbus-jose-jwt. Sem JWKS endpoint, sem rotação automática — o secret é estático e
-rotacionado manualmente se necessário.
+### JWT do Supabase: ES256 via JWKS (fonte canônica — atualizada no 4.1.1)
+**SUPERSEDE a premissa HS256 do P1.** O meada-delta-01 **migrou** de HS256 (secret
+compartilhado) para JWT Signing Keys **assimétricas (ECC P-256 / ES256)** em 2026-06-04
+(rotação detectada em 2026-06-06 ao tentar o smoke do 4.1: a CURRENT KEY do painel virou
+`ECC (P-256)`, e não há reversão prática para HS256 pelo painel — o Supabase empurra
+assimétrico).
+
+Por isso o `JwtAuthenticationFilter` (em `com.meada.whatsapp.admin.security`) foi migrado
+de `MACVerifier`/HS256 para um `DefaultJWTProcessor` + `JWSVerificationKeySelector(ES256)`
+sobre um `JWKSource` (ver `JwksConfig`). O `JWKSource` de prod é um `RemoteJWKSet` da
+`SUPABASE_JWKS_URL` (`https://<ref>.supabase.co/auth/v1/.well-known/jwks.json`), que busca
+a chave pública pela `kid` do token, cacheia, e **re-busca automaticamente em rotação
+futura** — o ganho real sobre o secret estático. Nos testes, o `AdminTestJwksConfig`
+sobrescreve o `JWKSource` por um `ImmutableJWKSet` com a chave pública de teste
+(`TestJwtKeys`), e o `mintToken` assina com ES256 (`ECDSASigner`) — sem bater no endpoint
+real (transporte HTTP do JWKS é do nimbus, não testamos a lib).
+
+Env: `SUPABASE_JWKS_URL` (fail-fast, sem default). O antigo `SUPABASE_JWT_SECRET` foi
+removido (não há mais secret compartilhado).
 
 ### Versão de nimbus-jose-jwt: 9.48 (linha 9.x)
 O `pom.xml` fixa `com.nimbusds:nimbus-jose-jwt:9.48` (versão exata, sem range —

@@ -80,3 +80,13 @@ Template por item:
 - **Plano de mitigação futura:** quando aparecer um payload real de WEBHOOK `@lid` que inclua `remoteJidAlt` ou `senderPn` em formato `@s.whatsapp.net` (versão futura da Evolution, ou conta WhatsApp Business com config diferente), capturar o payload BRUTO, cravar a estrutura real observada, e só então adicionar um ramo "recupera" ao `MessagePayloadNormalizer` (classificar como `USER` com o número do campo lateral). Sem código especulativo — a v2.3.1 atual não traz esses campos, então o ramo não tem caso real para validar hoje.
 - **Produto futuro (não codificar agora):** quando o volume de `@lid` ignorado virar dor real, decidir entre (a) painel/dashboard expondo mensagens perdidas para o admin investigar manualmente, ou (b) endpoint de reenvio quando a Evolution expuser o número. Métrica/contador é melhor obtida por agregação de log (`outcome=IGNORED_UNKNOWN_JID` por janela) do que por código novo — YAGNI até haver consumidor.
 - **Detectado em:** Validação E2E Camada 3, sessão 2026-06-04, ao inspecionar `/chat/findMessages/meada-delta-01`.
+
+---
+
+## Validação JWT do admin depende de conectividade ao endpoint JWKS do Supabase
+
+- **Status:** Aceito (mitigado por cache).
+- **Bloqueante para:** N/A.
+- **Razão:** O `JwtAuthenticationFilter` (camada 4.1.1) valida os tokens ES256 contra as chaves públicas servidas no endpoint JWKS do Supabase (`SUPABASE_JWKS_URL`), via `RemoteJWKSet`. Isso introduz uma dependência de rede: na 1ª verificação após o boot (e quando o cache expira), o backend faz um GET ao endpoint JWKS. Se o endpoint estiver indisponível nesse exato momento, a 1ª request de auth pode falhar (e re-tentar). Diferente do HS256 antigo (secret local, zero rede), mas inevitável com chaves assimétricas.
+- **Plano de mitigação:** O `RemoteJWKSet` do nimbus **cacheia** as chaves (lifespan ~15min, refresh ~5min — defaults), então o GET ao JWKS é raro (não por request). A migração para ES256/JWKS foi forçada pela rotação do Supabase para chaves assimétricas (não há HS256 reversível pelo painel). O ganho: rotação de chave futura é absorvida automaticamente (o RemoteJWKSet re-busca quando a `kid` muda) — sem intervenção manual. Monitorar erros de auth correlacionados a indisponibilidade do endpoint Supabase; se virar dor, avaliar um cache persistente/maior TTL.
+- **Detectado em:** Camada 4.1.1 (migração HS256→ES256/JWKS), 2026-06-06.
