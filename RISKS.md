@@ -95,14 +95,42 @@ Template por item:
 
 ## Re-sync de histórico (Baileys/Evolution) dispara respostas automáticas a conversas reais antigas
 
-- **Status:** Aberto — CONTIDO (webhook desligado em 2026-06-10). Bug de produto, não só do ambiente de teste.
-- **Bloqueante para:** Religar o webhook de qualquer instância; ativação de qualquer cliente real. NÃO religar o webhook até o fix.
+- **Status:** Mitigado em 2026-06-10 (commits 84f0ec1 + 8bec1e9). Webhook permanece OFF até religar consciente. Bug de produto.
+- **Bloqueante para:** Religar o webhook agora é tecnicamente possível (guard de frescor + dry-run mitigam), mas continua decisão consciente — religar exige verificar que EVOLUTION_DRY_RUN está apropriado pro ambiente e que a janela de message-max-age-seconds (180s) é adequada pro caso de uso.
 - **Razão:** Quando uma instância Evolution **reconecta**, a Evolution/Baileys **sincroniza o histórico** do WhatsApp pareado e reentrega mensagens ANTIGAS como eventos `messages.upsert`. O `WebhookService` não distingue mensagem nova (ao vivo) de histórico sincronizado — trata todo `messages.upsert` com `fromMe:false` + texto como inbound nova → publica evento → o `OutboundService` responde com a IA → `EvolutionClient.sendText` envia DE VERDADE. Resultado: ao subir o backend (com webhook ligado), uma RAJADA de respostas automáticas sai para conversas pessoais reais e antigas.
 - **Evidência empírica (sessão 2026-06-10):** a instância estava pareada ao WhatsApp pessoal do Igor (`558195489984`, "Igor Herson"). Foram gravadas **26 mensagens outbound** para ~10 contatos reais. As inbounds foram ingeridas numa rajada de ~20s (**06-07 22:48:12 → 22:48:30**) — um contato sozinho despejou ~20 mensagens em 11s (conteúdo pessoal: organização de aniversário). Uma das mensagens respondidas tinha `messageTimestamp: 1780853793` (= 2026-06-04), gravada no banco 3 dias depois — prova de reprocessamento de histórico, não mensagem ao vivo. As mensagens reais vinham `@s.whatsapp.net` + `fromMe:false` (passavam o normalizer e o filtro fromMe); notado também `previousRemoteJid` resolvendo `@lid`→`@s.whatsapp.net` no sync (a Evolution v2.3.1 resolve o LID ao sincronizar, por isso passaram o normalizer que ignora `@lid`).
 - **Por que os filtros atuais não barraram:** o `fromMe` funcionou (ignorou os envios do próprio Igor, que vêm `@lid fromMe:true`); o `@lid` cru é ignorado (UNKNOWN). O que vazou foi inbound de usuário legítimo (`@s.whatsapp.net fromMe:false`) — indistinguível de "cliente" no design atual, que pressupõe número de atendimento dedicado, não número pessoal com tráfego humano.
-- **Plano de mitigação (3 camadas, ordem de prioridade):**
-  1. **Dry-run em `STAGE=local`** — o `EvolutionClient.sendText` LOGA em vez de enviar quando `STAGE != production`. É a salvaguarda que teria evitado TODO o episódio: testar localmente nunca envia mensagem real. Prioridade máxima.
-  2. **Filtrar por `type` do `messages.upsert`** — processar só `type=notify` (mensagem nova ao vivo); ignorar `append`/sync de histórico. O campo NÃO é capturado pelo DTO atual (`EvolutionWebhookPayload`) — precisa adicionar + checar no `WebhookService`. Fix central.
-  3. **Guard de frescor por `messageTimestamp`** — ignorar mensagens cujo `messageTimestamp` seja muito antigo (ex. > alguns minutos). Defesa em profundidade caso o `type` falhe.
-- **Próxima sessão (ordem cravada):** registrar (feito aqui) → investigação empírica do campo `type` no payload real do webhook (capturar um `messages.upsert` real e confirmar onde o `notify`/`append` aparece) → proposta em prosa do fix (3 mitigações na ordem acima) → só então código. Webhook permanece OFF até o fix.
+- **Mitigação aplicada (2 camadas, commits da sessão 2026-06-10):**
+  1. **Dry-run em STAGE=local** (commit `84f0ec1`) — `EvolutionClient.sendText`
+     suprime HTTP quando `evolution.dry-run=true` (EVOLUTION_DRY_RUN env);
+     `.env.example` cravado com `EVOLUTION_DRY_RUN=true` para proteger dev
+     local; default false em produção (inversão de ônus consciente).
+  2. **Guard de frescor por `messageTimestamp`** (commit `8bec1e9`) — o
+     `WebhookService` rejeita `messages.upsert` cujo `messageTimestamp` >
+     `webhook.message-max-age-seconds` (default 180s) com outcome
+     `IGNORED_STALE`(WARN). Investigação empírica da Fase 2 mostrou que o
+     `type='notify'|'append'` do Baileys NÃO chega ao webhook (Evolution
+     descarta antes do `sendDataWebhook`), então o filtro por `type`
+     originalmente proposto é tecnicamente inviável; o guard de
+     timestamp é a única linha de defesa do lado do webhook.
+- **Limitação conhecida:** o guard de frescor protege contra
+  append-on-reconnect (mensagens antigas reentregues). NÃO protege contra
+  mensagens novas chegando ao vivo enquanto a instância está pareada a um
+  número não-dedicado — essas têm `messageTimestamp` recente e passam. O
+  dry-run em ambiente de teste é a defesa para esse cenário. Os dois
+  juntos cobrem o incidente de 2026-06-10; nenhum sozinho cobre tudo.
+- **Histórico técnico:**
+  - Premissa inicial (filtrar `type=notify`) descartada pela investigação
+    empírica: o type é desestruturado no handler da Evolution
+    (`whatsapp.baileys.service.js` linha que faz `{messages:e, type:t, ...}`),
+    mas o `sendDataWebhook("messages.upsert", t)` envia só o objeto da
+    mensagem (`t`), perdendo o `type` do batch. O Evolution v2.3.1 processa
+    `notify` e `append` indistinguivelmente.
+  - `syncFullHistory` da instância já estava `false` no banco da Evolution
+    — o vazamento veio do comportamento padrão do Baileys ao reconectar
+    (entrega mensagens recentes pendentes como `append`), independente
+    daquela flag.
+  - Por isso o guard de timestamp foi promovido a fix central (não
+    defesa em profundidade), e o dry-run é a salvaguarda independente
+    que teria evitado o impacto do episódio.
 - **Detectado em:** Camada 4.1, sessão 2026-06-10, ao subir o backend repetidamente durante tentativas de smoke do painel admin.
