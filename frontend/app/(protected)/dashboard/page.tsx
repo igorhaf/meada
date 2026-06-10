@@ -1,44 +1,70 @@
 'use client'
 
+import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect } from 'react'
 
-import { Button } from '@/components/ui/button'
-import { createClient } from '@/lib/supabase/client'
+import { SignOutButton } from '@/components/sign-out-button'
+import { getMe } from '@/lib/api/me'
 
 /**
- * Placeholder do dashboard (sub-fase 4.0). Única interatividade real: o botão Sair,
- * que existe para o smoke test do 4.0 (passo 5: logout limpa a sessão). Telas de
- * verdade (listas, CRUD, conversas) entram a partir do 4.1 — nada de fetch/TanStack
- * aqui ainda.
+ * Hub do dashboard após login. Roteia por PAPEL:
+ *  - super_admin → redireciona para /dashboard/companies (sua home funcional);
+ *  - tenant_admin → placeholder "área restrita ao super-admin" (tela própria do tenant
+ *    é 4.3+).
+ *
+ * O redirect usa useEffect + router.replace (NÃO no render): chamar router.replace
+ * durante o render quebra ("Cannot update a component while rendering") — o useEffect
+ * agenda para o próximo tick. replace (não push) evita que o "voltar" do browser caia
+ * de novo em /dashboard e gere loop de redirect.
  */
 export default function DashboardPage() {
   const router = useRouter()
-  const [signingOut, setSigningOut] = useState(false)
+  const { data: me, isPending, isError, error } = useQuery({ queryKey: ['me'], queryFn: getMe })
 
-  async function handleSignOut() {
-    setSigningOut(true)
-    const supabase = createClient()
-    const { error } = await supabase.auth.signOut()
-    if (error) {
-      // Mesmo com erro, empurra para /login: melhor sair da tela protegida do que
-      // ficar preso num estado meio-logado. Detalhe real no console.
-      console.error('signOut failed:', error.message)
+  const isSuperAdmin = me?.role === 'super_admin'
+
+  useEffect(() => {
+    // Só dispara quando me chegou e é super-admin. Durante isPending/isError,
+    // isSuperAdmin é false (me undefined) — useEffect roda mas não age.
+    if (isSuperAdmin) {
+      router.replace('/dashboard/companies')
     }
-    router.push('/login')
+  }, [isSuperAdmin, router])
+
+  if (isPending) {
+    return <div className="mx-auto max-w-3xl p-8 text-sm text-muted-foreground">Carregando…</div>
   }
 
+  if (isError) {
+    console.error('failed to load /admin/me:', error)
+    return (
+      <div className="mx-auto max-w-3xl p-8">
+        <div className="mb-6 flex items-center justify-between">
+          <h1 className="text-xl font-semibold">Dashboard</h1>
+          <SignOutButton />
+        </div>
+        <p className="text-sm text-destructive">
+          Erro ao carregar perfil. Tente sair e entrar de novo.
+        </p>
+      </div>
+    )
+  }
+
+  if (isSuperAdmin) {
+    // useEffect acima já disparou o replace; este render é só o tick intermediário.
+    return <div className="mx-auto max-w-3xl p-8 text-sm text-muted-foreground">Redirecionando…</div>
+  }
+
+  // tenant_admin
   return (
     <div className="mx-auto max-w-3xl p-8">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-xl font-semibold">Dashboard</h1>
-        <Button variant="outline" onClick={handleSignOut} disabled={signingOut}>
-          {signingOut ? 'Saindo…' : 'Sair'}
-        </Button>
+        <SignOutButton />
       </div>
       <p className="text-sm text-muted-foreground">
-        Placeholder do 4.0. As telas reais (empresas, configuração do tenant,
-        conversas) entram a partir do 4.1.
+        Painel do tenant em breve. Esta área de gestão é restrita ao super-admin.
       </p>
     </div>
   )
