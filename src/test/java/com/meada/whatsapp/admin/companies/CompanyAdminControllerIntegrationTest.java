@@ -8,19 +8,26 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Testa GET /admin/companies. 3 casos:
+ * Testa /admin/companies (GET lista + POST cria). Casos:
  * <ol>
- *   <li>super-admin → 200 + lista (ordenada por created_at DESC);
- *   <li>tenant-admin → 403 forbidden_not_super_admin (autorização — distinto do
+ *   <li>GET super-admin → 200 + lista (ordenada por created_at DESC);
+ *   <li>GET tenant-admin → 403 forbidden_not_super_admin (autorização — distinto do
  *       user_not_provisioned do filtro);
- *   <li>sem token → 401 missing_auth_header (coverage do endpoint pelo filtro; a
+ *   <li>GET sem token → 401 missing_auth_header (coverage do endpoint pelo filtro; a
  *       unidade do filtro já é testada no JwtAuthenticationFilterIntegrationTest, aqui
  *       confirma que ESTE endpoint está atrás dele).
+ *   <li>POST super-admin válido → 201 + persistida;
+ *   <li>POST tenant-admin → 403 (nada persistido);
+ *   <li>POST slug duplicado → 409 slug_already_exists (não duplica);
+ *   <li>POST payload inválido → 400 (nada persistido).
  * </ol>
  */
 class CompanyAdminControllerIntegrationTest extends AbstractAdminIntegrationTest {
@@ -68,5 +75,75 @@ class CompanyAdminControllerIntegrationTest extends AbstractAdminIntegrationTest
         mockMvc.perform(get("/admin/companies"))
             .andExpect(status().isUnauthorized())
             .andExpect(jsonPath("$.reason").value("missing_auth_header"));
+    }
+
+    // ---- POST /admin/companies (4.2) ----------------------------------------
+
+    @Test
+    @DisplayName("super-admin cria empresa → 201 + persistida")
+    void create_superAdmin_returns201_andPersists() throws Exception {
+        String token = mintValidToken(SUPER_ADMIN_EMAIL, SUB);
+        mockMvc.perform(post("/admin/companies")
+                .header("Authorization", "Bearer " + token)
+                .contentType(APPLICATION_JSON)
+                .content("{\"name\":\"Acme Corp\",\"slug\":\"acme-corp\"}"))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.name").value("Acme Corp"))
+            .andExpect(jsonPath("$.slug").value("acme-corp"))
+            .andExpect(jsonPath("$.status").value("active"))
+            .andExpect(jsonPath("$.id").exists())
+            .andExpect(jsonPath("$.createdAt").exists());
+
+        Long count = jdbcTemplate.queryForObject(
+            "select count(*) from companies where slug = ?", Long.class, "acme-corp");
+        assertThat(count).isEqualTo(1L);
+    }
+
+    @Test
+    @DisplayName("tenant-admin tenta criar → 403 forbidden_not_super_admin (nada persistido)")
+    void create_tenantAdmin_returns403() throws Exception {
+        seedTenantAdmin(TENANT_ADMIN_EMAIL, SUB);
+        String token = mintValidToken(TENANT_ADMIN_EMAIL, SUB);
+        mockMvc.perform(post("/admin/companies")
+                .header("Authorization", "Bearer " + token)
+                .contentType(APPLICATION_JSON)
+                .content("{\"name\":\"Acme Corp\",\"slug\":\"acme-corp\"}"))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.reason").value("forbidden_not_super_admin"));
+
+        Long count = jdbcTemplate.queryForObject(
+            "select count(*) from companies where slug = ?", Long.class, "acme-corp");
+        assertThat(count).isZero();
+    }
+
+    @Test
+    @DisplayName("slug duplicado → 409 slug_already_exists (não duplica)")
+    void create_duplicateSlug_returns409() throws Exception {
+        seedCompany("Já Existe", "acme-corp", Instant.now());
+        String token = mintValidToken(SUPER_ADMIN_EMAIL, SUB);
+        mockMvc.perform(post("/admin/companies")
+                .header("Authorization", "Bearer " + token)
+                .contentType(APPLICATION_JSON)
+                .content("{\"name\":\"Acme Corp\",\"slug\":\"acme-corp\"}"))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.reason").value("slug_already_exists"));
+
+        Long count = jdbcTemplate.queryForObject(
+            "select count(*) from companies where slug = ?", Long.class, "acme-corp");
+        assertThat(count).isEqualTo(1L);   // só a seedada
+    }
+
+    @Test
+    @DisplayName("payload inválido (slug com maiúscula/espaço) → 400 (nada persistido)")
+    void create_invalidPayload_returns400() throws Exception {
+        String token = mintValidToken(SUPER_ADMIN_EMAIL, SUB);
+        mockMvc.perform(post("/admin/companies")
+                .header("Authorization", "Bearer " + token)
+                .contentType(APPLICATION_JSON)
+                .content("{\"name\":\"Acme Corp\",\"slug\":\"Acme Corp\"}"))   // slug inválido
+            .andExpect(status().isBadRequest());
+
+        Long count = jdbcTemplate.queryForObject("select count(*) from companies", Long.class);
+        assertThat(count).isZero();
     }
 }
