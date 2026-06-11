@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
+import { useState } from 'react'
 
 import { SignOutButton } from '@/components/sign-out-button'
 import { Badge } from '@/components/ui/badge'
@@ -9,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { DataTable, type Column } from '@/components/ui/data-table'
 import { ApiError } from '@/lib/api/client'
 import { getCompanies, type Company } from '@/lib/api/companies'
+import { CreateCompanyDialog } from './create-company-dialog'
 
 /**
  * Lista GLOBAL de empresas (rota canônica do super-admin). A autorização é do backend:
@@ -33,6 +35,7 @@ const columns: Column<Company>[] = [
 ]
 
 export default function CompaniesPage() {
+  const [dialogOpen, setDialogOpen] = useState(false)
   const { data, isPending, isError, error } = useQuery({
     queryKey: ['companies'],
     queryFn: getCompanies,
@@ -71,7 +74,10 @@ export default function CompaniesPage() {
     <div className="mx-auto max-w-5xl p-8">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-xl font-semibold">Empresas</h1>
-        <SignOutButton />
+        <div className="flex items-center gap-2">
+          <Button onClick={() => setDialogOpen(true)}>Nova empresa</Button>
+          <SignOutButton />
+        </div>
       </div>
       <DataTable<Company>
         data={data ?? []}
@@ -79,6 +85,7 @@ export default function CompaniesPage() {
         loading={isPending}
         emptyMessage="Nenhuma empresa cadastrada."
       />
+      <CreateCompanyDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
     </div>
   )
 }

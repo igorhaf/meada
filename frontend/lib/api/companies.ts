@@ -24,3 +24,16 @@ export type Company = {
 export async function getCompanies(): Promise<Company[]> {
   return apiFetch<Company[]>('/admin/companies')
 }
+
+/**
+ * Cria uma empresa (super-admin only — autorização no backend, 403 para tenant-admin).
+ * O 201 devolve o CompanyResponse criado (mesmo shape de Company). Erros relevantes ao
+ * form: 409 slug_already_exists (slug em uso) e 400 validation_error (defensivo; o zod
+ * client-side é a 1ª barreira) — ambos chegam como ApiError(status, reason) via apiFetch.
+ */
+export async function createCompany(payload: { name: string; slug: string }): Promise<Company> {
+  return apiFetch<Company>('/admin/companies', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}

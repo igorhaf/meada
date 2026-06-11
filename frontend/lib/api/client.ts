@@ -66,12 +66,25 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
   return response.json() as Promise<T>
 }
 
-/** Extrai o {@code reason} do corpo de erro {error, reason}; tolerante se o corpo não for JSON. */
+/**
+ * Extrai o {@code reason} do corpo de erro. Dois shapes possíveis no backend admin:
+ *  - {error, reason} (filtro JWT + controllers): retorna o reason direto.
+ *  - ValidationErrorResponse (400 do @Valid via GlobalExceptionHandler): NÃO tem reason
+ *    → discriminado por status 400, vira 'validation_error' (sinal genérico; o zod
+ *    client-side já é a 1ª barreira, este 400 é defensivo).
+ * Tolerante a corpo não-JSON.
+ */
 async function readReason(response: Response): Promise<string> {
   try {
     const body = await response.json()
-    return typeof body?.reason === 'string' ? body.reason : 'unknown'
-  } catch {
+    if (typeof body?.reason === 'string') {
+      return body.reason
+    }
+    if (response.status === 400) {
+      return 'validation_error'
+    }
     return 'unknown'
+  } catch {
+    return response.status === 400 ? 'validation_error' : 'unknown'
   }
 }
