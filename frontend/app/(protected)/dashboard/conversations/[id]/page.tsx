@@ -1,6 +1,6 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { use, useEffect } from 'react'
@@ -9,16 +9,21 @@ import { SignOutButton } from '@/components/sign-out-button'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { getMe } from '@/lib/api/me'
-import { getConversation } from '@/lib/supabase/conversations'
+import {
+  getConversation,
+  updateConversationHandledBy,
+  updateConversationStatus,
+} from '@/lib/supabase/conversations'
 import { getConversationMessages } from '@/lib/supabase/messages'
 
 /**
- * Detalhe de uma conversa (SDK + RLS, só leitura). Bolhas: inbound à esquerda, outbound
- * à direita. Últimas 50 mensagens em ordem cronológica; indicador se há mais. Polling 5s.
+ * Detalhe de uma conversa (SDK + RLS). Leitura: bolhas inbound/outbound, polling 5s.
+ * Operação (4.7): trocar handled_by (ai ↔ human) e status (open ↔ closed) via UPDATE no
+ * SDK — o RLS conversations_update (USING + WITH CHECK = company_id) garante que o tenant
+ * só opera conversa da própria empresa.
  *
  * <p>Next 16: params é Promise — desembrulhado com use(). Guard de papel como nas outras
- * telas do tenant. Se a conversa for de outro tenant, o RLS faz getConversation lançar
- * (0 linhas no .single()) → estado de erro.
+ * telas do tenant. Conversa de outro tenant → RLS faz getConversation lançar → erro.
  */
 export default function ConversationDetailPage({
   params,
@@ -27,6 +32,7 @@ export default function ConversationDetailPage({
 }) {
   const { id } = use(params)
   const router = useRouter()
+  const queryClient = useQueryClient()
 
   const { data: me } = useQuery({ queryKey: ['me'], queryFn: getMe })
   const isTenant = me?.role === 'tenant_admin'
@@ -50,6 +56,26 @@ export default function ConversationDetailPage({
     enabled: isTenant,
     refetchInterval: 5000,
   })
+
+  function invalidateConversation() {
+    queryClient.invalidateQueries({ queryKey: ['conversation', id] })
+    queryClient.invalidateQueries({ queryKey: ['my-conversations'] })
+  }
+
+  const handledByMutation = useMutation({
+    mutationFn: (next: 'ai' | 'human') => updateConversationHandledBy(id, next),
+    onSuccess: invalidateConversation,
+    onError: (err) => console.error('updateConversationHandledBy failed:', err),
+  })
+
+  const statusMutation = useMutation({
+    mutationFn: (next: 'open' | 'closed') => updateConversationStatus(id, next),
+    onSuccess: invalidateConversation,
+    onError: (err) => console.error('updateConversationStatus failed:', err),
+  })
+
+  const mutating = handledByMutation.isPending || statusMutation.isPending
+  const mutationError = handledByMutation.isError || statusMutation.isError
 
   if (me && !isTenant) {
     return (
@@ -86,15 +112,61 @@ export default function ConversationDetailPage({
       </div>
 
       {conversation && (
-        <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-          <span>{conversation.contactPhone}</span>
-          <Badge variant={conversation.status === 'open' ? 'success' : 'danger'}>
-            {conversation.status}
-          </Badge>
-          <Badge variant={conversation.handledBy === 'ai' ? 'default' : 'warning'}>
-            {conversation.handledBy}
-          </Badge>
-        </div>
+        <>
+          <div className="mb-3 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            <span>{conversation.contactPhone}</span>
+            <Badge variant={conversation.status === 'open' ? 'success' : 'danger'}>
+              {conversation.status}
+            </Badge>
+            <Badge variant={conversation.handledBy === 'ai' ? 'default' : 'warning'}>
+              {conversation.handledBy}
+            </Badge>
+          </div>
+
+          {/* Ações (4.7): trocar atendente e abrir/fechar */}
+          <div className="mb-4 flex flex-wrap gap-2">
+            {conversation.handledBy === 'ai' ? (
+              <Button
+                variant="outline"
+                disabled={mutating}
+                onClick={() => handledByMutation.mutate('human')}
+              >
+                Atender com humano
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                disabled={mutating}
+                onClick={() => handledByMutation.mutate('ai')}
+              >
+                Devolver pra IA
+              </Button>
+            )}
+            {conversation.status === 'open' ? (
+              <Button
+                variant="outline"
+                disabled={mutating}
+                onClick={() => statusMutation.mutate('closed')}
+              >
+                Fechar conversa
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                disabled={mutating}
+                onClick={() => statusMutation.mutate('open')}
+              >
+                Reabrir conversa
+              </Button>
+            )}
+          </div>
+
+          {mutationError && (
+            <p className="mb-3 text-sm text-destructive">
+              Erro ao atualizar a conversa. Tente novamente.
+            </p>
+          )}
+        </>
       )}
 
       {page && page.total > page.messages.length && (

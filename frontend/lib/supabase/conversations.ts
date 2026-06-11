@@ -14,6 +14,31 @@ export type ConversationWithContact = {
   contactPhone: string
 }
 
+const SELECT_WITH_CONTACT =
+  'id, status, handled_by, last_message_at, contact:contacts(name, phone_number)'
+
+/** Normaliza a linha crua (snake_case + join possivelmente array) para ConversationWithContact. */
+function toConversation(row: {
+  id: string
+  status: string
+  handled_by: string
+  last_message_at: string | null
+  contact:
+    | { name: string | null; phone_number: string }
+    | { name: string | null; phone_number: string }[]
+    | null
+}): ConversationWithContact {
+  const contact = Array.isArray(row.contact) ? row.contact[0] : row.contact
+  return {
+    id: row.id,
+    status: row.status,
+    handledBy: row.handled_by,
+    lastMessageAt: row.last_message_at,
+    contactName: contact?.name ?? null,
+    contactPhone: contact?.phone_number ?? '',
+  }
+}
+
 /**
  * Lista as conversas da empresa do tenant (SDK + RLS), com o contato via join, ordenadas
  * por last_message_at desc (mais recente primeiro; nulls por último). Polling na tela.
@@ -25,25 +50,14 @@ export async function getMyConversations(): Promise<ConversationWithContact[]> {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('conversations')
-    .select('id, status, handled_by, last_message_at, contact:contacts(name, phone_number)')
+    .select(SELECT_WITH_CONTACT)
     .order('last_message_at', { ascending: false, nullsFirst: false })
 
   if (error) {
     throw error
   }
 
-  return (data ?? []).map((c) => {
-    // O join pode vir como objeto ou (dependendo da inferência do supabase-js) array de 1.
-    const contact = Array.isArray(c.contact) ? c.contact[0] : c.contact
-    return {
-      id: c.id,
-      status: c.status,
-      handledBy: c.handled_by,
-      lastMessageAt: c.last_message_at,
-      contactName: contact?.name ?? null,
-      contactPhone: contact?.phone_number ?? '',
-    }
-  })
+  return (data ?? []).map(toConversation)
 }
 
 /**
@@ -54,7 +68,7 @@ export async function getConversation(id: string): Promise<ConversationWithConta
   const supabase = createClient()
   const { data, error } = await supabase
     .from('conversations')
-    .select('id, status, handled_by, last_message_at, contact:contacts(name, phone_number)')
+    .select(SELECT_WITH_CONTACT)
     .eq('id', id)
     .single()
 
@@ -62,13 +76,53 @@ export async function getConversation(id: string): Promise<ConversationWithConta
     throw error
   }
 
-  const contact = Array.isArray(data.contact) ? data.contact[0] : data.contact
-  return {
-    id: data.id,
-    status: data.status,
-    handledBy: data.handled_by,
-    lastMessageAt: data.last_message_at,
-    contactName: contact?.name ?? null,
-    contactPhone: contact?.phone_number ?? '',
+  return toConversation(data)
+}
+
+/**
+ * Troca quem atende a conversa (ai ↔ human) via SDK + RLS. A policy conversations_update
+ * tem USING e WITH CHECK = company_id = app.company_id(): o tenant só atualiza conversa
+ * da própria empresa, e o resultado precisa continuar dela. company_id NÃO é tocado aqui
+ * (só handled_by) — o WITH CHECK passa naturalmente. Retorna a conversa atualizada.
+ */
+export async function updateConversationHandledBy(
+  id: string,
+  handledBy: 'ai' | 'human',
+): Promise<ConversationWithContact> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('conversations')
+    .update({ handled_by: handledBy })
+    .eq('id', id)
+    .select(SELECT_WITH_CONTACT)
+    .single()
+
+  if (error) {
+    throw error
   }
+
+  return toConversation(data)
+}
+
+/**
+ * Abre/fecha a conversa (open ↔ closed) via SDK + RLS. Mesmo contrato de RLS do
+ * updateConversationHandledBy. Retorna a conversa atualizada.
+ */
+export async function updateConversationStatus(
+  id: string,
+  status: 'open' | 'closed',
+): Promise<ConversationWithContact> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('conversations')
+    .update({ status })
+    .eq('id', id)
+    .select(SELECT_WITH_CONTACT)
+    .single()
+
+  if (error) {
+    throw error
+  }
+
+  return toConversation(data)
 }
