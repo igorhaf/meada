@@ -23,6 +23,32 @@ preços), respondendo clientes pelo WhatsApp. Dados isolados por tenant via RLS.
 - **Detalhes operacionais vivos** (portas, envs, credenciais, estado das camadas):
   ver `CONTEXT.md` na raiz — ele é gitignored e mais detalhado que este arquivo.
 
+## Bootstrap do zero (clone → ambiente rodando)
+
+Pré-requisitos: **Java 17 Temurin** (`/usr/lib/jvm/temurin-17-jdk-amd64`), **Node + npm**,
+**Maven 3.8+**, **Docker** (para a Evolution local). Banco/Auth são Supabase remoto (não
+sobe local) — é preciso um projeto Supabase com o schema das migrations aplicado.
+
+1. **Backend env:** `cp .env.example .env` e preencher (Supabase datasource via Session
+   pooler IPv4, `WEBHOOK_SECRET`, `GEMINI_API_KEY`/`GEMINI_MODEL`, `EVOLUTION_BASE_URL`,
+   `SUPABASE_JWKS_URL`, `ADMIN_SUPER_ADMIN_EMAILS`, `EVOLUTION_DRY_RUN=true` em dev,
+   `SERVER_PORT=8095`). `.env` é gitignored.
+2. **Frontend env:** `cd frontend && cp .env.example .env.local` e preencher
+   (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` — anon é pública por
+   design, protegida por RLS; NUNCA service_role aqui —, `NEXT_PUBLIC_API_URL=http://localhost:8095`).
+   `.env.local` é gitignored.
+3. **Evolution local (opcional, só p/ fluxo WhatsApp):**
+   `cd evolution-local && docker compose up -d` (API :8086, Postgres :5433, Redis :6380).
+4. **Subir backend:** `./scripts/run-local.sh` (porta 8095). Sanity: `GET /admin/me` sem
+   token → 401 `missing_auth_header`.
+5. **Subir frontend:** `cd frontend && npm install && npm run dev` (porta 3000).
+6. **Provisionar usuários de teste no Supabase Auth** (painel → Authentication → Users,
+   "Auto Confirm"): um **super-admin** (email na allowlist `ADMIN_SUPER_ADMIN_EMAILS`,
+   SEM linha em `public.users`) e um **tenant-admin** (linha em `public.users` com
+   `company_id` + `role`). Senhas vivem só em comunicação direta — nunca em arquivo.
+7. **Logar:** `http://localhost:3000/login`. Super-admin → lista global de empresas;
+   tenant-admin → dados/serviços/FAQs da própria empresa (isolado por RLS).
+
 ## Padrão de trabalho (precedência sobre comportamento default)
 
 - **Decisões em PROSA, nunca em widget.** Não usar o widget de perguntas com abas
