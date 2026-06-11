@@ -6,6 +6,7 @@ import { useEffect } from 'react'
 
 import { SignOutButton } from '@/components/sign-out-button'
 import { getMe } from '@/lib/api/me'
+import { getMyCompany } from '@/lib/supabase/companies'
 
 /**
  * Hub do dashboard após login. Roteia por PAPEL:
@@ -57,15 +58,55 @@ export default function DashboardPage() {
   }
 
   // tenant_admin
+  return <TenantDashboard />
+}
+
+/**
+ * Tela do tenant-admin: mostra os dados da PRÓPRIA empresa, lidos via Supabase SDK + RLS
+ * (getMyCompany). O isolamento é do banco — o tenant nunca vê empresa de outro tenant.
+ * CRUD de services/faqs/etc. e lista de usuários ficam para a 4.4.
+ */
+function TenantDashboard() {
+  const { data: company, isPending, isError } = useQuery({
+    queryKey: ['my-company'],
+    queryFn: getMyCompany,
+  })
+
   return (
     <div className="mx-auto max-w-3xl p-8">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Dashboard</h1>
+        <h1 className="text-xl font-semibold">Minha empresa</h1>
         <SignOutButton />
       </div>
-      <p className="text-sm text-muted-foreground">
-        Painel do tenant em breve. Esta área de gestão é restrita ao super-admin.
-      </p>
+
+      {isPending && <p className="text-sm text-muted-foreground">Carregando…</p>}
+
+      {isError && (
+        <p className="text-sm text-destructive">Erro ao carregar os dados da empresa.</p>
+      )}
+
+      {company && (
+        <dl className="space-y-3 rounded-xl border border-border p-6">
+          <div>
+            <dt className="text-xs uppercase text-muted-foreground">Nome</dt>
+            <dd className="text-sm font-medium">{company.name}</dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase text-muted-foreground">Slug</dt>
+            <dd className="text-sm font-medium">{company.slug}</dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase text-muted-foreground">Status</dt>
+            <dd className="text-sm font-medium">{company.status}</dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase text-muted-foreground">Criada em</dt>
+            <dd className="text-sm font-medium">
+              {new Date(company.createdAt).toLocaleString('pt-BR')}
+            </dd>
+          </div>
+        </dl>
+      )}
     </div>
   )
 }
