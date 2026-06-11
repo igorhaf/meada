@@ -82,6 +82,9 @@ function TenantDashboard() {
           <Link href="/dashboard/services">
             <Button variant="outline">Serviços</Button>
           </Link>
+          <Link href="/dashboard/faqs">
+            <Button variant="outline">FAQs</Button>
+          </Link>
           <SignOutButton />
         </div>
       </div>
