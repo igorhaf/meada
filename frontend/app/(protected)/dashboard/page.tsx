@@ -1,10 +1,12 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 
 import { SignOutButton } from '@/components/sign-out-button'
+import { Button } from '@/components/ui/button'
 import { getMe } from '@/lib/api/me'
 import { getMyCompany } from '@/lib/supabase/companies'
 
@@ -76,7 +78,12 @@ function TenantDashboard() {
     <div className="mx-auto max-w-3xl p-8">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-xl font-semibold">Minha empresa</h1>
-        <SignOutButton />
+        <div className="flex items-center gap-2">
+          <Link href="/dashboard/services">
+            <Button variant="outline">Serviços</Button>
+          </Link>
+          <SignOutButton />
+        </div>
       </div>
 
       {isPending && <p className="text-sm text-muted-foreground">Carregando…</p>}
