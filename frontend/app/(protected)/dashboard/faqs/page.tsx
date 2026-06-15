@@ -1,7 +1,7 @@
 'use client'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Pencil } from 'lucide-react'
+import { HelpCircle, Pencil } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -10,6 +10,7 @@ import { SignOutButton } from '@/components/sign-out-button'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { DataTable, type Column } from '@/components/ui/data-table'
+import { EmptyState } from '@/components/ui/empty-state'
 import { getMe } from '@/lib/api/me'
 import { getMyFaqs, setFaqActive, type Faq } from '@/lib/supabase/faqs'
 import { CreateFaqDialog } from './create-faq-dialog'
@@ -66,6 +67,9 @@ export default function FaqsPage() {
     enabled: isTenant, // só busca quando confirmado tenant (evita 0 rows para super-admin)
   })
 
+  // Estado vazio elevado (5.8): lista carregada, sem erro, zero registros.
+  const isEmpty = !isPending && !isError && (data?.length ?? 0) === 0
+
   if (me && !isTenant) {
     return (
       <div className="mx-auto max-w-5xl p-8 text-sm text-muted-foreground">Redirecionando…</div>
@@ -105,35 +109,55 @@ export default function FaqsPage() {
           <SignOutButton />
         </div>
       </div>
-      <DataTable<Faq>
-        data={data ?? []}
-        columns={columns}
-        loading={isPending}
-        emptyMessage="Nenhuma FAQ cadastrada."
-        actions={(f) => (
-          <div className="flex items-center gap-1.5">
-            <Button
-              variant="outline"
-              className="h-7 px-2 text-xs"
-              onClick={() => {
-                setEditingFaq(f)
-                setDialogOpen(true)
-              }}
-            >
-              <Pencil className="size-3" />
-              Editar
-            </Button>
-            <Button
-              variant="outline"
-              className="h-7 px-2 text-xs"
-              disabled={toggleActive.isPending && toggleActive.variables?.id === f.id}
-              onClick={() => toggleActive.mutate({ id: f.id, active: !f.active })}
-            >
-              {f.active ? 'Desativar' : 'Ativar'}
-            </Button>
-          </div>
-        )}
-      />
+      {isEmpty ? (
+        <EmptyState
+          icon={<HelpCircle />}
+          title="Sem FAQs ainda"
+          description="A IA usa as FAQs como conhecimento ao responder seus clientes."
+          action={
+            me?.companyId ? (
+              <Button
+                onClick={() => {
+                  setEditingFaq(undefined)
+                  setDialogOpen(true)
+                }}
+              >
+                Criar primeira FAQ
+              </Button>
+            ) : undefined
+          }
+        />
+      ) : (
+        <DataTable<Faq>
+          data={data ?? []}
+          columns={columns}
+          loading={isPending}
+          emptyMessage="Nenhuma FAQ cadastrada."
+          actions={(f) => (
+            <div className="flex items-center gap-1.5">
+              <Button
+                variant="outline"
+                className="h-7 px-2 text-xs"
+                onClick={() => {
+                  setEditingFaq(f)
+                  setDialogOpen(true)
+                }}
+              >
+                <Pencil className="size-3" />
+                Editar
+              </Button>
+              <Button
+                variant="outline"
+                className="h-7 px-2 text-xs"
+                disabled={toggleActive.isPending && toggleActive.variables?.id === f.id}
+                onClick={() => toggleActive.mutate({ id: f.id, active: !f.active })}
+              >
+                {f.active ? 'Desativar' : 'Ativar'}
+              </Button>
+            </div>
+          )}
+        />
+      )}
       {me?.companyId && (
         <CreateFaqDialog
           open={dialogOpen}

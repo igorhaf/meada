@@ -1,6 +1,7 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
+import { MessagesSquare } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
@@ -9,6 +10,7 @@ import { SignOutButton } from '@/components/sign-out-button'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { DataTable, type Column } from '@/components/ui/data-table'
+import { EmptyState } from '@/components/ui/empty-state'
 import { getMe } from '@/lib/api/me'
 import { getMyConversations, type ConversationWithContact } from '@/lib/supabase/conversations'
 
@@ -62,6 +64,10 @@ export default function ConversationsPage() {
     refetchInterval: 5000,
   })
 
+  // Estado vazio elevado (5.8): nenhuma conversa de todo. Não confundir com filtro de
+  // busca sem resultado — esse fica a cargo da DataTable (que segue renderizada).
+  const isEmpty = !isPending && !isError && (data?.length ?? 0) === 0
+
   if (me && !isTenant) {
     return (
       <div className="mx-auto max-w-5xl p-8 text-sm text-muted-foreground">Redirecionando…</div>
@@ -92,23 +98,31 @@ export default function ConversationsPage() {
           <SignOutButton />
         </div>
       </div>
-      <DataTable<ConversationWithContact>
-        data={data ?? []}
-        columns={columns}
-        loading={isPending}
-        emptyMessage="Nenhuma conversa ainda. Mensagens aparecerão aqui quando seus clientes interagirem pelo WhatsApp."
-        searchPlaceholder="Buscar por contato ou telefone…"
-        searchFn={(c, q) =>
-          `${c.contactName ?? ''} ${c.contactPhone}`.toLowerCase().includes(q)
-        }
-        actions={(c) => (
-          <Link href={`/dashboard/conversations/${c.id}`}>
-            <Button variant="outline" className="h-7 px-2 text-xs">
-              Abrir
-            </Button>
-          </Link>
-        )}
-      />
+      {isEmpty ? (
+        <EmptyState
+          icon={<MessagesSquare />}
+          title="Nenhuma conversa ainda"
+          description="As conversas com seus clientes aparecerão aqui assim que eles mandarem mensagens pelo WhatsApp."
+        />
+      ) : (
+        <DataTable<ConversationWithContact>
+          data={data ?? []}
+          columns={columns}
+          loading={isPending}
+          emptyMessage="Nenhuma conversa ainda. Mensagens aparecerão aqui quando seus clientes interagirem pelo WhatsApp."
+          searchPlaceholder="Buscar por contato ou telefone…"
+          searchFn={(c, q) =>
+            `${c.contactName ?? ''} ${c.contactPhone}`.toLowerCase().includes(q)
+          }
+          actions={(c) => (
+            <Link href={`/dashboard/conversations/${c.id}`}>
+              <Button variant="outline" className="h-7 px-2 text-xs">
+                Abrir
+              </Button>
+            </Link>
+          )}
+        />
+      )}
     </div>
   )
 }

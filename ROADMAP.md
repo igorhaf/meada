@@ -71,7 +71,7 @@ Lista de 50 features para o MVP funcional do SaaS de atendimento WhatsApp+IA agn
 ## Onboarding e UX
 
 - [ ] 46. Tutorial guiado na primeira vez que tenant loga
-- [ ] 47. Página vazia com call-to-action quando não tem dados
+- [x] 47. Página vazia com call-to-action quando não tem dados (fase-5.8)
 - [ ] 48. Notificação visual (badge no menu) quando chega mensagem nova
 - [ ] 49. Modo escuro (dark mode)
 
