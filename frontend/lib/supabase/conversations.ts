@@ -126,3 +126,20 @@ export async function updateConversationStatus(
 
   return toConversation(data)
 }
+
+/**
+ * Conta conversas com mensagem pendente de resposta (camada 5.10): conversas open cuja
+ * ÚLTIMA mensagem é inbound (o contato falou por último). Via RPC, porque correlação de
+ * "última msg por created_at" não é expressível em uma única .select() do PostgREST.
+ *
+ * RPC SECURITY INVOKER respeita o RLS do tenant — só conta as próprias conversas.
+ * Consumida pelo badge do menu (ConversationsNavLink) com polling.
+ */
+export async function countUnreadConversations(): Promise<number> {
+  const supabase = createClient()
+  const { data, error } = await supabase.rpc('count_unread_conversations')
+  if (error) {
+    throw error
+  }
+  return typeof data === 'number' ? data : 0
+}

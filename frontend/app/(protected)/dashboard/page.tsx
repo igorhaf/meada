@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 
+import { ConversationsNavLink } from '@/components/conversations-nav-link'
 import { SignOutButton } from '@/components/sign-out-button'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Button } from '@/components/ui/button'
@@ -89,9 +90,7 @@ function TenantDashboard() {
           <Link href="/dashboard/faqs">
             <Button variant="outline">FAQs</Button>
           </Link>
-          <Link href="/dashboard/conversations">
-            <Button variant="outline">Conversas</Button>
-          </Link>
+          <ConversationsNavLink />
           <Link href="/dashboard/business-hours">
             <Button variant="outline">Horários</Button>
           </Link>

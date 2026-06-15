@@ -69,22 +69,26 @@ public abstract class AbstractIntegrationTest {
         "db/migrations/05_storage.sql",
         "db/migrations/06_unique_open_conversation.sql",
         "db/migrations/07_palette_id.sql",
-        "db/migrations/08_audit_log.sql"
+        "db/migrations/08_audit_log.sql",
+        "db/migrations/09_count_unread_conversations.sql"
     };
 
     /**
-     * Scripts cujo corpo de função plpgsql tem ';' INTERNO (entre $$...$$). O splitter
-     * padrão do ScriptUtils corta no primeiro ';' do corpo e quebra o dollar-quote
-     * ("Unterminated dollar quote"). Para esses, usamos EOF_STATEMENT_SEPARATOR: o arquivo
-     * inteiro vira UM statement enviado ao Postgres, que entende $$ nativamente.
+     * Scripts que DEFINEM FUNÇÃO com corpo entre $$...$$ E têm outro statement depois
+     * (um grant/comment terminando em ';'). O splitter padrão do ScriptUtils não trata o
+     * dollar-quote corretamente nesse caso e quebra ("Unterminated dollar quote"). Para
+     * esses, usamos EOF_STATEMENT_SEPARATOR: o arquivo inteiro vira UM statement enviado
+     * ao Postgres, que entende $$ nativamente.
      *
      * <p>Por que não EOF para todos: os demais scripts dependem do split por ';' (várias
      * policies/grants por arquivo) e já rodam verdes assim — não mexemos no que funciona.
-     * 01/02 também têm $$, mas o corpo daquelas funções é 'language sql' SEM ';' interno,
-     * então o splitter padrão não as quebra (foi sorte estrutural, não configuração).
+     * (Nota: a teoria anterior — "só quebra se o corpo tem ';' interno" — estava errada:
+     * a 09 é 'language sql' SEM ';' no corpo e mesmo assim quebrou, porque tem um grant
+     * após o $$;. O gatilho real é "função com $$ + statement subsequente no mesmo arquivo".)
      */
     private static final java.util.Set<String> WHOLE_FILE_SCRIPTS = java.util.Set.of(
-        "db/migrations/08_audit_log.sql");
+        "db/migrations/08_audit_log.sql",
+        "db/migrations/09_count_unread_conversations.sql");
 
     static {
         POSTGRES.start();
