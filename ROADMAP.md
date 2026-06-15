@@ -30,7 +30,7 @@ Lista de 50 features para o MVP funcional do SaaS de atendimento WhatsApp+IA agn
 - [ ] 18. Tenant responde manualmente (envia mensagem pelo painel)
 - [ ] 19. Anexar foto/arquivo na resposta manual
 - [ ] 20. Marcar conversa como "não lida" pra revisitar depois
-- [ ] 21. Filtrar conversas (status, atendente, busca por texto)
+- [x] 21. Filtrar conversas (busca por contato/telefone) (fase-5.7)
 - [ ] 22. Tag/etiqueta em conversa ("VIP", "urgente", "follow-up")
 
 ## IA e atendimento automático

@@ -97,6 +97,10 @@ export default function ConversationsPage() {
         columns={columns}
         loading={isPending}
         emptyMessage="Nenhuma conversa ainda. Mensagens aparecerão aqui quando seus clientes interagirem pelo WhatsApp."
+        searchPlaceholder="Buscar por contato ou telefone…"
+        searchFn={(c, q) =>
+          `${c.contactName ?? ''} ${c.contactPhone}`.toLowerCase().includes(q)
+        }
         actions={(c) => (
           <Link href={`/dashboard/conversations/${c.id}`}>
             <Button variant="outline" className="h-7 px-2 text-xs">
