@@ -3,6 +3,7 @@ package com.meada.whatsapp.admin.companies;
 import com.meada.whatsapp.admin.security.AdminRole;
 import com.meada.whatsapp.admin.security.AuthenticatedUser;
 import com.meada.whatsapp.admin.security.JwtAuthenticationFilter;
+import com.meada.whatsapp.common.audit.AuditLogger;
 import jakarta.validation.Valid;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.ResponseEntity;
@@ -35,9 +36,11 @@ import java.util.Map;
 public class CompanyAdminController {
 
     private final CompanyAdminRepository repository;
+    private final AuditLogger auditLogger;
 
-    public CompanyAdminController(CompanyAdminRepository repository) {
+    public CompanyAdminController(CompanyAdminRepository repository, AuditLogger auditLogger) {
         this.repository = repository;
+        this.auditLogger = auditLogger;
     }
 
     @GetMapping("/admin/companies")
@@ -68,6 +71,9 @@ public class CompanyAdminController {
         try {
             CompanyResponse created = repository.insert(
                 request.name(), request.slug(), request.paletteId());
+            auditLogger.log(created.id(), user.userId(), "created", "company", created.id(),
+                Map.of("name", created.name(), "slug", created.slug(),
+                       "paletteId", created.paletteId()));
             return ResponseEntity.status(201).body(created);
         } catch (DuplicateKeyException e) {
             return ResponseEntity.status(409)

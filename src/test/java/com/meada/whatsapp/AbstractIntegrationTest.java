@@ -68,19 +68,48 @@ public abstract class AbstractIntegrationTest {
         "db/migrations/04_grants.sql",
         "db/migrations/05_storage.sql",
         "db/migrations/06_unique_open_conversation.sql",
-        "db/migrations/07_palette_id.sql"
+        "db/migrations/07_palette_id.sql",
+        "db/migrations/08_audit_log.sql"
     };
+
+    /**
+     * Scripts cujo corpo de função plpgsql tem ';' INTERNO (entre $$...$$). O splitter
+     * padrão do ScriptUtils corta no primeiro ';' do corpo e quebra o dollar-quote
+     * ("Unterminated dollar quote"). Para esses, usamos EOF_STATEMENT_SEPARATOR: o arquivo
+     * inteiro vira UM statement enviado ao Postgres, que entende $$ nativamente.
+     *
+     * <p>Por que não EOF para todos: os demais scripts dependem do split por ';' (várias
+     * policies/grants por arquivo) e já rodam verdes assim — não mexemos no que funciona.
+     * 01/02 também têm $$, mas o corpo daquelas funções é 'language sql' SEM ';' interno,
+     * então o splitter padrão não as quebra (foi sorte estrutural, não configuração).
+     */
+    private static final java.util.Set<String> WHOLE_FILE_SCRIPTS = java.util.Set.of(
+        "db/migrations/08_audit_log.sql");
 
     static {
         POSTGRES.start();
         // Conexão CRUA (sem Hikari, sem SET ROLE) como superuser do container.
-        // Roda cada script isolado via ScriptUtils — que respeita corpo de função
-        // em $$, comentários e statements multi-linha. Script por script: se um
-        // falhar, a exception aponta qual Resource quebrou.
+        // Roda cada script isolado via ScriptUtils. Script por script: se um falhar, a
+        // exception aponta qual Resource quebrou.
         try (Connection raw = DriverManager.getConnection(
                 POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword())) {
             for (String script : SCRIPTS) {
-                ScriptUtils.executeSqlScript(raw, new ClassPathResource(script));
+                org.springframework.core.io.support.EncodedResource resource =
+                    new org.springframework.core.io.support.EncodedResource(
+                        new ClassPathResource(script));
+                if (WHOLE_FILE_SCRIPTS.contains(script)) {
+                    // Arquivo inteiro como 1 statement — preserva o corpo plpgsql com ';'
+                    // interno. continueOnError=false, ignoreFailedDrops=false, comentário e
+                    // delimitadores de bloco nos defaults; separator = EOF.
+                    ScriptUtils.executeSqlScript(
+                        raw, resource, false, false,
+                        ScriptUtils.DEFAULT_COMMENT_PREFIX,
+                        ScriptUtils.EOF_STATEMENT_SEPARATOR,
+                        ScriptUtils.DEFAULT_BLOCK_COMMENT_START_DELIMITER,
+                        ScriptUtils.DEFAULT_BLOCK_COMMENT_END_DELIMITER);
+                } else {
+                    ScriptUtils.executeSqlScript(raw, resource);
+                }
             }
         } catch (SQLException e) {
             throw new IllegalStateException("Failed to bootstrap test database", e);
@@ -139,7 +168,8 @@ public abstract class AbstractIntegrationTest {
         jdbcTemplate.execute("""
             TRUNCATE TABLE
               companies, users, whatsapp_instances, services, business_hours,
-              faqs, documents, ai_settings, contacts, conversations, messages
+              faqs, documents, ai_settings, contacts, conversations, messages,
+              audit_log
             RESTART IDENTITY CASCADE
             """);
     }

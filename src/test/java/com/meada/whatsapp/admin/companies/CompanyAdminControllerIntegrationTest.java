@@ -103,6 +103,12 @@ class CompanyAdminControllerIntegrationTest extends AbstractAdminIntegrationTest
         String persistedPalette = jdbcTemplate.queryForObject(
             "select palette_id from companies where slug = ?", String.class, "acme-corp");
         assertThat(persistedPalette).isEqualTo("oceano");
+
+        // Camada 5.3: o POST audita company.created via AuditLogger (caminho service_role).
+        Long auditCount = jdbcTemplate.queryForObject(
+            "select count(*) from audit_log where entity = 'company' and action = 'created'",
+            Long.class);
+        assertThat(auditCount).isEqualTo(1L);
     }
 
     @Test
