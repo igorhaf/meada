@@ -1,6 +1,6 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Pencil } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { DataTable, type Column } from '@/components/ui/data-table'
 import { getMe } from '@/lib/api/me'
-import { getMyFaqs, type Faq } from '@/lib/supabase/faqs'
+import { getMyFaqs, setFaqActive, type Faq } from '@/lib/supabase/faqs'
 import { CreateFaqDialog } from './create-faq-dialog'
 
 const columns: Column<Faq>[] = [
@@ -37,11 +37,22 @@ const columns: Column<Faq>[] = [
  */
 export default function FaqsPage() {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingFaq, setEditingFaq] = useState<Faq | undefined>(undefined)
 
   const { data: me } = useQuery({ queryKey: ['me'], queryFn: getMe })
   const isTenant = me?.role === 'tenant_admin'
+
+  // Toggle ativo/inativo (camada 5.6). Invalida a lista no sucesso (padrão do projeto —
+  // sem optimistic update). variables.id permite desabilitar só o botão da linha em voo.
+  const toggleActive = useMutation({
+    mutationFn: ({ id, active }: { id: string; active: boolean }) => setFaqActive(id, active),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-faqs'] })
+    },
+    onError: (err) => console.error('setFaqActive failed:', err),
+  })
 
   useEffect(() => {
     if (me && me.role !== 'tenant_admin') {
@@ -100,17 +111,27 @@ export default function FaqsPage() {
         loading={isPending}
         emptyMessage="Nenhuma FAQ cadastrada."
         actions={(f) => (
-          <Button
-            variant="outline"
-            className="h-7 px-2 text-xs"
-            onClick={() => {
-              setEditingFaq(f)
-              setDialogOpen(true)
-            }}
-          >
-            <Pencil className="size-3" />
-            Editar
-          </Button>
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="outline"
+              className="h-7 px-2 text-xs"
+              onClick={() => {
+                setEditingFaq(f)
+                setDialogOpen(true)
+              }}
+            >
+              <Pencil className="size-3" />
+              Editar
+            </Button>
+            <Button
+              variant="outline"
+              className="h-7 px-2 text-xs"
+              disabled={toggleActive.isPending && toggleActive.variables?.id === f.id}
+              onClick={() => toggleActive.mutate({ id: f.id, active: !f.active })}
+            >
+              {f.active ? 'Desativar' : 'Ativar'}
+            </Button>
+          </div>
         )}
       />
       {me?.companyId && (

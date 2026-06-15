@@ -81,6 +81,36 @@ export async function createFaq(payload: {
 }
 
 /**
+ * Ativa/desativa uma FAQ do tenant (camada 5.6). UPDATE { active } via SDK + RLS
+ * (faqs_update). Desativar NÃO deleta: a linha permanece (deleted_at continua null),
+ * some do prompt da IA (PromptBuilder filtra active=true desde a 3.2) mas segue na lista
+ * do painel para reativação. Audita via trigger app.audit_trigger (fase-5.3).
+ *
+ * <p>Retorna a FAQ atualizada (RETURNING via .select().single()).
+ */
+export async function setFaqActive(id: string, active: boolean): Promise<Faq> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('faqs')
+    .update({ active })
+    .eq('id', id)
+    .select('id, question, answer, active, created_at')
+    .single()
+
+  if (error) {
+    throw error
+  }
+
+  return {
+    id: data.id,
+    question: data.question,
+    answer: data.answer,
+    active: data.active,
+    createdAt: data.created_at,
+  }
+}
+
+/**
  * Edita uma FAQ existente do tenant (camada 5.5). UPDATE via SDK + RLS: a policy
  * faqs_update tem USING + WITH CHECK (company_id = app.company_id()), então o tenant só
  * altera FAQ da própria empresa — não precisa passar company_id (a linha já é da empresa

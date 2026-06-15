@@ -85,6 +85,37 @@ export async function createService(payload: {
 }
 
 /**
+ * Ativa/desativa um serviço do tenant (camada 5.6). UPDATE { active } via SDK + RLS
+ * (services_update). Desativar NÃO deleta: a linha permanece, some do prompt da IA
+ * (filtro active=true desde a 3.2) mas segue na lista do painel para reativação. Audita
+ * via trigger app.audit_trigger (fase-5.3).
+ *
+ * <p>Retorna o serviço atualizado.
+ */
+export async function setServiceActive(id: string, active: boolean): Promise<Service> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('services')
+    .update({ active })
+    .eq('id', id)
+    .select('id, name, description, price_cents, active, created_at')
+    .single()
+
+  if (error) {
+    throw error
+  }
+
+  return {
+    id: data.id,
+    name: data.name,
+    description: data.description,
+    priceCents: data.price_cents,
+    active: data.active,
+    createdAt: data.created_at,
+  }
+}
+
+/**
  * Edita um serviço existente do tenant (camada 5.5). UPDATE via SDK + RLS: a policy
  * services_update tem USING + WITH CHECK (company_id = app.company_id()), então o tenant
  * só altera serviço da própria empresa. Audita via trigger app.audit_trigger (fase-5.3).
