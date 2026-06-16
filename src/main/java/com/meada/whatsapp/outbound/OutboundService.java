@@ -79,9 +79,15 @@ public class OutboundService {
     private final ObjectMapper objectMapper;
     private final AppointmentService appointmentService;
     private final AiSettingsRepository aiSettingsRepository;
+    private final com.meada.whatsapp.admin.health.ErrorLogger errorLogger;
 
     private final int maxAttempts;
     private final List<Duration> backoffs;
+
+    // Nome do modelo Gemini vigente (mesma fonte de verdade que o GeminiProvider lê).
+    // Gravado em messages.model junto dos tokens (6.2.5): verdade temporal — uma troca
+    // de modelo futura preserva no histórico qual modelo gerou cada resposta.
+    private final String geminiModel;
 
     // Fuso do tenant para avaliar o horário comercial. HARDCODED no MVP (tenants BR).
     // TODO: coluna companies.timezone quando virar multi-país.
@@ -106,7 +112,10 @@ public class OutboundService {
                            BusinessHoursGate businessHoursGate,
                            ObjectMapper objectMapper,
                            AppointmentService appointmentService,
-                           AiSettingsRepository aiSettingsRepository) {
+                           AiSettingsRepository aiSettingsRepository,
+                           com.meada.whatsapp.admin.health.ErrorLogger errorLogger,
+                           @org.springframework.beans.factory.annotation.Value("${gemini.model}")
+                           String geminiModel) {
         this.conversationRepository = conversationRepository;
         this.contactRepository = contactRepository;
         this.whatsappInstanceRepository = whatsappInstanceRepository;
@@ -120,6 +129,8 @@ public class OutboundService {
         this.objectMapper = objectMapper;
         this.appointmentService = appointmentService;
         this.aiSettingsRepository = aiSettingsRepository;
+        this.errorLogger = errorLogger;
+        this.geminiModel = geminiModel;
         this.maxAttempts = retryProps.maxAttempts();
         // converte uma vez (lista YAML de millis → Durations). O RetryRunner valida
         // o invariante backoffs.size() == maxAttempts-1 em cada chamada.
@@ -333,16 +344,29 @@ public class OutboundService {
         } catch (EvolutionException e) {
             // caso 8: fatal (4xx/parse) — canal quebrado, SEM flip (humano falharia igual).
             log.warn("outbound: Evolution fatal error ({})", e.getMessage());
+            // Erro alertável (camada 6.4): registra no error_log para a tela de erros do super-admin.
+            errorLogger.log("OutboundService", e, java.util.Map.of(
+                "conversationId", conversationId.toString(), "reason", "evolution_fatal"));
             return Optional.of(logOutcome(
                 OutboundOutcome.EVOLUTION_CONFIG_ERROR, event, aiResponse, "evolution_fatal"));
         }
 
-        // ---- BLOCO 4 — persiste a outbound ----
+        // ---- BLOCO 4 — persiste a outbound (com tokens da IA — 6.2.5) ----
         // janela de crash: a mensagem JÁ foi enviada ao cliente; se o insert falhar,
         // logamos para reconciliação manual. insertIfNew é idempotente pelo evolution_message_id.
+        //
+        // tokens/model só quando HOUVE IA real: o reply sintético (boas-vindas, fora-de-horário)
+        // constrói AiResponse com tokens 0/0 — gravamos NULL nesses casos, NÃO 0, para distinguir
+        // "mensagem sem IA" de "IA com custo zero". O nome do modelo vem do config (geminiModel),
+        // mesma fonte de verdade que o GeminiProvider — verdade temporal por resposta.
+        boolean fromAi = aiResponse.tokensIn() > 0 || aiResponse.tokensOut() > 0;
+        Integer tokensIn = fromAi ? aiResponse.tokensIn() : null;
+        Integer tokensOut = fromAi ? aiResponse.tokensOut() : null;
+        String model = fromAi ? geminiModel : null;
         Optional<?> inserted = messageRepository.insertIfNew(
             event.companyId(), conversationId,
-            MessageDirection.OUTBOUND, MessageSender.AI, reply, keyId);
+            MessageDirection.OUTBOUND, MessageSender.AI, reply, keyId,
+            tokensIn, tokensOut, model);
         if (inserted.isEmpty()) {
             log.warn("outbound: evolution_message_id {} already persisted for conversation {} "
                 + "(duplicate processing?)", keyId, conversationId);

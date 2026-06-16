@@ -1,14 +1,20 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { Construction } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
 
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Card, Section } from '@/components/ui/card'
+import { DataTable, type Column } from '@/components/ui/data-table'
 import { PageSkeleton } from '@/components/ui/skeleton'
+import {
+  getGlobalMetrics,
+  type AtRiskTenant,
+  type GlobalMetrics,
+  type TopTenant,
+} from '@/lib/api/admin/metrics'
 import { getMe } from '@/lib/api/me'
 import {
   downloadMetricsPdf,
@@ -183,21 +189,10 @@ export default function MetricsPage() {
     }
   }
 
-  // Super-admin: a versão GLOBAL de métricas (toda a plataforma) é fase 6.3. Por ora,
-  // placeholder no lugar do redirect antigo (camada 6.0). Tenant segue com a tela atual.
+  // Super-admin: métricas GLOBAIS reais de toda a plataforma (camada 6.3). Tenant segue
+  // com a tela atual (volume/desempenho da própria empresa).
   if (isSuperAdmin) {
-    return (
-      <div className="space-y-6">
-        <PageHeader title="Métricas" description="Métricas globais da plataforma." />
-        <Card className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-          <Construction className="size-10 text-muted-foreground" />
-          <h2 className="text-base font-medium">Versão global em construção</h2>
-          <p className="max-w-sm text-sm text-muted-foreground">
-            As métricas globais da plataforma serão implementadas na fase 6.3.
-          </p>
-        </Card>
-      </div>
-    )
+    return <GlobalMetricsView />
   }
 
   if (isError) {
@@ -283,6 +278,176 @@ export default function MetricsPage() {
           </Section>
         </>
       )}
+    </div>
+  )
+}
+
+/** Card de KPI grande para a visão global do super-admin (rótulo + número + sufixo opcional). */
+function KpiCard({ label, value, hint }: { label: string; value: number; hint?: string }) {
+  return (
+    <Card>
+      <div className="text-3xl font-semibold tabular-nums">{value.toLocaleString('pt-BR')}</div>
+      <div className="mt-1 text-sm text-muted-foreground">{label}</div>
+      {hint && <div className="text-xs text-muted-foreground">{hint}</div>}
+    </Card>
+  )
+}
+
+/** Variação percentual (verde ↑ / vermelho ↓ / neutro —). */
+function PctDelta({ pct }: { pct: number }) {
+  if (pct > 0) return <span className="text-sm font-medium text-green-600 tabular-nums">↑ +{pct}%</span>
+  if (pct < 0) return <span className="text-sm font-medium text-red-600 tabular-nums">↓ {pct}%</span>
+  return <span className="text-sm text-muted-foreground tabular-nums">— 0%</span>
+}
+
+/**
+ * Métricas GLOBAIS da plataforma (camada 6.3, super-admin). KPIs grandes, comparação mês a mês,
+ * top empresas por volume, empresas em risco e crescimento (6 meses). Tokens são números reais
+ * (somados das mensagens — 6.2.5); serão 0 enquanto nenhum fluxo de IA tiver rodado.
+ */
+function GlobalMetricsView() {
+  const { data, isPending, isError } = useQuery<GlobalMetrics>({
+    queryKey: ['global-metrics'],
+    queryFn: getGlobalMetrics,
+  })
+
+  if (isPending) return <PageSkeleton />
+
+  if (isError || !data) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Métricas" description="Métricas globais da plataforma." />
+        <p className="text-sm text-destructive">Erro ao carregar métricas globais.</p>
+        <Link href="/dashboard">
+          <Button variant="outline">Voltar ao dashboard</Button>
+        </Link>
+      </div>
+    )
+  }
+
+  const { kpis, comparison, topTenants, atRisk, companiesCreatedPerMonth } = data
+
+  const topColumns: Column<TopTenant>[] = [
+    {
+      key: 'name',
+      header: 'Empresa',
+      render: (t) => (
+        <Link href={`/dashboard/companies/${t.id}`} className="hover:underline">
+          {t.name}
+        </Link>
+      ),
+    },
+    {
+      key: 'messagesLast30d',
+      header: 'Mensagens (30d)',
+      render: (t) => <span className="tabular-nums">{t.messagesLast30d.toLocaleString('pt-BR')}</span>,
+    },
+  ]
+
+  const riskColumns: Column<AtRiskTenant>[] = [
+    {
+      key: 'name',
+      header: 'Empresa',
+      render: (t) => (
+        <Link href={`/dashboard/companies/${t.id}`} className="hover:underline">
+          {t.name}
+        </Link>
+      ),
+    },
+    {
+      key: 'lastActivityAt',
+      header: 'Última atividade',
+      render: (t) =>
+        t.lastActivityAt ? (
+          new Date(t.lastActivityAt).toLocaleDateString('pt-BR')
+        ) : (
+          <span className="text-muted-foreground">nunca</span>
+        ),
+    },
+  ]
+
+  return (
+    <div className="space-y-6">
+      <PageHeader title="Métricas" description="Visão global de toda a plataforma." />
+
+      {/* KPIs grandes */}
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+        <KpiCard label="Empresas (total)" value={kpis.totalCompanies} />
+        <KpiCard label="Empresas ativas" value={kpis.activeCompanies} />
+        <KpiCard label="Mensagens" value={kpis.totalMessages30d} hint="últimos 30 dias" />
+        <KpiCard label="Conversas" value={kpis.totalConversations30d} hint="últimos 30 dias" />
+        <KpiCard label="Tokens Gemini" value={kpis.geminiTokensThisMonth} hint="mês atual" />
+        <KpiCard label="Tokens Gemini" value={kpis.geminiTokensLast30d} hint="últimos 30 dias" />
+      </div>
+
+      {/* Comparação mês a mês */}
+      <Section title="Comparação mês a mês">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="flex items-baseline justify-between rounded-lg border border-border bg-background p-3">
+            <div>
+              <div className="text-2xl font-semibold tabular-nums">
+                {comparison.messagesThisMonth.toLocaleString('pt-BR')}
+              </div>
+              <div className="text-xs text-muted-foreground">Mensagens (mês atual)</div>
+            </div>
+            <div className="text-right">
+              <PctDelta pct={comparison.messagesDeltaPct} />
+              <div className="text-xs text-muted-foreground">
+                anterior: {comparison.messagesLastMonth.toLocaleString('pt-BR')}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-baseline justify-between rounded-lg border border-border bg-background p-3">
+            <div>
+              <div className="text-2xl font-semibold tabular-nums">
+                {comparison.companiesThisMonth.toLocaleString('pt-BR')}
+              </div>
+              <div className="text-xs text-muted-foreground">Empresas criadas (mês atual)</div>
+            </div>
+            <div className="text-right">
+              <PctDelta pct={comparison.companiesDeltaPct} />
+              <div className="text-xs text-muted-foreground">
+                anterior: {comparison.companiesLastMonth.toLocaleString('pt-BR')}
+              </div>
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      {/* Top empresas por volume */}
+      <Section title="Top empresas por volume (30 dias)">
+        <DataTable<TopTenant>
+          data={topTenants}
+          columns={topColumns}
+          emptyMessage="Nenhuma empresa com mensagens nos últimos 30 dias."
+        />
+      </Section>
+
+      {/* Empresas em risco */}
+      <Section title="Empresas em risco (sem atividade há > 30 dias)">
+        <DataTable<AtRiskTenant>
+          data={atRisk}
+          columns={riskColumns}
+          emptyMessage="Nenhuma empresa em risco — todas com atividade recente."
+        />
+      </Section>
+
+      {/* Crescimento (texto/lista, sem gráfico) */}
+      <Section title="Crescimento (empresas criadas por mês)">
+        <Card>
+          <ul className="space-y-1 text-sm">
+            {companiesCreatedPerMonth.map((m) => (
+              <li key={m.month} className="flex items-center justify-between">
+                <span className="text-muted-foreground tabular-nums">{m.month}</span>
+                <span className="font-medium tabular-nums">{m.count.toLocaleString('pt-BR')}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 text-xs text-muted-foreground">
+            Últimos 6 meses calendário. O gráfico visual fica para uma fase futura.
+          </p>
+        </Card>
+      </Section>
     </div>
   )
 }

@@ -1,5 +1,6 @@
 package com.meada.whatsapp.appointments;
 
+import com.meada.whatsapp.admin.health.ScheduledJobRunRepository;
 import com.meada.whatsapp.messaging.ContactRepository;
 import com.meada.whatsapp.messaging.ConversationRepository;
 import com.meada.whatsapp.messaging.EvolutionCredentials;
@@ -55,17 +56,20 @@ public class ReminderJob {
     private final ContactRepository contactRepository;
     private final WhatsappInstanceRepository whatsappInstanceRepository;
     private final EvolutionSender evolutionSender;
+    private final ScheduledJobRunRepository jobRunRepository;
 
     public ReminderJob(AppointmentRepository appointmentRepository,
                        ConversationRepository conversationRepository,
                        ContactRepository contactRepository,
                        WhatsappInstanceRepository whatsappInstanceRepository,
-                       EvolutionSender evolutionSender) {
+                       EvolutionSender evolutionSender,
+                       ScheduledJobRunRepository jobRunRepository) {
         this.appointmentRepository = appointmentRepository;
         this.conversationRepository = conversationRepository;
         this.contactRepository = contactRepository;
         this.whatsappInstanceRepository = whatsappInstanceRepository;
         this.evolutionSender = evolutionSender;
+        this.jobRunRepository = jobRunRepository;
     }
 
     /**
@@ -74,6 +78,21 @@ public class ReminderJob {
      */
     @Scheduled(fixedDelayString = "${appointments.reminder-check-ms:300000}")
     public void sendDueReminders() {
+        // Registro de execução (camada 6.4): start ao iniciar, finish (success/failed) no try/finally.
+        // Instrumentamos AQUI (o método @Scheduled), não no loop interno — nenhum teste chama este
+        // método direto, então não polui scheduled_job_runs nos testes.
+        UUID runId = jobRunRepository.start("ReminderJob");
+        try {
+            runDueReminders();
+            jobRunRepository.finishSuccess(runId);
+        } catch (RuntimeException e) {
+            jobRunRepository.finishFailed(runId, e.getMessage());
+            throw e;
+        }
+    }
+
+    /** Lógica do tick (separada do registro de execução). */
+    private void runDueReminders() {
         Instant now = Instant.now();
         List<Appointment> due = appointmentRepository.findDueReminders(now, now.plus(HORIZON));
         if (due.isEmpty()) {

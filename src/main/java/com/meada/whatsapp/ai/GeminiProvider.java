@@ -41,6 +41,7 @@ public class GeminiProvider implements AiProvider {
 
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
+    private final com.meada.whatsapp.admin.health.ErrorLogger errorLogger;
     private final String apiKey;
     private final String model;
 
@@ -49,7 +50,8 @@ public class GeminiProvider implements AiProvider {
                           @Value("${gemini.model}") String model,
                           @Value("${gemini.connect-timeout-ms:5000}") long connectTimeoutMs,
                           @Value("${gemini.read-timeout-ms:30000}") long readTimeoutMs,
-                          ObjectMapper objectMapper) {
+                          ObjectMapper objectMapper,
+                          com.meada.whatsapp.admin.health.ErrorLogger errorLogger) {
         if (apiKey == null || apiKey.isBlank()) {
             throw new IllegalStateException("gemini.api-key must be configured (env GEMINI_API_KEY)");
         }
@@ -59,6 +61,7 @@ public class GeminiProvider implements AiProvider {
         this.apiKey = apiKey;
         this.model = model;
         this.objectMapper = objectMapper;
+        this.errorLogger = errorLogger;
         // Timeouts EXPLÍCITOS: o RestClient default não tem timeout — sem isto a
         // request poderia pendurar indefinidamente (e o cenário timeout→transient
         // nem seria alcançável). connect 5s, read 30s (IA pode ser lenta).
@@ -91,8 +94,11 @@ public class GeminiProvider implements AiProvider {
             if (status == 429 || e.getStatusCode().is5xxServerError()) {
                 throw new AiTransientException("Gemini transient error: HTTP " + status, e);
             }
-            // demais 4xx (prompt/chave inválidos) → fatal.
-            throw new AiException("Gemini fatal error: HTTP " + status, e);
+            // demais 4xx (prompt/chave inválidos) → fatal. Erro alertável (camada 6.4): registra no
+            // error_log para a tela de erros do super-admin. Best-effort (ErrorLogger nunca lança).
+            AiException fatal = new AiException("Gemini fatal error: HTTP " + status, e);
+            errorLogger.log("GeminiProvider", fatal, java.util.Map.of("httpStatus", status, "model", model));
+            throw fatal;
         } catch (Exception e) {
             // timeout / IO / conexão → retentável (transiente de rede).
             throw new AiTransientException("Gemini call failed: " + e.getMessage(), e);

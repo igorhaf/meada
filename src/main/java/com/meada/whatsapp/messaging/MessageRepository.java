@@ -61,8 +61,9 @@ public class MessageRepository {
     //   da mensagem no WhatsApp, único por natureza. Mesmo id em 2 tenants → só o
     //   1º insere. Correto e mais defensivo (reentrega cross-instance não duplica).
     private static final String INSERT_IF_NEW =
-        "insert into messages (company_id, conversation_id, direction, sender, content, evolution_message_id) "
-            + "values (?, ?, ?, ?, ?, ?) "
+        "insert into messages (company_id, conversation_id, direction, sender, content, evolution_message_id, "
+            + "tokens_in, tokens_out, model) "
+            + "values (?, ?, ?, ?, ?, ?, ?, ?, ?) "
             + "on conflict (evolution_message_id) where evolution_message_id is not null "
             + "do nothing "
             + "returning id, company_id";
@@ -98,16 +99,47 @@ public class MessageRepository {
                                          MessageSender sender,
                                          String content,
                                          String evolutionMessageId) {
+        // Sobrecarga histórica (6 args) — mensagens sem custo de IA a registrar (inbound,
+        // mensagens internas). Delega à versão de tokens com tokens=null/model=null.
+        return insertIfNew(companyId, conversationId, direction, sender, content,
+            evolutionMessageId, null, null, null);
+    }
+
+    /**
+     * Insere a mensagem se ela ainda não existe (por evolution_message_id), gravando também
+     * os tokens consumidos e o modelo da IA (camada 6.2.5).
+     *
+     * <p><b>tokens_in/tokens_out/model NULLABLE de propósito:</b> NULL distingue "esta mensagem
+     * não passou pela IA" (boas-vindas, fora-de-horário — métricas sintéticas, sem custo) de
+     * "IA respondeu com custo zero" (0 tokens). O OutboundService passa null nesses casos
+     * sintéticos; só o reply real da IA traz tokens > 0 + o nome do modelo. Métricas globais
+     * (6.3) somam coalesce(tokens, 0), então NULL não infla o consumo.
+     *
+     * @param tokensIn  tokens do prompt (usageMetadata da IA); null se não houve IA.
+     * @param tokensOut tokens da resposta; null se não houve IA.
+     * @param model     nome do modelo (gemini.model) que gerou a resposta; null se não houve IA.
+     */
+    public Optional<Message> insertIfNew(UUID companyId,
+                                         UUID conversationId,
+                                         MessageDirection direction,
+                                         MessageSender sender,
+                                         String content,
+                                         String evolutionMessageId,
+                                         Integer tokensIn,
+                                         Integer tokensOut,
+                                         String model) {
         Objects.requireNonNull(companyId, "companyId must not be null");
         Objects.requireNonNull(conversationId, "conversationId must not be null");
         Objects.requireNonNull(direction, "direction must not be null");
         Objects.requireNonNull(sender, "sender must not be null");
         Objects.requireNonNull(content, "content must not be null");
         // evolutionMessageId pode ser null (mensagens internas) — sem requireNonNull.
+        // tokensIn/tokensOut/model podem ser null (mensagens sem IA) — sem requireNonNull.
 
         List<Message> inserted = jdbcTemplate.query(
             INSERT_IF_NEW, ROW_MAPPER,
-            companyId, conversationId, direction.dbValue(), sender.dbValue(), content, evolutionMessageId);
+            companyId, conversationId, direction.dbValue(), sender.dbValue(), content,
+            evolutionMessageId, tokensIn, tokensOut, model);
 
         return inserted.stream().findFirst();
     }

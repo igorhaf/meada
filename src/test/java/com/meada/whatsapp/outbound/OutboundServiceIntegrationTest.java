@@ -330,6 +330,61 @@ class OutboundServiceIntegrationTest extends AbstractIntegrationTest {
         assertThat(countOutbound(CONV)).isEqualTo(1);
     }
 
+    // ---- token tracking (camada 6.2.5) --------------------------------------
+
+    @Test
+    @DisplayName("token tracking (6.2.5): reply real da IA → outbound grava tokens_in/out + model")
+    void tokenTracking_persistsTokensAndModelForAiReply() {
+        // aiReply() devolve AiResponse com tokensIn=10, tokensOut=5 (helper desta suíte).
+        // O OutboundService grava esses tokens + gemini.model (="test-model" no contexto de teste,
+        // via AbstractIntegrationTest) na row outbound.
+        fakeAi.enqueue(aiReply("Claro, posso ajudar!", false));
+        fakeEvolution.enqueue("key-tok");
+
+        OutboundOutcome outcome = service.process(event());
+
+        assertThat(outcome).isEqualTo(OutboundOutcome.PROCESSED);
+        Map<String, Object> row = jdbcTemplate.queryForMap(
+            "select tokens_in, tokens_out, model from messages "
+                + "where conversation_id = ? and direction = 'outbound'", CONV);
+        assertThat(row.get("tokens_in")).isEqualTo(10);
+        assertThat(row.get("tokens_out")).isEqualTo(5);
+        assertThat(row.get("model")).isEqualTo("test-model");
+    }
+
+    @Test
+    @DisplayName("token tracking (6.2.5): welcome sintético (tokens 0/0) → grava NULL, não 0 (distingue 'sem IA')")
+    void tokenTracking_syntheticWelcomeStoresNullNotZero() {
+        // O welcome é um AiResponse sintético com tokens 0/0 (não passou pela IA). A row dele deve
+        // ter tokens_in/out/model = NULL — distinguindo "mensagem sem IA" de "IA com custo zero".
+        jdbcTemplate.update("update ai_settings set welcome_message = ? where company_id = ?",
+            "Bem-vindo! Como posso ajudar?", COMPANY);
+        jdbcTemplate.update(
+            "insert into messages (company_id, conversation_id, direction, sender, content) "
+                + "values (?, ?, 'inbound', 'contact', ?)",
+            COMPANY, CONV, "Oi, tudo bem?");
+        fakeAi.enqueue(aiReply("Claro, posso ajudar com agendamentos.", false));
+        fakeEvolution.enqueue("key-welcome");
+        fakeEvolution.enqueue("key-reply");
+
+        OutboundOutcome outcome = service.process(event());
+
+        assertThat(outcome).isEqualTo(OutboundOutcome.PROCESSED);
+        // A row do welcome (conteúdo sintético): tokens/model NULL.
+        Map<String, Object> welcomeRow = jdbcTemplate.queryForMap(
+            "select tokens_in, tokens_out, model from messages where conversation_id = ? "
+                + "and content = ?", CONV, "Bem-vindo! Como posso ajudar?");
+        assertThat(welcomeRow.get("tokens_in")).isNull();
+        assertThat(welcomeRow.get("tokens_out")).isNull();
+        assertThat(welcomeRow.get("model")).isNull();
+        // A row da resposta REAL da IA, em contraste, tem tokens preenchidos.
+        Map<String, Object> replyRow = jdbcTemplate.queryForMap(
+            "select tokens_in, tokens_out, model from messages where conversation_id = ? "
+                + "and content = ?", CONV, "Claro, posso ajudar com agendamentos.");
+        assertThat(replyRow.get("tokens_in")).isEqualTo(10);
+        assertThat(replyRow.get("model")).isEqualTo("test-model");
+    }
+
     // ---- scheduling intent (camada 5.15 #29) --------------------------------
 
     @Test

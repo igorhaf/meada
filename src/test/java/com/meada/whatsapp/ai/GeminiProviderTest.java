@@ -33,9 +33,13 @@ class GeminiProviderTest {
     void setUp() throws IOException {
         server = new MockWebServer();
         server.start();
+        // ErrorLogger com jdbcTemplate null: estes testes não exercitam o branch 4xx fatal
+        // (o único que chama errorLogger.log) — o cenário fatal aqui é JSON inválido, que lança
+        // em parseResponse, sem tocar o logger. Logo o jdbcTemplate null nunca é desreferenciado.
+        var errorLogger = new com.meada.whatsapp.admin.health.ErrorLogger(null, MAPPER);
         provider = new GeminiProvider(
             server.url("/").toString().replaceAll("/$", ""),   // base-url do mock
-            "test-key", "test-model", 5000, 30000, MAPPER);
+            "test-key", "test-model", 5000, 30000, MAPPER, errorLogger);
     }
 
     @AfterEach

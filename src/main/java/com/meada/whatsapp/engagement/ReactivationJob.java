@@ -1,5 +1,6 @@
 package com.meada.whatsapp.engagement;
 
+import com.meada.whatsapp.admin.health.ScheduledJobRunRepository;
 import com.meada.whatsapp.messaging.AiSettingsRepository;
 import com.meada.whatsapp.messaging.ContactRepository;
 import com.meada.whatsapp.messaging.ConversationRepository;
@@ -47,26 +48,39 @@ public class ReactivationJob {
     private final ContactRepository contactRepository;
     private final WhatsappInstanceRepository whatsappInstanceRepository;
     private final EvolutionSender evolutionSender;
+    private final ScheduledJobRunRepository jobRunRepository;
 
     public ReactivationJob(AiSettingsRepository aiSettingsRepository,
                            ReactivationRepository reactivationRepository,
                            ConversationRepository conversationRepository,
                            ContactRepository contactRepository,
                            WhatsappInstanceRepository whatsappInstanceRepository,
-                           EvolutionSender evolutionSender) {
+                           EvolutionSender evolutionSender,
+                           ScheduledJobRunRepository jobRunRepository) {
         this.aiSettingsRepository = aiSettingsRepository;
         this.reactivationRepository = reactivationRepository;
         this.conversationRepository = conversationRepository;
         this.contactRepository = contactRepository;
         this.whatsappInstanceRepository = whatsappInstanceRepository;
         this.evolutionSender = evolutionSender;
+        this.jobRunRepository = jobRunRepository;
     }
 
     /** Tick agendado (cron configurável; default diário às 9h). Delega ao método público
      *  {@link #runReactivation()} para os testes poderem rodar a lógica sem o scheduler. */
     @Scheduled(cron = "${engagement.reactivation-cron:0 0 9 * * *}")
     public void scheduledRun() {
-        runReactivation();
+        // Registro de execução (camada 6.4): instrumentamos AQUI (o método @Scheduled), NÃO em
+        // runReactivation() — os testes chamam runReactivation() direto e não devem poluir
+        // scheduled_job_runs. start ao iniciar, finish (success/failed) no try/catch.
+        UUID runId = jobRunRepository.start("ReactivationJob");
+        try {
+            runReactivation();
+            jobRunRepository.finishSuccess(runId);
+        } catch (RuntimeException e) {
+            jobRunRepository.finishFailed(runId, e.getMessage());
+            throw e;
+        }
     }
 
     /**

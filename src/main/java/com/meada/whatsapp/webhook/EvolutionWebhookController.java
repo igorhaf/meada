@@ -1,7 +1,10 @@
 package com.meada.whatsapp.webhook;
 
+import com.meada.whatsapp.admin.health.WebhookHeartbeatRepository;
 import com.meada.whatsapp.webhook.dto.EvolutionWebhookPayload;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -27,14 +30,28 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class EvolutionWebhookController {
 
-    private final WebhookService webhookService;
+    private static final Logger log = LoggerFactory.getLogger(EvolutionWebhookController.class);
 
-    public EvolutionWebhookController(WebhookService webhookService) {
+    private final WebhookService webhookService;
+    private final WebhookHeartbeatRepository heartbeatRepository;
+
+    public EvolutionWebhookController(WebhookService webhookService,
+                                      WebhookHeartbeatRepository heartbeatRepository) {
         this.webhookService = webhookService;
+        this.heartbeatRepository = heartbeatRepository;
     }
 
     @PostMapping("/webhooks/evolution")
     public ResponseEntity<Void> receive(@Valid @RequestBody EvolutionWebhookPayload payload) {
+        // Batimento de saúde (camada 6.4): registra que um evento chegou ANTES de processar.
+        // Best-effort — try/catch silencioso para NUNCA bloquear o webhook (a Evolution só
+        // precisa do 2xx), MAS log.warn no catch para um bug futuro de gravação não passar
+        // despercebido. event_type='received' (não dependemos do shape do payload aqui).
+        try {
+            heartbeatRepository.record(null, "received");
+        } catch (RuntimeException e) {
+            log.warn("failed to record heartbeat: {}", e.getMessage());
+        }
         webhookService.process(payload);
         return ResponseEntity.ok().build();
     }
