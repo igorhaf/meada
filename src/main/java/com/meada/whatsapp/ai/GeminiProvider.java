@@ -12,6 +12,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -130,8 +131,31 @@ public class GeminiProvider implements AiProvider {
             "properties", Map.of(
                 "reply", Map.of("type", "STRING"),
                 "needs_human", Map.of("type", "BOOLEAN"),
-                "reason", Map.of("type", "STRING")),
+                "reason", Map.of("type", "STRING"),
+                "scheduling_intent", schedulingIntentSchema()),
             "required", List.of("reply", "needs_human"));
+    }
+
+    /**
+     * Sub-objeto OPCIONAL scheduling_intent (camada 5.15 #29) — NÃO entra em required do
+     * schema-pai: o modelo só o preenche ao detectar intenção de agendar (a maioria das
+     * respostas o omite). detected_at NÃO está aqui: é fato do servidor (Instant.now() no
+     * parse), não decisão do modelo. urgency é enum; service_hint/when_hint nullable.
+     *
+     * <p>Opção A (decisão cravada): a detecção viaja como sub-objeto do JSON estruturado,
+     * NÃO como function calling — a Gemini API proíbe combinar responseSchema (JSON mode)
+     * com tools na mesma request (HTTP 400). Mesmo efeito de produto, contrato
+     * reply/needs_human intacto.
+     */
+    private Map<String, Object> schedulingIntentSchema() {
+        return Map.of(
+            "type", "OBJECT",
+            "properties", Map.of(
+                "service_hint", Map.of("type", "STRING", "nullable", true),
+                "when_hint", Map.of("type", "STRING", "nullable", true),
+                "urgency", Map.of("type", "STRING", "enum", List.of("low", "normal", "high")),
+                "raw_excerpt", Map.of("type", "STRING")),
+            "required", List.of("urgency", "raw_excerpt"));
     }
 
     /** Extrai o JSON estruturado de candidates[0].content.parts[0].text + tokens. */
@@ -155,12 +179,34 @@ public class GeminiProvider implements AiProvider {
             int tokensIn = usage.path("promptTokenCount").asInt(0);
             int tokensOut = usage.path("candidatesTokenCount").asInt(0);
 
-            return new AiResponse(reply, needsHuman, reason, tokensIn, tokensOut, latencyMs);
+            SchedulingIntent schedulingIntent = parseSchedulingIntent(structured);
+
+            return new AiResponse(reply, needsHuman, reason, tokensIn, tokensOut, latencyMs,
+                schedulingIntent);
         } catch (AiException e) {
             throw e;
         } catch (Exception e) {
             // JSON malformado / estrutura inesperada → fatal (retry não ajuda).
             throw new AiException("Failed to parse Gemini response", e);
         }
+    }
+
+    /**
+     * Extrai o sub-objeto OPCIONAL scheduling_intent do JSON estruturado (camada 5.15 #29).
+     * Retorna null quando ausente/null (caso da maioria das mensagens). detected_at é
+     * preenchido AQUI com Instant.now() — fato do servidor, não vem do modelo. Os demais
+     * campos vêm do modelo; service_hint/when_hint podem faltar (asText(null) → null);
+     * urgency e raw_excerpt são required no schema (presença garantida quando o objeto vem).
+     */
+    private SchedulingIntent parseSchedulingIntent(JsonNode structured) {
+        JsonNode intent = structured.path("scheduling_intent");
+        if (intent.isMissingNode() || intent.isNull()) {
+            return null;
+        }
+        String serviceHint = intent.path("service_hint").asText(null);
+        String whenHint = intent.path("when_hint").asText(null);
+        String urgency = intent.path("urgency").asText(null);
+        String rawExcerpt = intent.path("raw_excerpt").asText(null);
+        return new SchedulingIntent(Instant.now(), serviceHint, whenHint, urgency, rawExcerpt);
     }
 }

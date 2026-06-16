@@ -17,12 +17,27 @@ import {
   removeTagFromConversation,
 } from '@/lib/supabase/conversation-tags'
 import {
+  clearSchedulingIntent,
   getConversation,
   updateConversationHandledBy,
   updateConversationStatus,
 } from '@/lib/supabase/conversations'
 import { getConversationMessages } from '@/lib/supabase/messages'
 import { getMyTags } from '@/lib/supabase/tags'
+
+/** Classes do badge de urgência do agendamento (#29): amber/orange/red por nível. */
+const SCHEDULING_URGENCY_CLASSES: Record<'low' | 'normal' | 'high', string> = {
+  low: 'bg-amber-100 text-amber-700',
+  normal: 'bg-orange-100 text-orange-700',
+  high: 'bg-red-100 text-red-700',
+}
+
+/** Rótulo pt-BR da urgência exibido no badge da seção de agendamento. */
+const SCHEDULING_URGENCY_LABEL: Record<'low' | 'normal' | 'high', string> = {
+  low: 'sem pressa',
+  normal: 'esta semana',
+  high: 'urgente',
+}
 
 /**
  * Detalhe de uma conversa (SDK + RLS). Leitura: bolhas inbound/outbound, polling 5s.
@@ -80,6 +95,14 @@ export default function ConversationDetailPage({
     mutationFn: (next: 'open' | 'closed') => updateConversationStatus(id, next),
     onSuccess: invalidateConversation,
     onError: (err) => console.error('updateConversationStatus failed:', err),
+  })
+
+  // "Marcar como tratado" o agendamento (#29): zera scheduling_intent. invalidateConversation
+  // faz a seção e o badge (lista) sumirem. Reusa o pattern das mutations acima.
+  const clearIntentMutation = useMutation({
+    mutationFn: () => clearSchedulingIntent(id),
+    onSuccess: invalidateConversation,
+    onError: (err) => console.error('clearSchedulingIntent failed:', err),
   })
 
   // Tags da conversa (#22): lista as aplicadas + o catálogo de tags da empresa (para o
@@ -210,6 +233,48 @@ export default function ConversationDetailPage({
             <p className="mb-3 text-sm text-destructive">
               Erro ao atualizar a conversa. Tente novamente.
             </p>
+          )}
+
+          {/* Possível agendamento (#29): só renderiza quando a IA detectou intent.
+              "Marcar como tratado" zera scheduling_intent → seção e badge somem. */}
+          {conversation.schedulingIntent && (
+            <div className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-4">
+              <div className="mb-2 flex items-center justify-between">
+                <h2 className="flex items-center gap-2 text-sm font-medium">
+                  🗓️ Possível agendamento
+                  <span
+                    className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${SCHEDULING_URGENCY_CLASSES[conversation.schedulingIntent.urgency]}`}
+                  >
+                    {SCHEDULING_URGENCY_LABEL[conversation.schedulingIntent.urgency]}
+                  </span>
+                </h2>
+                <Button
+                  variant="outline"
+                  className="h-7 px-2 text-xs"
+                  disabled={clearIntentMutation.isPending}
+                  onClick={() => clearIntentMutation.mutate()}
+                >
+                  Marcar como tratado
+                </Button>
+              </div>
+              <dl className="space-y-1 text-sm">
+                <div className="flex gap-2">
+                  <dt className="text-muted-foreground">Quando:</dt>
+                  <dd>{conversation.schedulingIntent.whenHint || 'não informado'}</dd>
+                </div>
+                <div className="flex gap-2">
+                  <dt className="text-muted-foreground">Serviço:</dt>
+                  <dd>{conversation.schedulingIntent.serviceHint || 'não informado'}</dd>
+                </div>
+              </dl>
+              <p className="mt-2 rounded bg-white/60 px-3 py-2 text-sm italic text-muted-foreground">
+                “{conversation.schedulingIntent.rawExcerpt}”
+              </p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Detectado em{' '}
+                {new Date(conversation.schedulingIntent.detectedAt).toLocaleString('pt-BR')}
+              </p>
+            </div>
           )}
 
           {/* Tags (#22): chips aplicados (com × para remover) + autocomplete para adicionar

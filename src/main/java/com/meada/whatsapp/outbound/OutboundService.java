@@ -1,11 +1,14 @@
 package com.meada.whatsapp.outbound;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.meada.whatsapp.ai.AiException;
 import com.meada.whatsapp.ai.AiProvider;
 import com.meada.whatsapp.ai.AiTransientException;
 import com.meada.whatsapp.ai.AiResponse;
 import com.meada.whatsapp.ai.Prompt;
 import com.meada.whatsapp.ai.PromptBuilder;
+import com.meada.whatsapp.ai.SchedulingIntent;
 import com.meada.whatsapp.messaging.BusinessHours;
 import com.meada.whatsapp.messaging.BusinessHoursRepository;
 import com.meada.whatsapp.messaging.ContactRepository;
@@ -69,6 +72,7 @@ public class OutboundService {
 
     private final BusinessHoursRepository businessHoursRepository;
     private final BusinessHoursGate businessHoursGate;
+    private final ObjectMapper objectMapper;
 
     private final int maxAttempts;
     private final List<Duration> backoffs;
@@ -93,7 +97,8 @@ public class OutboundService {
                            RetryRunner retryRunner,
                            OutboundRetryProperties retryProps,
                            BusinessHoursRepository businessHoursRepository,
-                           BusinessHoursGate businessHoursGate) {
+                           BusinessHoursGate businessHoursGate,
+                           ObjectMapper objectMapper) {
         this.conversationRepository = conversationRepository;
         this.contactRepository = contactRepository;
         this.whatsappInstanceRepository = whatsappInstanceRepository;
@@ -104,6 +109,7 @@ public class OutboundService {
         this.retryRunner = retryRunner;
         this.businessHoursRepository = businessHoursRepository;
         this.businessHoursGate = businessHoursGate;
+        this.objectMapper = objectMapper;
         this.maxAttempts = retryProps.maxAttempts();
         // converte uma vez (lista YAML de millis → Durations). O RetryRunner valida
         // o invariante backoffs.size() == maxAttempts-1 em cada chamada.
@@ -166,7 +172,9 @@ public class OutboundService {
 
         if (aiResponse.needsHuman()) {
             if (hasReply) {
-                // caso 1: envia a resposta-ponte ao cliente, grava, depois flipa.
+                // caso 1: persiste a intent (#29) ANTES de enviar, manda a resposta-ponte,
+                // grava, depois flipa. Casos 2/3 (sem reply efetivo) NÃO persistem intent.
+                persistSchedulingIntent(conversationId, aiResponse);
                 Optional<OutboundOutcome> sendFailure = sendAndPersist(event, conversationId, aiResponse);
                 if (sendFailure.isPresent()) {
                     return sendFailure.get();   // falha de envio domina (casos 7/8/9) — já logado lá
@@ -187,7 +195,8 @@ public class OutboundService {
             return logOutcome(OutboundOutcome.FLIPPED_AI_BAD_REPLY, event, aiResponse, null);
         }
 
-        // caso 6: caminho feliz — envia e grava.
+        // caso 6: caminho feliz — persiste a intent (#29) ANTES de enviar, depois envia e grava.
+        persistSchedulingIntent(conversationId, aiResponse);
         Optional<OutboundOutcome> sendFailure = sendAndPersist(event, conversationId, aiResponse);
         if (sendFailure.isPresent()) {
             return sendFailure.get();   // casos 7/8/9 — já logado lá
@@ -281,6 +290,41 @@ public class OutboundService {
                 + "(duplicate processing?)", keyId, conversationId);
         }
         return Optional.empty();   // sucesso (o caller loga o outcome final PROCESSED/HANDOFF)
+    }
+
+    /**
+     * Persiste a intenção de agendamento detectada (camada 5.15 #29) em
+     * conversations.scheduling_intent. No-op quando {@code aiResponse.schedulingIntent()}
+     * é null (maioria das mensagens) — evita UPDATE em toda mensagem.
+     *
+     * <p>Serializa o {@link SchedulingIntent} para JSON snake_case (chaves batendo com o
+     * que o painel lê via SDK: detected_at, service_hint, when_hint, urgency, raw_excerpt).
+     * Não usa o ObjectMapper "as-is" sobre o record (evita acoplar o nome dos campos Java à
+     * forma do jsonb) — monta um ObjectNode explícito. detected_at em ISO-8601 (toString do
+     * Instant).
+     *
+     * <p>Falha de persistência da intent NÃO derruba o atendimento: logamos warn e seguimos
+     * (a resposta ao cliente é mais importante que a marcação interna). Diferente dos
+     * UPDATEs de handoff, que são parte do contrato de fluxo.
+     */
+    private void persistSchedulingIntent(UUID conversationId, AiResponse aiResponse) {
+        SchedulingIntent intent = aiResponse.schedulingIntent();
+        if (intent == null) {
+            return;
+        }
+        try {
+            ObjectNode node = objectMapper.createObjectNode();
+            node.put("detected_at", intent.detectedAt().toString());
+            node.put("service_hint", intent.serviceHint());   // put(String, null) → JSON null
+            node.put("when_hint", intent.whenHint());
+            node.put("urgency", intent.urgency());
+            node.put("raw_excerpt", intent.rawExcerpt());
+            conversationRepository.updateSchedulingIntent(
+                conversationId, objectMapper.writeValueAsString(node));
+        } catch (Exception e) {
+            log.warn("outbound: failed to persist scheduling_intent for conversation {} ({})",
+                conversationId, e.getMessage());
+        }
     }
 
     /**

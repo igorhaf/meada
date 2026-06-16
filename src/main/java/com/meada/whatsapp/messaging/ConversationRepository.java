@@ -158,4 +158,26 @@ public class ConversationRepository {
             .stream()
             .findFirst();
     }
+
+    /**
+     * Grava a intenção de agendamento detectada pela IA em {@code scheduling_intent}
+     * (camada 5.15 #29). Chamado pelo OutboundService quando o AiResponse traz intent —
+     * SÓ nos casos com AiResponse válido (caminho feliz e handoff-com-reply). A maioria
+     * das mensagens NÃO detecta intent, então o caller só invoca este método quando há
+     * intent (não chama com null — evita UPDATE inútil em toda mensagem).
+     *
+     * <p>{@code ?::jsonb} faz o cast do parâmetro String (JSON serializado no Java) para
+     * jsonb no Postgres. updated_at = now() por coerência com os outros UPDATEs daqui.
+     * Auditado automaticamente via trg_conversations_audit (fase-5.3).
+     *
+     * @param conversationId conversa a marcar
+     * @param intentJsonb    JSON da intent já serializado (não-null; o caller garante)
+     */
+    public void updateSchedulingIntent(UUID conversationId, String intentJsonb) {
+        Objects.requireNonNull(conversationId, "conversationId must not be null");
+        Objects.requireNonNull(intentJsonb, "intentJsonb must not be null");
+        jdbcTemplate.update(
+            "update conversations set scheduling_intent = ?::jsonb, updated_at = now() where id = ?",
+            intentJsonb, conversationId);
+    }
 }

@@ -23,6 +23,16 @@ import {
 import type { Tag } from '@/lib/supabase/tags'
 
 /**
+ * Classes do badge de agendamento (camada 5.15 #29) por urgência: amber (low),
+ * orange (normal), red (high). Mesma família dos chips de tag (bg-X-100 / text-X-700).
+ */
+const SCHEDULING_BADGE_CLASSES: Record<'low' | 'normal' | 'high', string> = {
+  low: 'bg-amber-100 text-amber-700',
+  normal: 'bg-orange-100 text-orange-700',
+  high: 'bg-red-100 text-red-700',
+}
+
+/**
  * Conversas da empresa do tenant (SDK + RLS), polling 5s. Super-admin não usa: redireciona
  * para /dashboard. Botão "Abrir" leva ao detalhe.
  *
@@ -92,12 +102,20 @@ export default function ConversationsPage() {
       header: 'Tags',
       render: (c) => {
         const tags: Tag[] = tagsByConv?.[c.id] ?? []
-        if (tags.length === 0 && !c.markedUnread) {
+        if (tags.length === 0 && !c.markedUnread && !c.schedulingIntent) {
           return <span className="text-muted-foreground">—</span>
         }
         return (
           <div className="flex flex-wrap items-center gap-1">
             {c.markedUnread && <Badge variant="info">não lida</Badge>}
+            {c.schedulingIntent && (
+              <span
+                title={c.schedulingIntent.rawExcerpt}
+                className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${SCHEDULING_BADGE_CLASSES[c.schedulingIntent.urgency]}`}
+              >
+                🗓️ agendamento
+              </span>
+            )}
             {tags.map((t) => (
               <TagChip key={t.id} name={t.name} color={t.color} />
             ))}

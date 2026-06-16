@@ -5,37 +5,87 @@ import { createClient } from './client'
  * vivem em contacts; trazemos via select aninhado. RLS de conversations e contacts ambos
  * filtram por company_id = app.company_id() — o tenant só vê suas conversas/contatos.
  */
+/**
+ * Intenção de agendamento detectada pela IA (camada 5.15 #29) — shape do jsonb
+ * conversations.scheduling_intent. null quando não detectado. serviceHint/whenHint são
+ * livres (nullable); urgency é enum; rawExcerpt é o trecho que disparou a detecção;
+ * detectedAt é ISO string (fato do servidor).
+ */
+export type SchedulingIntent = {
+  detectedAt: string
+  serviceHint: string | null
+  whenHint: string | null
+  urgency: 'low' | 'normal' | 'high'
+  rawExcerpt: string
+}
+
 export type ConversationWithContact = {
   id: string
   status: string
   handledBy: string
   markedUnread: boolean
+  schedulingIntent: SchedulingIntent | null
   lastMessageAt: string | null
   contactName: string | null
   contactPhone: string
 }
 
 const SELECT_WITH_CONTACT =
-  'id, status, handled_by, marked_unread, last_message_at, contact:contacts(name, phone_number)'
+  'id, status, handled_by, marked_unread, scheduling_intent, last_message_at, '
+  + 'contact:contacts(name, phone_number)'
 
-/** Normaliza a linha crua (snake_case + join possivelmente array) para ConversationWithContact. */
-function toConversation(row: {
+/** jsonb cru do scheduling_intent (snake_case, como o PostgREST devolve). */
+type SchedulingIntentRow = {
+  detected_at: string
+  service_hint: string | null
+  when_hint: string | null
+  urgency: 'low' | 'normal' | 'high'
+  raw_excerpt: string
+}
+
+/** Mapeia o jsonb cru (snake_case) para SchedulingIntent (camelCase). null → null. */
+function toSchedulingIntent(raw: SchedulingIntentRow | null): SchedulingIntent | null {
+  if (!raw) {
+    return null
+  }
+  return {
+    detectedAt: raw.detected_at,
+    serviceHint: raw.service_hint ?? null,
+    whenHint: raw.when_hint ?? null,
+    urgency: raw.urgency,
+    rawExcerpt: raw.raw_excerpt,
+  }
+}
+
+/** Linha crua de conversations vinda do PostgREST (snake_case + join possivelmente array). */
+type ConversationRow = {
   id: string
   status: string
   handled_by: string
   marked_unread: boolean
+  scheduling_intent: SchedulingIntentRow | null
   last_message_at: string | null
   contact:
     | { name: string | null; phone_number: string }
     | { name: string | null; phone_number: string }[]
     | null
-}): ConversationWithContact {
+}
+
+/**
+ * Normaliza a linha crua (snake_case + join possivelmente array) para
+ * ConversationWithContact. Aceita unknown e casta internamente: o supabase-js não infere
+ * o shape do select quando há jsonb (scheduling_intent) — o data tipa como
+ * GenericStringError. O cast único aqui evita repeti-lo em cada call-site.
+ */
+function toConversation(raw: unknown): ConversationWithContact {
+  const row = raw as ConversationRow
   const contact = Array.isArray(row.contact) ? row.contact[0] : row.contact
   return {
     id: row.id,
     status: row.status,
     handledBy: row.handled_by,
     markedUnread: row.marked_unread,
+    schedulingIntent: toSchedulingIntent(row.scheduling_intent),
     lastMessageAt: row.last_message_at,
     contactName: contact?.name ?? null,
     contactPhone: contact?.phone_number ?? '',
@@ -147,6 +197,30 @@ export async function setConversationMarkedUnread(
   const { data, error } = await supabase
     .from('conversations')
     .update({ marked_unread: markedUnread })
+    .eq('id', id)
+    .select(SELECT_WITH_CONTACT)
+    .single()
+
+  if (error) {
+    throw error
+  }
+
+  return toConversation(data)
+}
+
+/**
+ * Marca a intenção de agendamento como tratada (camada 5.15 #29): UPDATE
+ * { scheduling_intent: null } via SDK + RLS (conversations_update). O tenant clica
+ * "Marcar como tratado" no detalhe quando já lidou com o pedido — a seção e o badge
+ * somem. Idempotente (zerar uma coluna já null é no-op). Retorna a conversa atualizada.
+ */
+export async function clearSchedulingIntent(
+  id: string,
+): Promise<ConversationWithContact> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('conversations')
+    .update({ scheduling_intent: null })
     .eq('id', id)
     .select(SELECT_WITH_CONTACT)
     .single()

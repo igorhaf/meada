@@ -6,6 +6,7 @@ import com.meada.whatsapp.ai.AiProvider;
 import com.meada.whatsapp.ai.AiResponse;
 import com.meada.whatsapp.ai.AiTransientException;
 import com.meada.whatsapp.ai.Prompt;
+import com.meada.whatsapp.ai.SchedulingIntent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -17,6 +18,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -264,6 +266,54 @@ class OutboundServiceIntegrationTest extends AbstractIntegrationTest {
         assertThat(row.get("sender")).isEqualTo("ai");
         assertThat(row.get("content")).isEqualTo("Olá! Tudo bem? 😊");
         assertThat(row.get("evolution_message_id")).isEqualTo("key-6");
+    }
+
+    // ---- scheduling intent (camada 5.15 #29) --------------------------------
+
+    @Test
+    @DisplayName("AiResponse com schedulingIntent → persiste em conversations.scheduling_intent + envia reply")
+    void schedulingIntent_persistsToConversation() {
+        SchedulingIntent intent = new SchedulingIntent(
+            Instant.parse("2026-06-15T12:00:00Z"), "corte", "amanhã 14h", "high",
+            "quero marcar amanhã às 14h");
+        // AiResponse válido (caminho feliz, caso 6) COM intent — construtor de 7 args.
+        fakeAi.enqueue(new AiResponse("Claro! Posso marcar.", false, null, 10, 5, 100L, intent));
+        fakeEvolution.enqueue("key-intent");
+
+        OutboundOutcome outcome = service.process(event());
+
+        assertThat(outcome).isEqualTo(OutboundOutcome.PROCESSED);
+        assertThat(fakeEvolution.calls()).isEqualTo(1);   // reply foi enviado
+        assertThat(countOutbound(CONV)).isEqualTo(1);
+
+        // a coluna jsonb tem os campos esperados (snake_case, detected_at do servidor).
+        Map<String, Object> intentRow = jdbcTemplate.queryForMap(
+            "select scheduling_intent->>'service_hint' as service_hint, "
+                + "scheduling_intent->>'when_hint' as when_hint, "
+                + "scheduling_intent->>'urgency' as urgency, "
+                + "scheduling_intent->>'raw_excerpt' as raw_excerpt, "
+                + "scheduling_intent->>'detected_at' as detected_at "
+                + "from conversations where id = ?", CONV);
+        assertThat(intentRow.get("service_hint")).isEqualTo("corte");
+        assertThat(intentRow.get("when_hint")).isEqualTo("amanhã 14h");
+        assertThat(intentRow.get("urgency")).isEqualTo("high");
+        assertThat(intentRow.get("raw_excerpt")).isEqualTo("quero marcar amanhã às 14h");
+        assertThat((String) intentRow.get("detected_at")).startsWith("2026-06-15T12:00:00");
+    }
+
+    @Test
+    @DisplayName("AiResponse SEM schedulingIntent → scheduling_intent fica null (maioria das msgs)")
+    void noSchedulingIntent_columnStaysNull() {
+        fakeAi.enqueue(aiReply("Sim, atendemos aos sábados.", false));   // sem intent (6-arg ctor)
+        fakeEvolution.enqueue("key-nointent");
+
+        OutboundOutcome outcome = service.process(event());
+
+        assertThat(outcome).isEqualTo(OutboundOutcome.PROCESSED);
+        Object intentCol = jdbcTemplate.queryForMap(
+            "select scheduling_intent from conversations where id = ?", CONV)
+            .get("scheduling_intent");
+        assertThat(intentCol).isNull();
     }
 
     // ---- gate de horário comercial (camada 5.4) -----------------------------

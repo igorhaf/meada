@@ -17,6 +17,13 @@ package com.meada.whatsapp.ai;
  * @param tokensIn   tokens do prompt (usageMetadata da API); 0 se indisponível.
  * @param tokensOut  tokens da resposta; 0 se indisponível.
  * @param latencyMs  latência da chamada à IA, medida pelo provider.
+ * @param schedulingIntent intenção de agendamento detectada na mensagem do cliente
+ *                   (camada 5.15 #29); NULLABLE — null quando o modelo não detectou
+ *                   intenção de marcar/agendar (caso da maioria das mensagens). Quando
+ *                   presente, o OutboundService persiste em conversations.scheduling_intent
+ *                   (só nos casos com AiResponse válido — caminho feliz e handoff-com-reply).
+ *                   Ortogonal a needsHuman: a detecção NÃO força handoff (a IA segue
+ *                   respondendo), só marca a conversa.
  */
 public record AiResponse(
     String reply,
@@ -24,5 +31,17 @@ public record AiResponse(
     String reason,
     int tokensIn,
     int tokensOut,
-    long latencyMs) {
+    long latencyMs,
+    SchedulingIntent schedulingIntent) {
+
+    /**
+     * Construtor de conveniência sem intent (schedulingIntent=null) — preserva a aridade
+     * histórica de 6 args para os call-sites que nunca detectam agendamento: o
+     * AiResponse sintético de fora-de-horário (OutboundService) e respostas de teste.
+     * O GeminiProvider usa o construtor canônico de 7 args quando há detecção.
+     */
+    public AiResponse(String reply, boolean needsHuman, String reason,
+                      int tokensIn, int tokensOut, long latencyMs) {
+        this(reply, needsHuman, reason, tokensIn, tokensOut, latencyMs, null);
+    }
 }

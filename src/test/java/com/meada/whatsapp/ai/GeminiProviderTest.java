@@ -136,4 +136,43 @@ class GeminiProviderTest {
             .isInstanceOf(AiException.class)
             .isNotInstanceOf(AiTransientException.class);
     }
+
+    @Test
+    @DisplayName("200 com scheduling_intent: parseia intent (camada 5.15 #29), detectedAt do servidor")
+    void responseWithSchedulingIntent_parsesCorrectly() {
+        server.enqueue(new MockResponse()
+            .setResponseCode(200)
+            .setHeader("Content-Type", "application/json")
+            .setBody(geminiBody(
+                "{\"reply\":\"Claro! Posso marcar sim.\",\"needs_human\":false,\"reason\":\"\","
+                    + "\"scheduling_intent\":{\"service_hint\":\"corte\",\"when_hint\":\"amanhã 14h\","
+                    + "\"urgency\":\"high\",\"raw_excerpt\":\"quero marcar amanhã às 14h\"}}", 130, 22)));
+
+        AiResponse r = provider.generate(prompt);
+
+        assertThat(r.reply()).isEqualTo("Claro! Posso marcar sim.");
+        assertThat(r.needsHuman()).isFalse();
+        assertThat(r.schedulingIntent()).isNotNull();
+        assertThat(r.schedulingIntent().serviceHint()).isEqualTo("corte");
+        assertThat(r.schedulingIntent().whenHint()).isEqualTo("amanhã 14h");
+        assertThat(r.schedulingIntent().urgency()).isEqualTo("high");
+        assertThat(r.schedulingIntent().rawExcerpt()).isEqualTo("quero marcar amanhã às 14h");
+        // detected_at é fato do servidor (Instant.now() no parse), não vem do modelo.
+        assertThat(r.schedulingIntent().detectedAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("200 sem scheduling_intent: schedulingIntent = null")
+    void responseWithoutSchedulingIntent_intentIsNull() {
+        server.enqueue(new MockResponse()
+            .setResponseCode(200)
+            .setHeader("Content-Type", "application/json")
+            .setBody(geminiBody(
+                "{\"reply\":\"Sim, atendemos aos sábados.\",\"needs_human\":false,\"reason\":\"\"}", 80, 10)));
+
+        AiResponse r = provider.generate(prompt);
+
+        assertThat(r.reply()).isEqualTo("Sim, atendemos aos sábados.");
+        assertThat(r.schedulingIntent()).isNull();
+    }
 }
