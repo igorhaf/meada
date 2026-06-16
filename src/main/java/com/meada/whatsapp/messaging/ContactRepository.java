@@ -21,11 +21,12 @@ public class ContactRepository {
             (UUID) rs.getObject("id"),
             (UUID) rs.getObject("company_id"),
             rs.getString("phone_number"),
-            rs.getString("name"));
+            rs.getString("name"),
+            rs.getBoolean("blocked"));
 
     // Caminho quente: contato recorrente já existe (a maioria das mensagens).
     private static final String SELECT_ACTIVE =
-        "select id, company_id, phone_number, name from contacts "
+        "select id, company_id, phone_number, name, blocked from contacts "
             + "where company_id = ? and phone_number = ? and deleted_at is null";
 
     // Upsert. ON CONFLICT repete o predicado parcial (WHERE deleted_at IS NULL)
@@ -41,7 +42,7 @@ public class ContactRepository {
         "insert into contacts (company_id, phone_number, name) values (?, ?, ?) "
             + "on conflict (company_id, phone_number) where deleted_at is null "
             + "do update set name = excluded.name where contacts.name is null "
-            + "returning id, company_id, phone_number, name";
+            + "returning id, company_id, phone_number, name, blocked";
 
     // Preenche o nome de um contato JÁ EXISTENTE cujo name estava null (lacuna),
     // detectado no caminho quente (passo 1). WHERE name IS NULL é proteção contra
@@ -49,7 +50,7 @@ public class ContactRepository {
     // RETURNING vazio → reselect.
     private static final String FILL_NAME =
         "update contacts set name = ? where id = ? and name is null "
-            + "returning id, company_id, phone_number, name";
+            + "returning id, company_id, phone_number, name, blocked";
 
     private final JdbcTemplate jdbcTemplate;
 

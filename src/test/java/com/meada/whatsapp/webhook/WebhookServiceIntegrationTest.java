@@ -186,6 +186,36 @@ class WebhookServiceIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    @DisplayName("contato bloqueado → IGNORED_CONTACT_BLOCKED, mensagem persistida, IA não dispara")
+    void blockedContact_persistsButDoesNotTriggerAi() {
+        // Pré-cria o contato JÁ bloqueado (mesmo phone que validInbound usa, normalizado).
+        UUID contactId = UUID.randomUUID();
+        jdbcTemplate.update(
+            "insert into contacts (id, company_id, phone_number, name, blocked) values (?, ?, ?, ?, true)",
+            contactId, COMPANY_A, "+5511999990000", "Bloqueado");
+
+        var p = validInbound("5511999990000@s.whatsapp.net", "EVT-BLK", "tentando de novo");
+        assertThat(service.process(p)).isEqualTo(WebhookOutcome.IGNORED_CONTACT_BLOCKED);
+
+        // Camada 5.11: a mensagem É persistida (histórico íntegro — o tenant vê a tentativa).
+        assertThat(count("messages", COMPANY_A)).isEqualTo(1);
+        assertThat(count("contacts", COMPANY_A)).isEqualTo(1);   // reusa o contato existente
+        assertThat(count("conversations", COMPANY_A)).isEqualTo(1);
+
+        Map<String, Object> msg = jdbcTemplate.queryForMap(
+            "select direction, sender, content from messages where company_id = ?", COMPANY_A);
+        assertThat(msg.get("direction")).isEqualTo("inbound");
+        assertThat(msg.get("content")).isEqualTo("tentando de novo");
+
+        // A IA NÃO rodou: a conversa segue 'ai' (sem flip), e o evento não foi publicado.
+        // (O OutboundEventListener é AFTER_COMMIT; aqui o gate impede o publishEvent.)
+        Map<String, Object> conv = jdbcTemplate.queryForMap(
+            "select handled_by, status from conversations where company_id = ?", COMPANY_A);
+        assertThat(conv.get("handled_by")).isEqualTo("ai");
+        assertThat(conv.get("status")).isEqualTo("open");
+    }
+
+    @Test
     @DisplayName("reentrega (mesmo evolution_message_id) → 1ª PROCESSED, 2ª IGNORED_DUPLICATE, sem duplicar")
     void duplicate_isIdempotent() {
         var p = validInbound("5511999990000@s.whatsapp.net", "EVT-DUP", "oi");

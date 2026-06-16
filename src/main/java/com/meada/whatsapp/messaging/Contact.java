@@ -17,6 +17,8 @@ import java.util.UUID;
  * @param companyId   tenant
  * @param phoneNumber telefone em E.164 (+55...)
  * @param name        nome do contato (pode ser null se nunca veio um pushName)
+ * @param blocked     true se o tenant bloqueou o contato (camada 5.11): o webhook
+ *                    persiste a inbound mas NÃO dispara a IA (não responde)
  */
-public record Contact(UUID id, UUID companyId, String phoneNumber, String name) {
+public record Contact(UUID id, UUID companyId, String phoneNumber, String name, boolean blocked) {
 }

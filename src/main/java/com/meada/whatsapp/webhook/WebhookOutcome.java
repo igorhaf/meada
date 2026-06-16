@@ -45,7 +45,12 @@ public enum WebhookOutcome {
      *  Tipicamente append-on-reconnect: a Evolution reentrega mensagens antigas como
      *  messages.upsert ao reconectar a instância. WARN — distinto dos IGNORED_* INFO:
      *  stale chegando = "algo reconectou", merece visibilidade no log. */
-    IGNORED_STALE(Level.WARN);
+    IGNORED_STALE(Level.WARN),
+
+    /** Contato bloqueado pelo tenant (camada 5.11). A mensagem inbound É persistida
+     *  (histórico íntegro — o tenant vê que o bloqueado tentou contato) mas a IA NÃO
+     *  é disparada (não publica MessageInboundProcessedEvent). INFO. */
+    IGNORED_CONTACT_BLOCKED(Level.INFO);
 
     private final Level logLevel;
 

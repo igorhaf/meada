@@ -70,7 +70,8 @@ public abstract class AbstractIntegrationTest {
         "db/migrations/06_unique_open_conversation.sql",
         "db/migrations/07_palette_id.sql",
         "db/migrations/08_audit_log.sql",
-        "db/migrations/09_count_unread_conversations.sql"
+        "db/migrations/09_count_unread_conversations.sql",
+        "db/migrations/10_contacts_blocked.sql"
     };
 
     /**

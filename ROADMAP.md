@@ -56,10 +56,10 @@ Lista de 50 features para o MVP funcional do SaaS de atendimento WhatsApp+IA agn
 
 ## Contatos
 
-- [ ] 38. Lista de contatos (todas as pessoas que mandaram mensagem)
-- [ ] 39. Detalhe do contato (histórico de conversas, telefone, nome)
-- [ ] 40. Editar nome do contato manualmente
-- [ ] 41. Bloquear contato (não recebe mais resposta automática)
+- [x] 38. Lista de contatos (todas as pessoas que mandaram mensagem) (fase-5.11)
+- [x] 39. Detalhe do contato (histórico de conversas, telefone, nome) (fase-5.11)
+- [x] 40. Editar nome do contato manualmente (fase-5.11)
+- [x] 41. Bloquear contato (não recebe mais resposta automática) (fase-5.11)
 
 ## Métricas e dashboard
 

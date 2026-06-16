@@ -173,11 +173,21 @@ public class WebhookService {
 
         conversationRepository.touchLastMessageAt(conversation.id(), resolveTimestamp(data.messageTimestamp()));
 
+        // 8. gate de bloqueio (camada 5.11): se o tenant bloqueou o contato, a mensagem
+        //    JÁ foi persistida acima (histórico íntegro — o tenant vê que o bloqueado
+        //    tentou contato, e a conversa aparece com atividade recente pelo touch). Mas
+        //    NÃO disparamos a IA: sem publishEvent → OutboundService não roda → sem
+        //    resposta automática. É a semântica de #41 "não recebe mais resposta automática".
+        if (contact.blocked()) {
+            return logOutcome(WebhookOutcome.IGNORED_CONTACT_BLOCKED,
+                "instance", payload.instance(), "contact_id", contact.id().toString());
+        }
+
         // Dispara o pipeline de resposta da IA. Publicado DENTRO da transação: o
         // OutboundEventListener é @TransactionalEventListener(AFTER_COMMIT), então só
         // processa depois que esta inbound está durável (ele relê handled_by/phone/
         // histórico do banco). Só no ramo PROCESSED (inbound NOVA de cliente) — nunca
-        // em IGNORED_* (duplicata/eco/grupo não disparam IA).
+        // em IGNORED_* (duplicata/eco/grupo/bloqueado não disparam IA).
         eventPublisher.publishEvent(new MessageInboundProcessedEvent(
             wi.companyId(), conversation.id(), wi.id(), content));
         return logOutcome(WebhookOutcome.PROCESSED, "instance", payload.instance());
