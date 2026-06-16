@@ -93,7 +93,8 @@ public abstract class AbstractIntegrationTest {
         "db/migrations/24_access_logs.sql",
         "db/migrations/25_multichannel_and_training.sql",
         "db/migrations/26_admin_operacao.sql",
-        "db/migrations/27_medicao_e_saude.sql"
+        "db/migrations/27_medicao_e_saude.sql",
+        "db/migrations/28_plataforma.sql"
     };
 
     /**
@@ -202,7 +203,8 @@ public abstract class AbstractIntegrationTest {
               audit_log, tags, conversation_tags, tenant_invitations,
               availability_slots, appointments, teams, saved_replies, access_logs,
               ai_message_feedback, admin_action_log, admin_notes,
-              webhook_heartbeats, scheduled_job_runs, error_log
+              webhook_heartbeats, scheduled_job_runs, error_log,
+              announcements, announcement_dismissals, plans
             RESTART IDENTITY CASCADE
             """);
     }

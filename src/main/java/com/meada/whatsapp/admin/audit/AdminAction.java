@@ -19,10 +19,18 @@ public final class AdminAction {
     public static final String NOTE_CREATED = "NOTE_CREATED";
     public static final String NOTE_UPDATED = "NOTE_UPDATED";
     public static final String NOTE_DELETED = "NOTE_DELETED";
+    public static final String ANNOUNCEMENT_CREATED = "ANNOUNCEMENT_CREATED";
+    public static final String ANNOUNCEMENT_UPDATED = "ANNOUNCEMENT_UPDATED";
+    public static final String ANNOUNCEMENT_DELETED = "ANNOUNCEMENT_DELETED";
+    public static final String PLAN_CREATED = "PLAN_CREATED";
+    public static final String PLAN_UPDATED = "PLAN_UPDATED";
+    public static final String PLAN_DELETED = "PLAN_DELETED";
 
     /** Tipos de alvo (target_type). */
     public static final String TARGET_COMPANY = "company";
     public static final String TARGET_USER = "user";
     public static final String TARGET_INVITATION = "invitation";
     public static final String TARGET_NOTE = "note";
+    public static final String TARGET_ANNOUNCEMENT = "announcement";
+    public static final String TARGET_PLAN = "plan";
 }

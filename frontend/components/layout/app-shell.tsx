@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Menu as MenuIcon, X } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 
+import { AnnouncementBanner } from '@/components/announcement-banner'
 import { GlobalSearch } from '@/components/global-search'
 import { RealtimeNotifications } from '@/components/realtime-notifications'
 import { ThemeToggle } from '@/components/theme-toggle'
@@ -82,6 +83,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             <UserDropdown me={me} />
           </div>
         </header>
+
+        {/* Banner de anúncios (camada 6.7): entre o header global e o conteúdo. Some sozinho
+            quando não há anúncios ativos não-dispensados. */}
+        <AnnouncementBanner />
 
         <main className="flex-1 overflow-x-hidden">
           <div className="mx-auto max-w-6xl px-4 py-8 md:px-8">{children}</div>
