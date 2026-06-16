@@ -24,10 +24,14 @@ import java.util.UUID;
  * @param companyId tenant do usuário; null para super-admin
  * @param paletteId id da paleta de tema; nunca null
  */
-public record MeResponse(String email, String role, UUID companyId, String paletteId) {
+public record MeResponse(String email, String role, UUID companyId, String paletteId,
+                         String tenantRole) {
 
     public static MeResponse from(AuthenticatedUser user) {
         String role = user.role() == AdminRole.SUPER_ADMIN ? "super_admin" : "tenant_admin";
-        return new MeResponse(user.email(), role, user.companyId(), user.paletteId());
+        // tenantRole (owner|admin|agent) só existe para tenant-admin (camada 5.17 #75);
+        // null para super-admin. O frontend usa para guards de capacidade.
+        return new MeResponse(user.email(), role, user.companyId(), user.paletteId(),
+            user.tenantRole());
     }
 }

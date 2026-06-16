@@ -33,5 +33,17 @@ import java.util.UUID;
  *                  users.palette_id para TENANT_ADMIN (nunca null)
  */
 public record AuthenticatedUser(
-    String email, UUID userId, AdminRole role, UUID companyId, String paletteId) {
+    String email, UUID userId, AdminRole role, UUID companyId, String paletteId,
+    String tenantRole) {
+
+    /**
+     * Construtor de conveniência sem tenantRole (null) — preserva a aridade histórica de
+     * 5 args para super-admin e INVITEE (que não têm linha em public.users de onde ler o
+     * role do tenant). Só o TENANT_ADMIN resolvido do banco carrega tenantRole
+     * (owner|admin|agent — camada 5.17 #75).
+     */
+    public AuthenticatedUser(String email, UUID userId, AdminRole role, UUID companyId,
+                             String paletteId) {
+        this(email, userId, role, companyId, paletteId, null);
+    }
 }

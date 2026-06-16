@@ -74,7 +74,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final String INVITE_ACCEPT_SUFFIX = "/accept";
 
     private static final String SELECT_USER_DATA =
-        "select company_id, palette_id from users where id = ?";
+        "select company_id, palette_id, role from users where id = ?";
 
     private final ConfigurableJWTProcessor<SecurityContext> jwtProcessor;
     private final Set<String> allowlistLower;
@@ -237,11 +237,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             UserData data = jdbcTemplate.queryForObject(
                 SELECT_USER_DATA,
                 (rs, rowNum) -> new UserData(
-                    (UUID) rs.getObject("company_id"), rs.getString("palette_id")),
+                    (UUID) rs.getObject("company_id"), rs.getString("palette_id"),
+                    rs.getString("role")),
                 claims.userId());
             return new AuthenticatedUser(
                 claims.email(), claims.userId(), AdminRole.TENANT_ADMIN,
-                data.companyId(), data.paletteId());
+                data.companyId(), data.paletteId(), data.role());
         } catch (EmptyResultDataAccessException e) {
             throw new AuthRejectException(403, "user_not_provisioned");
         }
@@ -264,8 +265,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private record VerifiedClaims(String email, UUID userId) {
     }
 
-    /** Tupla (company_id, palette_id) do SELECT em public.users — detalhe interno. */
-    private record UserData(UUID companyId, String paletteId) {
+    /** Tupla (company_id, palette_id, role) do SELECT em public.users — detalhe interno. */
+    private record UserData(UUID companyId, String paletteId, String role) {
     }
 
     /** Sinaliza rejeição com status HTTP + reason; capturada em doFilterInternal. */

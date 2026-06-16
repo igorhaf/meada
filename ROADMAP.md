@@ -81,4 +81,55 @@ Lista de 50 features para o MVP funcional do SaaS de atendimento WhatsApp+IA agn
 
 ---
 
+## Maratona pós-MVP (features #51+) — camada 5.17 em diante
+
+### IA mais inteligente
+- [ ] 51. Intent de cancelamento
+- [ ] 52. Intent de reclamação (força handoff)
+- [ ] 53. Coleta de dados estruturados (extracted_data jsonb)
+- [ ] 54. Sugestões de FAQ
+- [ ] 55. Memória de longo prazo do contato (contact_memory jsonb)
+- [ ] 57. Modo treinamento (melhorar resposta da IA)
+- [ ] 58. Tom dinâmico por perfil do contato
+
+### Agendamento real
+- [ ] 59. Calendário visual
+- [ ] 60. IA agenda de fato
+- [x] 61. Slots de disponibilidade (fase-5.17)
+- [ ] 62. Integração Google Calendar
+- [ ] 63. Lembretes automáticos
+- [ ] 64. Remarcar/cancelar via WhatsApp
+
+### Análise
+- [ ] 65. Dashboard exportável PDF
+- [ ] 66. Comparação mês a mês
+- [ ] 68. Top contatos
+
+### Multi-canal
+- [ ] 72. Suporte email
+- [ ] 73. Widget de chat no site
+- [ ] 74. Unificação multi-canal
+
+### Multi-tenant avançado
+- [x] 75. Hierarquia de roles (owner/admin/agent) (fase-5.17)
+- [ ] 76. Times/departamentos
+- [ ] 77. Limites por plano
+- [ ] 78. Audit log visível
+
+### Engajamento
+- [ ] 81. Reativação automática
+- [ ] 82. Boas-vindas
+
+### UX painel
+- [ ] 83. Notificações tempo real
+- [ ] 84. Busca global
+- [ ] 88. Saved replies
+
+### Compliance
+- [ ] 89. LGPD exclusão
+- [ ] 90. LGPD exportação
+- [ ] 92. Logs de acesso
+
+---
+
 Convenção: ao fechar feature, mover de `[ ]` pra `[x]` no mesmo commit da fase técnica, adicionando tag de fase entre parênteses (ex.: "(fase-5.1.a)").

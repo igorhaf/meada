@@ -51,6 +51,7 @@ class MeControllerIntegrationTest extends AbstractAdminIntegrationTest {
             .andExpect(jsonPath("$.email").value(TENANT_ADMIN_EMAIL))
             .andExpect(jsonPath("$.role").value("tenant_admin"))
             .andExpect(jsonPath("$.companyId").value(companyId.toString()))
-            .andExpect(jsonPath("$.paletteId").value("meada-default"));
+            .andExpect(jsonPath("$.paletteId").value("meada-default"))
+            .andExpect(jsonPath("$.tenantRole").value("admin"));
     }
 }
