@@ -1,4 +1,6 @@
 import {
+  Activity,
+  AlertTriangle,
   BarChart3,
   BookOpen,
   Building2,
@@ -7,16 +9,22 @@ import {
   Clock,
   HelpCircle,
   Home,
+  LayoutDashboard,
+  Mail,
+  Megaphone,
   MessageSquare,
   MessageSquareText,
   Package,
+  Palette,
   ScrollText,
   ShieldCheck,
   Sparkles,
   Tag,
+  UserCog,
   Users,
   UserPlus,
   UsersRound,
+  Workflow,
 } from 'lucide-react'
 import type { ComponentType } from 'react'
 
@@ -72,9 +80,53 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: 'Segurança', href: '/dashboard/security', icon: ShieldCheck },
     ],
   },
+  // ---- Grupos do super-admin (camada 6.0). Todos superAdminOnly. As rotas /metrics,
+  //      /audit, /security já existem (tenant) e ganharam render condicional por papel;
+  //      as demais são placeholders criados na 6.0. ----
   {
-    heading: 'Admin',
+    heading: 'Visão geral',
+    superAdminOnly: true,
+    items: [{ label: 'Início', href: '/dashboard', icon: LayoutDashboard }],
+  },
+  {
+    heading: 'Empresas',
     superAdminOnly: true,
     items: [{ label: 'Empresas', href: '/dashboard/companies', icon: Building2 }],
+  },
+  {
+    heading: 'Usuários',
+    superAdminOnly: true,
+    items: [
+      { label: 'Usuários', href: '/dashboard/users', icon: Users },
+      { label: 'Convites', href: '/dashboard/invitations', icon: Mail },
+    ],
+  },
+  {
+    heading: 'Operação',
+    superAdminOnly: true,
+    items: [
+      { label: 'Saúde', href: '/dashboard/health', icon: Activity },
+      { label: 'Jobs', href: '/dashboard/jobs', icon: Workflow },
+      { label: 'Erros', href: '/dashboard/errors', icon: AlertTriangle },
+    ],
+  },
+  {
+    heading: 'Compliance',
+    superAdminOnly: true,
+    items: [
+      { label: 'Auditoria', href: '/dashboard/audit', icon: ScrollText },
+      { label: 'Segurança', href: '/dashboard/security', icon: ShieldCheck },
+      { label: 'Ações Admin', href: '/dashboard/admin-actions', icon: UserCog },
+    ],
+  },
+  {
+    heading: 'Plataforma',
+    superAdminOnly: true,
+    items: [
+      { label: 'Métricas', href: '/dashboard/metrics', icon: BarChart3 },
+      { label: 'Anúncios', href: '/dashboard/announcements', icon: Megaphone },
+      { label: 'Planos', href: '/dashboard/plans', icon: Package },
+      { label: 'Paletas', href: '/dashboard/palettes', icon: Palette },
+    ],
   },
 ]

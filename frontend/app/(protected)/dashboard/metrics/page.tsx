@@ -1,9 +1,9 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
+import { Construction } from 'lucide-react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
@@ -152,17 +152,11 @@ function ComparisonSection({ data }: { data: MetricsComparison }) {
 }
 
 export default function MetricsPage() {
-  const router = useRouter()
   const [exporting, setExporting] = useState(false)
 
   const { data: me } = useQuery({ queryKey: ['me'], queryFn: getMe })
   const isTenant = me?.role === 'tenant_admin'
-
-  useEffect(() => {
-    if (me && me.role !== 'tenant_admin') {
-      router.replace('/dashboard')
-    }
-  }, [me, router])
+  const isSuperAdmin = me?.role === 'super_admin'
 
   const { data, isPending, isError, error } = useQuery<TenantMetrics>({
     queryKey: ['tenant-metrics'],
@@ -189,8 +183,21 @@ export default function MetricsPage() {
     }
   }
 
-  if (me && !isTenant) {
-    return <div className="text-sm text-muted-foreground">Redirecionando…</div>
+  // Super-admin: a versão GLOBAL de métricas (toda a plataforma) é fase 6.3. Por ora,
+  // placeholder no lugar do redirect antigo (camada 6.0). Tenant segue com a tela atual.
+  if (isSuperAdmin) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Métricas" description="Métricas globais da plataforma." />
+        <Card className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+          <Construction className="size-10 text-muted-foreground" />
+          <h2 className="text-base font-medium">Versão global em construção</h2>
+          <p className="max-w-sm text-sm text-muted-foreground">
+            As métricas globais da plataforma serão implementadas na fase 6.3.
+          </p>
+        </Card>
+      </div>
+    )
   }
 
   if (isError) {

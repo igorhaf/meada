@@ -1,41 +1,33 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { BarChart3, CalendarDays, MessagesSquare, Users } from 'lucide-react'
+import {
+  AlertTriangle,
+  BarChart3,
+  CalendarDays,
+  MessagesSquare,
+  Users,
+} from 'lucide-react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useEffect, type ComponentType } from 'react'
+import { type ComponentType } from 'react'
 
 import { PageHeader } from '@/components/layout/page-header'
 import { OnboardingBanner } from '@/components/onboarding-banner'
+import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { PageSkeleton } from '@/components/ui/skeleton'
+import { getAdminOverview } from '@/lib/api/admin/dashboard'
 import { getMe } from '@/lib/api/me'
 import { getMyCompany } from '@/lib/supabase/companies'
 
 /**
  * Hub do dashboard após login. Roteia por PAPEL:
- *  - super_admin → redireciona para /dashboard/companies (sua home funcional);
+ *  - super_admin → AdminDashboard (KPIs da plataforma — camada 6.0; antes era redirect
+ *    para /dashboard/companies, removido nesta fase);
  *  - tenant_admin → hub de "Início" com atalhos rápidos para as telas de atendimento.
- *
- * O redirect usa useEffect + router.replace (NÃO no render): chamar router.replace
- * durante o render quebra ("Cannot update a component while rendering") — o useEffect
- * agenda para o próximo tick. replace (não push) evita que o "voltar" do browser caia
- * de novo em /dashboard e gere loop de redirect.
  */
 export default function DashboardPage() {
-  const router = useRouter()
   const { data: me, isPending, isError, error } = useQuery({ queryKey: ['me'], queryFn: getMe })
-
-  const isSuperAdmin = me?.role === 'super_admin'
-
-  useEffect(() => {
-    // Só dispara quando me chegou e é super-admin. Durante isPending/isError,
-    // isSuperAdmin é false (me undefined) — useEffect roda mas não age.
-    if (isSuperAdmin) {
-      router.replace('/dashboard/companies')
-    }
-  }, [isSuperAdmin, router])
 
   if (isPending) {
     return <PageSkeleton />
@@ -53,13 +45,124 @@ export default function DashboardPage() {
     )
   }
 
-  if (isSuperAdmin) {
-    // useEffect acima já disparou o replace; este render é só o tick intermediário.
-    return <p className="text-sm text-muted-foreground">Redirecionando…</p>
+  if (me?.role === 'super_admin') {
+    return <AdminDashboard />
   }
 
   // tenant_admin
   return <TenantDashboard />
+}
+
+/** Formata número grande de forma compacta (1.2M, 34k). pt-BR. */
+function compact(n: number): string {
+  return new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 1 }).format(n)
+}
+
+/** Delta percentual hoje vs ontem, com sinal e cor. */
+function DeltaLabel({ today, yesterday }: { today: number; yesterday: number }) {
+  if (yesterday === 0) {
+    return <span className="text-muted-foreground">sem base de ontem</span>
+  }
+  const pct = Math.round(((today - yesterday) / yesterday) * 100)
+  const up = pct >= 0
+  return (
+    <span className={up ? 'text-green-600' : 'text-destructive'}>
+      {up ? '+' : ''}
+      {pct}% vs ontem
+    </span>
+  )
+}
+
+/**
+ * Hub do super-admin (camada 6.0): KPIs da plataforma + banner de alertas. Atualiza a cada
+ * 30s (refetchInterval). Loading = PageSkeleton; erro = texto + "Tentar novamente".
+ */
+function AdminDashboard() {
+  const { data, isPending, isError, refetch } = useQuery({
+    queryKey: ['admin', 'overview'],
+    queryFn: getAdminOverview,
+    refetchInterval: 30_000,
+  })
+
+  if (isPending) {
+    return <PageSkeleton />
+  }
+
+  if (isError || !data) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Início" description="Visão geral da plataforma Meada" />
+        <p className="text-sm text-destructive">Erro ao carregar a visão geral da plataforma.</p>
+        <Button variant="outline" onClick={() => refetch()}>
+          Tentar novamente
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Início"
+        description="Visão geral da plataforma Meada"
+        actions={
+          <Link href="/dashboard/metrics">
+            <Button variant="outline">Ver métricas detalhadas</Button>
+          </Link>
+        }
+      />
+
+      {data.alerts.length > 0 && (
+        <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 size-5 shrink-0 text-destructive" />
+            <div className="space-y-1">
+              {data.alerts.map((a, i) => (
+                <p key={i} className="text-sm text-foreground">
+                  {a.message}
+                </p>
+              ))}
+              <Link
+                href="/dashboard/health"
+                className="inline-block text-sm font-medium text-destructive hover:underline"
+              >
+                Ver detalhes
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <p className="text-sm text-muted-foreground">Empresas ativas</p>
+          <p className="mt-1 text-3xl font-semibold">{data.activeCompanies}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            +{data.companiesCreatedThisMonth} este mês
+          </p>
+        </Card>
+        <Card>
+          <p className="text-sm text-muted-foreground">Mensagens hoje</p>
+          <p className="mt-1 text-3xl font-semibold">{data.messagesToday}</p>
+          <p className="mt-1 text-xs">
+            <DeltaLabel today={data.messagesToday} yesterday={data.messagesYesterday} />
+          </p>
+        </Card>
+        <Card>
+          <p className="text-sm text-muted-foreground">Conversas abertas</p>
+          <p className="mt-1 text-3xl font-semibold">{data.openConversations}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            em {data.openConversationsCompanyCount} empresa(s)
+          </p>
+        </Card>
+        <Card>
+          <p className="text-sm text-muted-foreground">Tokens Gemini (mês)</p>
+          <p className="mt-1 text-3xl font-semibold">{compact(data.geminiTokensThisMonth)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">consumo estimado</p>
+        </Card>
+      </div>
+    </div>
+  )
 }
 
 /** Atalhos rápidos do hub — cada um leva a uma tela cheia da área de atendimento. */

@@ -1,9 +1,8 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { ScrollText } from 'lucide-react'
-import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { Construction, ScrollText } from 'lucide-react'
+import { useState } from 'react'
 
 import { PageHeader } from '@/components/layout/page-header'
 import { Badge } from '@/components/ui/badge'
@@ -62,7 +61,6 @@ const columns: Column<AuditLogEntry>[] = [
  * usa: redireciona para /dashboard.
  */
 export default function AuditPage() {
-  const router = useRouter()
   const [entity, setEntity] = useState('')
   const [action, setAction] = useState('')
   // Filtros aplicados (só mudam ao submeter) — separados dos inputs para não refazer a query
@@ -74,12 +72,7 @@ export default function AuditPage() {
 
   const { data: me } = useQuery({ queryKey: ['me'], queryFn: getMe })
   const isTenant = me?.role === 'tenant_admin'
-
-  useEffect(() => {
-    if (me && me.role !== 'tenant_admin') {
-      router.replace('/dashboard')
-    }
-  }, [me, router])
+  const isSuperAdmin = me?.role === 'super_admin'
 
   const { data, isPending, isError, error } = useQuery({
     queryKey: ['audit-logs', applied.entity, applied.action],
@@ -98,8 +91,21 @@ export default function AuditPage() {
     setApplied({ entity, action })
   }
 
-  if (me && !isTenant) {
-    return <div className="text-sm text-muted-foreground">Redirecionando…</div>
+  // Super-admin: a auditoria GLOBAL da plataforma é fase 6.5 (placeholder por ora;
+  // substitui o redirect antigo — camada 6.0). Tenant segue com a tela atual.
+  if (isSuperAdmin) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Auditoria" description="Auditoria global da plataforma." />
+        <Card className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+          <Construction className="size-10 text-muted-foreground" />
+          <h2 className="text-base font-medium">Versão global em construção</h2>
+          <p className="max-w-sm text-sm text-muted-foreground">
+            A auditoria global da plataforma será implementada na fase 6.5.
+          </p>
+        </Card>
+      </div>
+    )
   }
 
   return (

@@ -1,12 +1,11 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { ShieldCheck } from 'lucide-react'
-import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { Construction, ShieldCheck } from 'lucide-react'
 
 import { PageHeader } from '@/components/layout/page-header'
 import { Badge } from '@/components/ui/badge'
+import { Card } from '@/components/ui/card'
 import { DataTable, type Column } from '@/components/ui/data-table'
 import { EmptyState } from '@/components/ui/empty-state'
 import { getAccessLogs, type AccessLogEntry } from '@/lib/api/access-logs'
@@ -48,16 +47,9 @@ const columns: Column<AccessLogEntry>[] = [
  * não usa: redireciona para /dashboard.
  */
 export default function SecurityPage() {
-  const router = useRouter()
-
   const { data: me } = useQuery({ queryKey: ['me'], queryFn: getMe })
   const isTenant = me?.role === 'tenant_admin'
-
-  useEffect(() => {
-    if (me && me.role !== 'tenant_admin') {
-      router.replace('/dashboard')
-    }
-  }, [me, router])
+  const isSuperAdmin = me?.role === 'super_admin'
 
   const { data, isPending, isError, error } = useQuery({
     queryKey: ['access-logs'],
@@ -71,8 +63,21 @@ export default function SecurityPage() {
     console.error('failed to load access logs:', error)
   }
 
-  if (me && !isTenant) {
-    return <div className="text-sm text-muted-foreground">Redirecionando…</div>
+  // Super-admin: a versão GLOBAL de segurança/acessos é fase 6.5 (placeholder por ora;
+  // substitui o redirect antigo — camada 6.0). Tenant segue com a tela atual.
+  if (isSuperAdmin) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Segurança" description="Acessos e segurança da plataforma." />
+        <Card className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+          <Construction className="size-10 text-muted-foreground" />
+          <h2 className="text-base font-medium">Versão global em construção</h2>
+          <p className="max-w-sm text-sm text-muted-foreground">
+            A segurança global da plataforma será implementada na fase 6.5.
+          </p>
+        </Card>
+      </div>
+    )
   }
 
   return (
