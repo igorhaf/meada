@@ -1,0 +1,27 @@
+# docker-compose do projeto Meada WhatsApp.
+#
+# Por ora só o sidecar de embeddings (camada 5.13.a do bloco RAG). Serviços auxiliares
+# futuros (redis, vector db dedicado, etc) entram aqui. O BACKEND e o FRONTEND NÃO vivem
+# aqui — rodam no host (scripts/run-local.sh e npm run dev). O backend-host alcança o
+# sidecar via localhost:7080 (mesmo padrão do evolution-local/, que tem compose próprio).
+
+services:
+  embedding-sidecar:
+    build: ./docker/embedding-sidecar
+    container_name: embedding-sidecar
+    ports:
+      - "7080:7080"
+    restart: unless-stopped
+    volumes:
+      # Cache do modelo HuggingFace, persistente entre rebuilds (evita re-download).
+      - embedding-models:/root/.cache/huggingface
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:7080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      # start_period largo: o carregamento do modelo no boot leva alguns segundos.
+      start_period: 90s
+
+volumes:
+  embedding-models:

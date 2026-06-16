@@ -97,6 +97,9 @@ function TenantDashboard() {
           <Link href="/dashboard/metrics">
             <Button variant="outline">Métricas</Button>
           </Link>
+          <Link href="/dashboard/knowledge">
+            <Button variant="outline">Conhecimento</Button>
+          </Link>
           <Link href="/dashboard/business-hours">
             <Button variant="outline">Horários</Button>
           </Link>

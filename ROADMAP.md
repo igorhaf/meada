@@ -52,7 +52,7 @@ Lista de 50 features para o MVP funcional do SaaS de atendimento WhatsApp+IA agn
 - [x] 34. Edição de FAQ existente (hoje só cria) (fase-5.5)
 - [x] 35. Edição de serviço existente (hoje só cria) (fase-5.5)
 - [x] 36. Ativar/desativar FAQ ou serviço sem deletar (fase-5.6)
-- [ ] 37. Upload de documento (PDF, etc.) pra IA usar como conhecimento
+- [x] 37. Upload de documento (PDF, etc.) pra IA usar como conhecimento (fase-5.13: RAG completo — sidecar de embeddings via docker-compose, pgvector, backend de ingestão, retrieval semântico no prompt, painel do tenant)
 
 ## Contatos
 

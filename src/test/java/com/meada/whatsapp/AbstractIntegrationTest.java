@@ -52,8 +52,13 @@ import java.time.Instant;
 @Testcontainers
 public abstract class AbstractIntegrationTest {
 
+    // pgvector/pgvector:pg17 (não o postgres:17-alpine puro) porque a migration 13 usa
+    // CREATE EXTENSION vector + vector(384). É a imagem oficial do pgvector sobre PG17;
+    // asCompatibleSubstituteFor sinaliza ao Testcontainers que ela substitui "postgres".
     static final PostgreSQLContainer<?> POSTGRES =
-        new PostgreSQLContainer<>("postgres:17-alpine");
+        new PostgreSQLContainer<>(org.testcontainers.utility.DockerImageName
+            .parse("pgvector/pgvector:pg17")
+            .asCompatibleSubstituteFor("postgres"));
 
     /**
      * Scripts em ordem explícita (não confiamos em ordem alfabética de classpath):
@@ -72,7 +77,10 @@ public abstract class AbstractIntegrationTest {
         "db/migrations/08_audit_log.sql",
         "db/migrations/09_count_unread_conversations.sql",
         "db/migrations/10_contacts_blocked.sql",
-        "db/migrations/11_get_tenant_metrics.sql"
+        "db/migrations/11_get_tenant_metrics.sql",
+        "db/migrations/12_knowledge_storage.sql",
+        "db/migrations/13_knowledge_tables.sql",
+        "db/migrations/14_search_knowledge_chunks.sql"
     };
 
     /**
@@ -91,7 +99,8 @@ public abstract class AbstractIntegrationTest {
     private static final java.util.Set<String> WHOLE_FILE_SCRIPTS = java.util.Set.of(
         "db/migrations/08_audit_log.sql",
         "db/migrations/09_count_unread_conversations.sql",
-        "db/migrations/11_get_tenant_metrics.sql");
+        "db/migrations/11_get_tenant_metrics.sql",
+        "db/migrations/14_search_knowledge_chunks.sql");
 
     static {
         POSTGRES.start();

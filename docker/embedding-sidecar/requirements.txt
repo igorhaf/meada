@@ -1,0 +1,10 @@
+# Sidecar de embeddings (camada 5.13.a). Versões cravadas para reprodutibilidade.
+# torch CPU-only via índice extra do PyTorch (a linha --extra-index-url precisa ser
+# própria; pip a aplica a todo o arquivo).
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+sentence-transformers==3.3.1
+torch==2.5.1+cpu
+pydantic==2.10.4

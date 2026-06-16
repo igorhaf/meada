@@ -63,6 +63,13 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
     throw new ApiError(response.status, await readReason(response))
   }
 
+  // 204 No Content (ex.: DELETE, PATCH de toggle) não tem corpo — chamar response.json()
+  // aqui lança "Unexpected end of JSON input". Callers desses endpoints tipam Promise<void>,
+  // então devolvemos undefined. Cobre também qualquer resposta sem corpo (Content-Length 0).
+  if (response.status === 204 || response.headers.get('content-length') === '0') {
+    return undefined as T
+  }
+
   return response.json() as Promise<T>
 }
 
