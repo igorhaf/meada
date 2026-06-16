@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 
 import { ConversationsNavLink } from '@/components/conversations-nav-link'
+import { OnboardingBanner } from '@/components/onboarding-banner'
 import { SignOutButton } from '@/components/sign-out-button'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Button } from '@/components/ui/button'
@@ -100,6 +101,9 @@ function TenantDashboard() {
           <Link href="/dashboard/knowledge">
             <Button variant="outline">Conhecimento</Button>
           </Link>
+          <Link href="/dashboard/tags">
+            <Button variant="outline">Tags</Button>
+          </Link>
           <Link href="/dashboard/business-hours">
             <Button variant="outline">Horários</Button>
           </Link>
@@ -110,6 +114,10 @@ function TenantDashboard() {
           <SignOutButton />
         </div>
       </div>
+
+      {/* Onboarding (#46): banner discreto enquanto a empresa não configurou 3 dos 4
+          passos. enabled = true aqui (TenantDashboard só renderiza para tenant_admin). */}
+      <OnboardingBanner enabled />
 
       {isPending && <p className="text-sm text-muted-foreground">Carregando…</p>}
 

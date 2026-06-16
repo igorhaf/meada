@@ -29,9 +29,9 @@ Lista de 50 features para o MVP funcional do SaaS de atendimento WhatsApp+IA agn
 - [x] 17. Tenant fecha/reabre conversa
 - [ ] 18. Tenant responde manualmente (envia mensagem pelo painel)
 - [ ] 19. Anexar foto/arquivo na resposta manual
-- [ ] 20. Marcar conversa como "não lida" pra revisitar depois
+- [x] 20. Marcar conversa como "não lida" pra revisitar depois (fase-5.14)
 - [x] 21. Filtrar conversas (busca por contato/telefone) (fase-5.7)
-- [ ] 22. Tag/etiqueta em conversa ("VIP", "urgente", "follow-up")
+- [x] 22. Tag/etiqueta em conversa ("VIP", "urgente", "follow-up") (fase-5.14)
 
 ## IA e atendimento automático
 
@@ -70,7 +70,7 @@ Lista de 50 features para o MVP funcional do SaaS de atendimento WhatsApp+IA agn
 
 ## Onboarding e UX
 
-- [ ] 46. Tutorial guiado na primeira vez que tenant loga
+- [x] 46. Tutorial guiado na primeira vez que tenant loga (fase-5.14)
 - [x] 47. Página vazia com call-to-action quando não tem dados (fase-5.8)
 - [x] 48. Notificação visual (badge no menu) quando chega mensagem nova (fase-5.10)
 - [x] 49. Modo escuro (dark mode) (fase-5.9)

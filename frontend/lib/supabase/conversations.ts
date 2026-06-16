@@ -9,19 +9,21 @@ export type ConversationWithContact = {
   id: string
   status: string
   handledBy: string
+  markedUnread: boolean
   lastMessageAt: string | null
   contactName: string | null
   contactPhone: string
 }
 
 const SELECT_WITH_CONTACT =
-  'id, status, handled_by, last_message_at, contact:contacts(name, phone_number)'
+  'id, status, handled_by, marked_unread, last_message_at, contact:contacts(name, phone_number)'
 
 /** Normaliza a linha crua (snake_case + join possivelmente array) para ConversationWithContact. */
 function toConversation(row: {
   id: string
   status: string
   handled_by: string
+  marked_unread: boolean
   last_message_at: string | null
   contact:
     | { name: string | null; phone_number: string }
@@ -33,6 +35,7 @@ function toConversation(row: {
     id: row.id,
     status: row.status,
     handledBy: row.handled_by,
+    markedUnread: row.marked_unread,
     lastMessageAt: row.last_message_at,
     contactName: contact?.name ?? null,
     contactPhone: contact?.phone_number ?? '',
@@ -116,6 +119,34 @@ export async function updateConversationStatus(
   const { data, error } = await supabase
     .from('conversations')
     .update({ status })
+    .eq('id', id)
+    .select(SELECT_WITH_CONTACT)
+    .single()
+
+  if (error) {
+    throw error
+  }
+
+  return toConversation(data)
+}
+
+/**
+ * Marca/desmarca a conversa como não-lida manualmente (camada 5.14 #20). UPDATE
+ * { marked_unread } via SDK + RLS (conversations_update: USING + WITH CHECK = company_id).
+ * Override manual ortogonal a status/handled_by: o tenant sinaliza "preciso voltar aqui"
+ * mesmo tendo sido o último a responder. Entra no badge do menu via a RPC
+ * count_unread_conversations (ramo OR marked_unread, atualizada na migration 15).
+ *
+ * <p>Audita via trigger trg_conversations_audit (fase-5.3). Retorna a conversa atualizada.
+ */
+export async function setConversationMarkedUnread(
+  id: string,
+  markedUnread: boolean,
+): Promise<ConversationWithContact> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('conversations')
+    .update({ marked_unread: markedUnread })
     .eq('id', id)
     .select(SELECT_WITH_CONTACT)
     .single()

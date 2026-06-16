@@ -80,7 +80,9 @@ public abstract class AbstractIntegrationTest {
         "db/migrations/11_get_tenant_metrics.sql",
         "db/migrations/12_knowledge_storage.sql",
         "db/migrations/13_knowledge_tables.sql",
-        "db/migrations/14_search_knowledge_chunks.sql"
+        "db/migrations/14_search_knowledge_chunks.sql",
+        "db/migrations/15_conversations_marked_unread.sql",
+        "db/migrations/16_tags.sql"
     };
 
     /**
@@ -100,7 +102,8 @@ public abstract class AbstractIntegrationTest {
         "db/migrations/08_audit_log.sql",
         "db/migrations/09_count_unread_conversations.sql",
         "db/migrations/11_get_tenant_metrics.sql",
-        "db/migrations/14_search_knowledge_chunks.sql");
+        "db/migrations/14_search_knowledge_chunks.sql",
+        "db/migrations/15_conversations_marked_unread.sql");
 
     static {
         POSTGRES.start();
@@ -185,7 +188,7 @@ public abstract class AbstractIntegrationTest {
             TRUNCATE TABLE
               companies, users, whatsapp_instances, services, business_hours,
               faqs, documents, ai_settings, contacts, conversations, messages,
-              audit_log
+              audit_log, tags, conversation_tags
             RESTART IDENTITY CASCADE
             """);
     }

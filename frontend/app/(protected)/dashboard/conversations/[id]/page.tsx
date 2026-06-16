@@ -6,16 +6,23 @@ import { useRouter } from 'next/navigation'
 import { use, useEffect } from 'react'
 
 import { SignOutButton } from '@/components/sign-out-button'
+import { TagChip } from '@/components/tag-color-picker'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { getMe } from '@/lib/api/me'
+import {
+  addTagToConversation,
+  getConversationTags,
+  removeTagFromConversation,
+} from '@/lib/supabase/conversation-tags'
 import {
   getConversation,
   updateConversationHandledBy,
   updateConversationStatus,
 } from '@/lib/supabase/conversations'
 import { getConversationMessages } from '@/lib/supabase/messages'
+import { getMyTags } from '@/lib/supabase/tags'
 
 /**
  * Detalhe de uma conversa (SDK + RLS). Leitura: bolhas inbound/outbound, polling 5s.
@@ -74,6 +81,42 @@ export default function ConversationDetailPage({
     onSuccess: invalidateConversation,
     onError: (err) => console.error('updateConversationStatus failed:', err),
   })
+
+  // Tags da conversa (#22): lista as aplicadas + o catálogo de tags da empresa (para o
+  // autocomplete de adicionar). refetchInterval não é necessário aqui (tags mudam por
+  // ação do tenant, não por evento externo) — invalidamos no sucesso das mutations.
+  const { data: appliedTags } = useQuery({
+    queryKey: ['conversation-tags', id],
+    queryFn: () => getConversationTags(id),
+    enabled: isTenant,
+  })
+
+  const { data: allTags } = useQuery({
+    queryKey: ['my-tags'],
+    queryFn: getMyTags,
+    enabled: isTenant,
+  })
+
+  function invalidateTags() {
+    queryClient.invalidateQueries({ queryKey: ['conversation-tags', id] })
+    queryClient.invalidateQueries({ queryKey: ['conversation-tags-all'] })
+  }
+
+  const addTag = useMutation({
+    mutationFn: (tagId: string) => addTagToConversation(id, tagId),
+    onSuccess: invalidateTags,
+    onError: (err) => console.error('addTagToConversation failed:', err),
+  })
+
+  const removeTag = useMutation({
+    mutationFn: (tagId: string) => removeTagFromConversation(id, tagId),
+    onSuccess: invalidateTags,
+    onError: (err) => console.error('removeTagFromConversation failed:', err),
+  })
+
+  // Tags do catálogo ainda não aplicadas — oferecidas no autocomplete.
+  const appliedIds = new Set((appliedTags ?? []).map((t) => t.id))
+  const availableTags = (allTags ?? []).filter((t) => !appliedIds.has(t.id))
 
   const mutating = handledByMutation.isPending || statusMutation.isPending
   const mutationError = handledByMutation.isError || statusMutation.isError
@@ -168,6 +211,59 @@ export default function ConversationDetailPage({
               Erro ao atualizar a conversa. Tente novamente.
             </p>
           )}
+
+          {/* Tags (#22): chips aplicados (com × para remover) + autocomplete para adicionar
+              tag EXISTENTE (criar tag nova é só em /dashboard/tags). */}
+          <div className="mb-4 rounded-xl border border-border p-4">
+            <h2 className="mb-2 text-sm font-medium">Tags</h2>
+            <div className="mb-3 flex flex-wrap items-center gap-1.5">
+              {(appliedTags ?? []).length === 0 ? (
+                <span className="text-sm text-muted-foreground">Nenhuma tag aplicada.</span>
+              ) : (
+                (appliedTags ?? []).map((t) => (
+                  <TagChip
+                    key={t.id}
+                    name={t.name}
+                    color={t.color}
+                    onRemove={() => removeTag.mutate(t.id)}
+                  />
+                ))
+              )}
+            </div>
+            {availableTags.length > 0 ? (
+              <select
+                className="w-full rounded-md border border-border px-3 py-2 text-sm"
+                value=""
+                disabled={addTag.isPending}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    addTag.mutate(e.target.value)
+                  }
+                }}
+              >
+                <option value="">+ Adicionar tag…</option>
+                {availableTags.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                {(allTags ?? []).length === 0 ? (
+                  <>
+                    Nenhuma tag cadastrada.{' '}
+                    <Link href="/dashboard/tags" className="underline">
+                      Criar tags
+                    </Link>
+                    .
+                  </>
+                ) : (
+                  'Todas as tags já estão aplicadas.'
+                )}
+              </p>
+            )}
+          </div>
         </>
       )}
 

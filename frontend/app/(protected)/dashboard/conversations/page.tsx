@@ -1,53 +1,40 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { MessagesSquare } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 
 import { SignOutButton } from '@/components/sign-out-button'
+import { TagChip } from '@/components/tag-color-picker'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { DataTable, type Column } from '@/components/ui/data-table'
 import { EmptyState } from '@/components/ui/empty-state'
 import { getMe } from '@/lib/api/me'
-import { getMyConversations, type ConversationWithContact } from '@/lib/supabase/conversations'
-
-const columns: Column<ConversationWithContact>[] = [
-  { key: 'contactName', header: 'Contato', render: (c) => c.contactName ?? '—' },
-  { key: 'contactPhone', header: 'Telefone' },
-  {
-    key: 'status',
-    header: 'Status',
-    render: (c) => (
-      <Badge variant={c.status === 'open' ? 'success' : 'danger'}>{c.status}</Badge>
-    ),
-  },
-  {
-    key: 'handledBy',
-    header: 'Atendimento',
-    render: (c) => (
-      <Badge variant={c.handledBy === 'ai' ? 'default' : 'warning'}>{c.handledBy}</Badge>
-    ),
-  },
-  {
-    key: 'lastMessageAt',
-    header: 'Última atualização',
-    render: (c) =>
-      c.lastMessageAt ? new Date(c.lastMessageAt).toLocaleString('pt-BR') : '—',
-  },
-]
+import { getAllConversationTags } from '@/lib/supabase/conversation-tags'
+import {
+  getMyConversations,
+  setConversationMarkedUnread,
+  type ConversationWithContact,
+} from '@/lib/supabase/conversations'
+import type { Tag } from '@/lib/supabase/tags'
 
 /**
- * Conversas da empresa do tenant (SDK + RLS), só leitura, com polling 5s (decisão macro
- * 6 da camada 4). Super-admin não usa: redireciona para /dashboard. Botão "Abrir" na
- * coluna de ações leva ao detalhe /dashboard/conversations/[id] (a DataTable não tem
- * onRowClick; o botão é a via idiomática do componente).
+ * Conversas da empresa do tenant (SDK + RLS), polling 5s. Super-admin não usa: redireciona
+ * para /dashboard. Botão "Abrir" leva ao detalhe.
+ *
+ * Camada 5.14:
+ *  - coluna "Tags" (#22): chips coloridos das tags aplicadas, via mapa agregado
+ *    (getAllConversationTags, 1 query evita N+1);
+ *  - ação "Marcar como não lida" / "Desmarcar" (#20): toggle de marked_unread via SDK,
+ *    que alimenta o badge do menu (RPC count_unread_conversations, ramo OR marked_unread).
  */
 export default function ConversationsPage() {
   const router = useRouter()
+  const queryClient = useQueryClient()
 
   const { data: me } = useQuery({ queryKey: ['me'], queryFn: getMe })
   const isTenant = me?.role === 'tenant_admin'
@@ -65,8 +52,68 @@ export default function ConversationsPage() {
     refetchInterval: 5000,
   })
 
-  // Estado vazio elevado (5.8): nenhuma conversa de todo. Não confundir com filtro de
-  // busca sem resultado — esse fica a cargo da DataTable (que segue renderizada).
+  const { data: tagsByConv } = useQuery({
+    queryKey: ['conversation-tags-all'],
+    queryFn: getAllConversationTags,
+    enabled: isTenant,
+    refetchInterval: 5000,
+  })
+
+  // Toggle marcar/desmarcar não-lida (#20). Invalida a lista e o badge do menu no sucesso.
+  const toggleUnread = useMutation({
+    mutationFn: ({ id, markedUnread }: { id: string; markedUnread: boolean }) =>
+      setConversationMarkedUnread(id, markedUnread),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-conversations'] })
+      queryClient.invalidateQueries({ queryKey: ['unread-conversations-count'] })
+    },
+    onError: (err) => console.error('setConversationMarkedUnread failed:', err),
+  })
+
+  const columns: Column<ConversationWithContact>[] = [
+    { key: 'contactName', header: 'Contato', render: (c) => c.contactName ?? '—' },
+    { key: 'contactPhone', header: 'Telefone' },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (c) => (
+        <Badge variant={c.status === 'open' ? 'success' : 'danger'}>{c.status}</Badge>
+      ),
+    },
+    {
+      key: 'handledBy',
+      header: 'Atendimento',
+      render: (c) => (
+        <Badge variant={c.handledBy === 'ai' ? 'default' : 'warning'}>{c.handledBy}</Badge>
+      ),
+    },
+    {
+      key: 'tags',
+      header: 'Tags',
+      render: (c) => {
+        const tags: Tag[] = tagsByConv?.[c.id] ?? []
+        if (tags.length === 0 && !c.markedUnread) {
+          return <span className="text-muted-foreground">—</span>
+        }
+        return (
+          <div className="flex flex-wrap items-center gap-1">
+            {c.markedUnread && <Badge variant="info">não lida</Badge>}
+            {tags.map((t) => (
+              <TagChip key={t.id} name={t.name} color={t.color} />
+            ))}
+          </div>
+        )
+      },
+    },
+    {
+      key: 'lastMessageAt',
+      header: 'Última atualização',
+      render: (c) =>
+        c.lastMessageAt ? new Date(c.lastMessageAt).toLocaleString('pt-BR') : '—',
+    },
+  ]
+
+  // Estado vazio elevado (5.8): nenhuma conversa de todo.
   const isEmpty = !isPending && !isError && (data?.length ?? 0) === 0
 
   if (me && !isTenant) {
@@ -117,11 +164,23 @@ export default function ConversationsPage() {
             `${c.contactName ?? ''} ${c.contactPhone}`.toLowerCase().includes(q)
           }
           actions={(c) => (
-            <Link href={`/dashboard/conversations/${c.id}`}>
-              <Button variant="outline" className="h-7 px-2 text-xs">
-                Abrir
+            <div className="flex items-center gap-1.5">
+              <Link href={`/dashboard/conversations/${c.id}`}>
+                <Button variant="outline" className="h-7 px-2 text-xs">
+                  Abrir
+                </Button>
+              </Link>
+              <Button
+                variant="outline"
+                className="h-7 px-2 text-xs"
+                disabled={toggleUnread.isPending && toggleUnread.variables?.id === c.id}
+                onClick={() =>
+                  toggleUnread.mutate({ id: c.id, markedUnread: !c.markedUnread })
+                }
+              >
+                {c.markedUnread ? 'Desmarcar' : 'Marcar como não lida'}
               </Button>
-            </Link>
+            </div>
           )}
         />
       )}
