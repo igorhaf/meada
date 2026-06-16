@@ -73,8 +73,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final String INVITE_ACCEPT_PREFIX = "/api/invitations/";
     private static final String INVITE_ACCEPT_SUFFIX = "/accept";
 
+    // Junta a company para checar suspensão da empresa no mesmo SELECT (camada 6.1/6.2).
+    // u.suspended / u.deleted_at: suspensão e soft-delete do usuário. c.status: 'suspended'
+    // bloqueia toda a empresa. last_login_at: lido para o throttle de 5min do update.
     private static final String SELECT_USER_DATA =
-        "select company_id, palette_id, role from users where id = ?";
+        "select u.company_id, u.palette_id, u.role, u.suspended, u.deleted_at, "
+            + "u.last_login_at, c.status as company_status "
+            + "from users u join companies c on c.id = u.company_id where u.id = ?";
+
+    // Update de last_login_at com throttle: só grava se passou > 5min do último (evita um
+    // write por request). WHERE com o predicado de frescor torna a operação barata e idempotente.
+    private static final String UPDATE_LAST_LOGIN =
+        "update users set last_login_at = now() where id = ? "
+            + "and (last_login_at is null or last_login_at < now() - interval '5 minutes')";
 
     private final ConfigurableJWTProcessor<SecurityContext> jwtProcessor;
     private final Set<String> allowlistLower;
@@ -233,19 +244,38 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return new AuthenticatedUser(
                 claims.email(), claims.userId(), AdminRole.SUPER_ADMIN, null, "meada-default");
         }
+        UserData data;
         try {
-            UserData data = jdbcTemplate.queryForObject(
+            data = jdbcTemplate.queryForObject(
                 SELECT_USER_DATA,
                 (rs, rowNum) -> new UserData(
                     (UUID) rs.getObject("company_id"), rs.getString("palette_id"),
-                    rs.getString("role")),
+                    rs.getString("role"), rs.getBoolean("suspended"),
+                    rs.getObject("deleted_at") != null, rs.getString("company_status")),
                 claims.userId());
-            return new AuthenticatedUser(
-                claims.email(), claims.userId(), AdminRole.TENANT_ADMIN,
-                data.companyId(), data.paletteId(), data.role());
         } catch (EmptyResultDataAccessException e) {
             throw new AuthRejectException(403, "user_not_provisioned");
         }
+        // Guards de suspensão (camada 6.1/6.2): 403 distinto (NÃO 401). Soft-delete também
+        // bloqueia (a linha existe mas o usuário foi removido pelo super-admin).
+        if (data.deletedUser()) {
+            throw new AuthRejectException(403, "user_not_provisioned");
+        }
+        if (data.suspended()) {
+            throw new AuthRejectException(403, "forbidden_user_suspended");
+        }
+        if ("suspended".equals(data.companyStatus())) {
+            throw new AuthRejectException(403, "forbidden_company_suspended");
+        }
+        // last_login_at com throttle (>5min). Best-effort: falha aqui não derruba o login.
+        try {
+            jdbcTemplate.update(UPDATE_LAST_LOGIN, claims.userId());
+        } catch (RuntimeException e) {
+            log.warn("failed to update last_login_at for {}: {}", claims.userId(), e.getMessage());
+        }
+        return new AuthenticatedUser(
+            claims.email(), claims.userId(), AdminRole.TENANT_ADMIN,
+            data.companyId(), data.paletteId(), data.role());
     }
 
     /** Escreve a resposta de erro direto (o filtro não passa pelo GlobalExceptionHandler). */
@@ -265,8 +295,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private record VerifiedClaims(String email, UUID userId) {
     }
 
-    /** Tupla (company_id, palette_id, role) do SELECT em public.users — detalhe interno. */
-    private record UserData(UUID companyId, String paletteId, String role) {
+    /** Tupla do SELECT em users+companies (camada 6) — detalhe interno do filtro. */
+    private record UserData(UUID companyId, String paletteId, String role,
+                            boolean suspended, boolean deletedUser, String companyStatus) {
     }
 
     /** Sinaliza rejeição com status HTTP + reason; capturada em doFilterInternal. */

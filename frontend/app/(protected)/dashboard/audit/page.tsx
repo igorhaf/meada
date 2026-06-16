@@ -1,7 +1,7 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
-import { Construction, ScrollText } from 'lucide-react'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { ScrollText } from 'lucide-react'
 import { useState } from 'react'
 
 import { PageHeader } from '@/components/layout/page-header'
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { DataTable, type Column } from '@/components/ui/data-table'
 import { EmptyState } from '@/components/ui/empty-state'
+import { getGlobalAuditLogs, type GlobalAuditLog } from '@/lib/api/admin/audit'
 import { getAuditLogs, type AuditLogEntry } from '@/lib/api/audit'
 import { getMe } from '@/lib/api/me'
 
@@ -91,21 +92,9 @@ export default function AuditPage() {
     setApplied({ entity, action })
   }
 
-  // Super-admin: a auditoria GLOBAL da plataforma é fase 6.5 (placeholder por ora;
-  // substitui o redirect antigo — camada 6.0). Tenant segue com a tela atual.
+  // Super-admin: auditoria GLOBAL da plataforma (camada 6.5). Tenant segue com a tela atual.
   if (isSuperAdmin) {
-    return (
-      <div className="space-y-6">
-        <PageHeader title="Auditoria" description="Auditoria global da plataforma." />
-        <Card className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-          <Construction className="size-10 text-muted-foreground" />
-          <h2 className="text-base font-medium">Versão global em construção</h2>
-          <p className="max-w-sm text-sm text-muted-foreground">
-            A auditoria global da plataforma será implementada na fase 6.5.
-          </p>
-        </Card>
-      </div>
-    )
+    return <GlobalAudit />
   }
 
   return (
@@ -177,6 +166,85 @@ export default function AuditPage() {
           loading={isPending}
           emptyMessage="Nenhum registro encontrado."
         />
+      )}
+    </div>
+  )
+}
+
+/** Auditoria GLOBAL da plataforma (camada 6.5, super-admin). Filtros action/entity. */
+function GlobalAudit() {
+  const [action, setAction] = useState('')
+  const [entity, setEntity] = useState('')
+  const [applied, setApplied] = useState<{ action: string; entity: string }>({ action: '', entity: '' })
+  const [page, setPage] = useState(0)
+
+  const { data, isPending, isError } = useQuery({
+    queryKey: ['admin-audit-all', applied, page],
+    queryFn: () => getGlobalAuditLogs({
+      action: applied.action || undefined,
+      entity: applied.entity || undefined,
+      page,
+      pageSize: 20,
+    }),
+    placeholderData: keepPreviousData,
+  })
+
+  const columns: Column<GlobalAuditLog>[] = [
+    { key: 'createdAt', header: 'Quando', render: (r) => new Date(r.createdAt).toLocaleString('pt-BR') },
+    { key: 'companyName', header: 'Empresa', render: (r) => r.companyName ?? '—' },
+    { key: 'action', header: 'Ação' },
+    { key: 'entity', header: 'Entidade' },
+    {
+      key: 'metadata',
+      header: 'Detalhes',
+      render: (r) => (
+        <span className="line-clamp-1 text-xs text-muted-foreground">
+          {r.metadata ? JSON.stringify(r.metadata) : '—'}
+        </span>
+      ),
+    },
+  ]
+
+  const total = data?.total ?? 0
+  const totalPages = Math.max(1, Math.ceil(total / 20))
+
+  return (
+    <div className="space-y-6">
+      <PageHeader title="Auditoria" description="Auditoria global de todas as empresas." />
+      <form
+        className="flex flex-wrap items-end gap-3"
+        onSubmit={(e) => { e.preventDefault(); setApplied({ action, entity }); setPage(0) }}
+      >
+        <div>
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">Ação</label>
+          <input value={action} onChange={(e) => setAction(e.target.value)} placeholder="insert, update…"
+            className="w-48 rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50" />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">Entidade</label>
+          <input value={entity} onChange={(e) => setEntity(e.target.value)} placeholder="services, faqs…"
+            className="w-48 rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50" />
+        </div>
+        <Button type="submit" variant="outline">Filtrar</Button>
+      </form>
+      {isError ? (
+        <p className="text-sm text-destructive">Erro ao carregar auditoria.</p>
+      ) : (
+        <>
+          <DataTable<GlobalAuditLog> data={data?.items ?? []} columns={columns} loading={isPending}
+            emptyMessage="Nenhum registro de auditoria." />
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Página {page + 1} de {totalPages} · {total} registro(s)</span>
+              <div className="flex gap-1">
+                <Button variant="outline" className="h-7 px-2 text-xs" disabled={page === 0}
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}>←</Button>
+                <Button variant="outline" className="h-7 px-2 text-xs" disabled={page + 1 >= totalPages}
+                  onClick={() => setPage((p) => p + 1)}>→</Button>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   )

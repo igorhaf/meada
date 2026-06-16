@@ -1,13 +1,15 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
-import { Construction, ShieldCheck } from 'lucide-react'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { ShieldCheck } from 'lucide-react'
+import { useState } from 'react'
 
 import { PageHeader } from '@/components/layout/page-header'
 import { Badge } from '@/components/ui/badge'
-import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { DataTable, type Column } from '@/components/ui/data-table'
 import { EmptyState } from '@/components/ui/empty-state'
+import { getGlobalAccessLogs, type GlobalAccessLog } from '@/lib/api/admin/audit'
 import { getAccessLogs, type AccessLogEntry } from '@/lib/api/access-logs'
 import { getMe } from '@/lib/api/me'
 
@@ -63,21 +65,9 @@ export default function SecurityPage() {
     console.error('failed to load access logs:', error)
   }
 
-  // Super-admin: a versão GLOBAL de segurança/acessos é fase 6.5 (placeholder por ora;
-  // substitui o redirect antigo — camada 6.0). Tenant segue com a tela atual.
+  // Super-admin: segurança/acessos GLOBAL (camada 6.5). Tenant segue com a tela atual.
   if (isSuperAdmin) {
-    return (
-      <div className="space-y-6">
-        <PageHeader title="Segurança" description="Acessos e segurança da plataforma." />
-        <Card className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-          <Construction className="size-10 text-muted-foreground" />
-          <h2 className="text-base font-medium">Versão global em construção</h2>
-          <p className="max-w-sm text-sm text-muted-foreground">
-            A segurança global da plataforma será implementada na fase 6.5.
-          </p>
-        </Card>
-      </div>
-    )
+    return <GlobalSecurity />
   }
 
   return (
@@ -102,6 +92,74 @@ export default function SecurityPage() {
           loading={isPending}
           emptyMessage="Nenhum acesso registrado."
         />
+      )}
+    </div>
+  )
+}
+
+/** Segurança/acessos GLOBAL da plataforma (camada 6.5, super-admin). Filtro por ação. */
+function GlobalSecurity() {
+  const [action, setAction] = useState('')
+  const [page, setPage] = useState(0)
+
+  const { data, isPending, isError } = useQuery({
+    queryKey: ['admin-access-logs-all', action, page],
+    queryFn: () => getGlobalAccessLogs({ action: action || undefined, page, pageSize: 20 }),
+    placeholderData: keepPreviousData,
+  })
+
+  const columns: Column<GlobalAccessLog>[] = [
+    { key: 'createdAt', header: 'Quando', render: (r) => new Date(r.createdAt).toLocaleString('pt-BR') },
+    { key: 'companyName', header: 'Empresa', render: (r) => r.companyName ?? '—' },
+    { key: 'email', header: 'Email', render: (r) => r.email ?? '—' },
+    {
+      key: 'action',
+      header: 'Ação',
+      render: (r) => (
+        <Badge variant={r.action === 'login_failed' ? 'danger' : 'success'}>
+          {ACTION_LABELS[r.action as AccessLogEntry['action']] ?? r.action}
+        </Badge>
+      ),
+    },
+    { key: 'ip', header: 'IP', render: (r) => <span className="font-mono text-xs text-muted-foreground">{r.ip ?? '—'}</span> },
+  ]
+
+  const total = data?.total ?? 0
+  const totalPages = Math.max(1, Math.ceil(total / 20))
+
+  return (
+    <div className="space-y-6">
+      <PageHeader title="Segurança" description="Acessos e segurança de toda a plataforma." />
+      <div className="flex items-end gap-3">
+        <div>
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">Ação</label>
+          <select value={action} onChange={(e) => { setAction(e.target.value); setPage(0) }}
+            className="rounded-md border border-border bg-background px-3 py-2 text-sm">
+            <option value="">Todas</option>
+            <option value="login_success">Login bem-sucedido</option>
+            <option value="login_failed">Login falhou</option>
+            <option value="password_changed">Senha alterada</option>
+          </select>
+        </div>
+      </div>
+      {isError ? (
+        <p className="text-sm text-destructive">Erro ao carregar acessos.</p>
+      ) : (
+        <>
+          <DataTable<GlobalAccessLog> data={data?.items ?? []} columns={columns} loading={isPending}
+            emptyMessage="Nenhum registro de acesso." />
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Página {page + 1} de {totalPages} · {total} registro(s)</span>
+              <div className="flex gap-1">
+                <Button variant="outline" className="h-7 px-2 text-xs" disabled={page === 0}
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}>←</Button>
+                <Button variant="outline" className="h-7 px-2 text-xs" disabled={page + 1 >= totalPages}
+                  onClick={() => setPage((p) => p + 1)}>→</Button>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   )
