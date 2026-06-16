@@ -71,7 +71,8 @@ public abstract class AbstractIntegrationTest {
         "db/migrations/07_palette_id.sql",
         "db/migrations/08_audit_log.sql",
         "db/migrations/09_count_unread_conversations.sql",
-        "db/migrations/10_contacts_blocked.sql"
+        "db/migrations/10_contacts_blocked.sql",
+        "db/migrations/11_get_tenant_metrics.sql"
     };
 
     /**
@@ -89,7 +90,8 @@ public abstract class AbstractIntegrationTest {
      */
     private static final java.util.Set<String> WHOLE_FILE_SCRIPTS = java.util.Set.of(
         "db/migrations/08_audit_log.sql",
-        "db/migrations/09_count_unread_conversations.sql");
+        "db/migrations/09_count_unread_conversations.sql",
+        "db/migrations/11_get_tenant_metrics.sql");
 
     static {
         POSTGRES.start();

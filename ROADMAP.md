@@ -63,10 +63,10 @@ Lista de 50 features para o MVP funcional do SaaS de atendimento WhatsApp+IA agn
 
 ## Métricas e dashboard
 
-- [ ] 42. Dashboard com números (conversas hoje, taxa de resolução IA, tempo médio)
-- [ ] 43. Gráfico de mensagens por dia (últimos 30 dias)
-- [ ] 44. Ranking de FAQs mais usadas pela IA
-- [ ] 45. Tempo médio de resposta (IA vs humano)
+- [x] 42. Dashboard com números (conversas hoje, taxa de resolução IA, tempo médio) (fase-5.12)
+- [x] 43. Gráfico de mensagens por dia (últimos 30 dias) (fase-5.12)
+- [x] 44. Ranking de FAQs mais usadas pela IA (fase-5.12)
+- [x] 45. Tempo médio de resposta (IA vs humano) (fase-5.12)
 
 ## Onboarding e UX
 
