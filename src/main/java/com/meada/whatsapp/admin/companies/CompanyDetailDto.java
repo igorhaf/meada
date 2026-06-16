@@ -51,5 +51,6 @@ public record CompanyDetailDto(
     long messagesLast30d,
     Instant lastActivityAt,
     String ownerEmail,
-    String ownerName) {
+    String ownerName,
+    String profileId) {
 }

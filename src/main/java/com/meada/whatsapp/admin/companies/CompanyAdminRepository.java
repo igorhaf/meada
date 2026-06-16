@@ -18,11 +18,12 @@ import java.util.UUID;
 public class CompanyAdminRepository {
 
     private static final String FIND_ALL =
-        "select id, name, slug, status, created_at, palette_id from companies order by created_at desc";
+        "select id, name, slug, status, created_at, palette_id, profile_id from companies "
+            + "order by created_at desc";
 
     private static final String INSERT =
         "insert into companies (name, slug, palette_id) values (?, ?, ?) "
-        + "returning id, name, slug, status, created_at, palette_id";
+        + "returning id, name, slug, status, created_at, palette_id, profile_id";
 
     private static final RowMapper<CompanyResponse> ROW_MAPPER = (rs, rowNum) ->
         new CompanyResponse(
@@ -31,7 +32,8 @@ public class CompanyAdminRepository {
             rs.getString("slug"),
             rs.getString("status"),
             rs.getTimestamp("created_at").toInstant(),
-            rs.getString("palette_id"));
+            rs.getString("palette_id"),
+            rs.getString("profile_id"));
 
     private final JdbcTemplate jdbcTemplate;
 

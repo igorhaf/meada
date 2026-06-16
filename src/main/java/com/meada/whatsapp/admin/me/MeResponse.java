@@ -25,13 +25,27 @@ import java.util.UUID;
  * @param paletteId id da paleta de tema; nunca null
  */
 public record MeResponse(String email, String role, UUID companyId, String paletteId,
-                         String tenantRole) {
+                         String tenantRole, String profileId, String productName) {
 
     public static MeResponse from(AuthenticatedUser user) {
+        return from(user, null);
+    }
+
+    /**
+     * Variante com perfil (camada 7.0): {@code profileId} é o companies.profile_id do tenant
+     * (resolvido pelo controller), {@code productName} é o label do produto correspondente.
+     * Para super-admin (sem empresa) o perfil é null e o produto cai para "Meada" (identidade
+     * da plataforma). O frontend usa productName no topo do sidebar e profileId para a sidebar
+     * dinâmica (estrutura aberta às SM-B/C/D).
+     */
+    public static MeResponse from(AuthenticatedUser user, String profileId) {
         String role = user.role() == AdminRole.SUPER_ADMIN ? "super_admin" : "tenant_admin";
+        String productName = com.meada.whatsapp.profiles.ProfileType.fromId(profileId)
+            .map(com.meada.whatsapp.profiles.ProfileType::productName)
+            .orElse(com.meada.whatsapp.profiles.ProfileType.GENERIC.productName());
         // tenantRole (owner|admin|agent) só existe para tenant-admin (camada 5.17 #75);
         // null para super-admin. O frontend usa para guards de capacidade.
         return new MeResponse(user.email(), role, user.companyId(), user.paletteId(),
-            user.tenantRole());
+            user.tenantRole(), profileId, productName);
     }
 }

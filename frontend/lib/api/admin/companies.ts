@@ -14,6 +14,7 @@ export type Company = {
   status: 'active' | 'suspended'
   createdAt: string
   paletteId: string
+  profileId: string
 }
 
 /** Página de empresas (espelha CompanyPage do backend). */
@@ -42,6 +43,7 @@ export type CompanyDetail = {
   lastActivityAt: string | null
   ownerEmail: string | null
   ownerName: string | null
+  profileId: string
 }
 
 /** Nota interna por empresa (espelha AdminNoteDto). superAdminUserId não é resolvível
@@ -71,6 +73,8 @@ export type UpdateCompanyPayload = {
   maxAdmins: number | null
   maxFaqs: number | null
   maxConversationsMonth: number | null
+  // Perfil vertical (camada 7.0). Opcional: omitido = não altera. Validado contra o catálogo.
+  profileId?: string
 }
 
 function buildQuery(filters: CompanyFilters): string {

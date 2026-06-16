@@ -8,8 +8,10 @@ import { z } from 'zod'
 
 import { Button } from '@/components/ui/button'
 import { recordAccessLog } from '@/lib/api/access-logs'
+import { getProfileMatch } from '@/lib/api/admin/profiles'
 import { ApiError } from '@/lib/api/client'
 import { acceptInvitation } from '@/lib/api/invitations'
+import { currentProfile, currentSubdomain, isUniversalSubdomain } from '@/lib/profiles/subdomain'
 import { createClient } from '@/lib/supabase/client'
 
 // Schema de LOGIN (não de signup): só verifica que há algo para enviar. Regras de
@@ -106,10 +108,39 @@ function LoginInner() {
       }
     }
 
+    // Validação subdomínio×perfil (camada 7.0): num subdomínio de produto (processo/dental/
+    // sushi), o usuário só pode prosseguir se a empresa dele for daquele perfil. No subdomínio
+    // universal ('meada'/localhost) qualquer usuário passa (login universal). Super-admin sempre
+    // casa (o backend já decide isso). Mismatch → signOut + UX educada de redirect.
+    const sub = currentSubdomain()
+    if (!isUniversalSubdomain(sub)) {
+      try {
+        const result = await getProfileMatch(sub)
+        if (!result.match) {
+          await supabase.auth.signOut()
+          const expectedSub = result.expectedSubdomain
+          const expectedName = result.expectedProductName ?? 'seu produto'
+          setAuthError(
+            expectedSub
+              ? `Você é cliente do ${expectedName}. Acesse ${expectedSub}.meadadigital.local para entrar.`
+              : 'Sua conta não pertence a este produto.',
+          )
+          return
+        }
+      } catch (err) {
+        console.error('profile-match failed:', err)
+        // Falha de rede no match não pode trancar o usuário fora do produto correto: deixa
+        // passar (defensivo). O backend ainda é a barreira de autorização real por endpoint.
+      }
+    }
+
     router.push('/dashboard')
   }
 
-  const title = isInvite ? 'Aceitar convite' : 'Meada WhatsApp'
+  // Produto pelo subdomínio (camada 7.0): "Bem-vindo ao ProcessoBot" etc. No universal,
+  // o produto é "Meada".
+  const profile = currentProfile()
+  const title = isInvite ? 'Aceitar convite' : `Bem-vindo ao ${profile.productName}`
   const subtitle = isInvite
     ? mode === 'signup'
       ? 'Crie sua conta com o email do convite para entrar.'

@@ -24,5 +24,6 @@ import java.util.UUID;
  *                  'meada-default' no banco → sempre presente, nunca null no JSON.
  */
 public record CompanyResponse(
-    UUID id, String name, String slug, String status, Instant createdAt, String paletteId) {
+    UUID id, String name, String slug, String status, Instant createdAt, String paletteId,
+    String profileId) {
 }

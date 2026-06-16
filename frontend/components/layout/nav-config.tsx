@@ -130,3 +130,19 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
 ]
+
+/**
+ * Navegação por perfil (camada 7.0). Por enquanto TODOS os perfis usam os mesmos grupos
+ * (NAV_GROUPS) — esta SM é só fundação; as features específicas de cada perfil (e seus itens
+ * de menu próprios) entram em SM-B/C/D, que estenderão esta função com branches por profileId.
+ *
+ * <p>O seam existe agora para que a mudança futura seja localizada: a tela consome
+ * getNavForProfile em vez de NAV_GROUPS diretamente, e quando um perfil ganhar itens próprios,
+ * só esta função muda. O título do produto NÃO vem daqui — vem do GET /admin/me (productName),
+ * renderizado pelo SidebarBrand.
+ */
+export function getNavForProfile(_profileId: string | null | undefined): NavGroup[] {
+  // Estrutura aberta: hoje todos os perfis compartilham o mesmo nav. SM-B/C/D adicionam
+  // grupos condicionais por _profileId aqui.
+  return NAV_GROUPS
+}

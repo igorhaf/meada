@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, Section } from '@/components/ui/card'
 import { ApiError } from '@/lib/api/client'
+import { getProfile } from '@/lib/profiles/profile-type'
 import {
   createNote,
   deleteCompany,
@@ -176,6 +177,8 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
         <Badge variant={isActive ? 'success' : 'danger'}>
           {isActive ? 'ativa' : 'suspensa'}
         </Badge>
+        {/* Perfil (produto) do tenant — camada 7.0. */}
+        <Badge variant="info">{getProfile(company.profileId)?.productName ?? company.profileId}</Badge>
         <span className="font-mono text-xs text-muted-foreground">{company.slug}</span>
       </div>
 

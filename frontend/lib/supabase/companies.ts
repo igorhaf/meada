@@ -24,7 +24,7 @@ export async function getMyCompany(): Promise<Company> {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('companies')
-    .select('id, name, slug, status, created_at, palette_id')
+    .select('id, name, slug, status, created_at, palette_id, profile_id')
     .single()
 
   if (error) {
@@ -38,5 +38,6 @@ export async function getMyCompany(): Promise<Company> {
     status: data.status,
     createdAt: data.created_at,
     paletteId: data.palette_id,
+    profileId: data.profile_id,
   }
 }

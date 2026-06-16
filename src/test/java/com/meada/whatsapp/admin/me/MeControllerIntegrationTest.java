@@ -38,7 +38,10 @@ class MeControllerIntegrationTest extends AbstractAdminIntegrationTest {
             .andExpect(jsonPath("$.email").value(SUPER_ADMIN_EMAIL))
             .andExpect(jsonPath("$.role").value("super_admin"))
             .andExpect(jsonPath("$.companyId").value(nullValue()))
-            .andExpect(jsonPath("$.paletteId").value("meada-default"));
+            .andExpect(jsonPath("$.paletteId").value("meada-default"))
+            // super-admin não tem empresa → sem perfil; productName cai para "Meada" (camada 7.0).
+            .andExpect(jsonPath("$.profileId").value(nullValue()))
+            .andExpect(jsonPath("$.productName").value("Meada"));
     }
 
     @Test
@@ -52,6 +55,9 @@ class MeControllerIntegrationTest extends AbstractAdminIntegrationTest {
             .andExpect(jsonPath("$.role").value("tenant_admin"))
             .andExpect(jsonPath("$.companyId").value(companyId.toString()))
             .andExpect(jsonPath("$.paletteId").value("meada-default"))
-            .andExpect(jsonPath("$.tenantRole").value("admin"));
+            .andExpect(jsonPath("$.tenantRole").value("admin"))
+            // empresa do seed sem profile_id → DEFAULT 'generic'; productName "Meada" (camada 7.0).
+            .andExpect(jsonPath("$.profileId").value("generic"))
+            .andExpect(jsonPath("$.productName").value("Meada"));
     }
 }

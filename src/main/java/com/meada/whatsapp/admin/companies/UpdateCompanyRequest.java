@@ -42,6 +42,11 @@ public record UpdateCompanyRequest(
     Integer maxFaqs,
 
     @Min(value = 0, message = "maxConversationsMonth não pode ser negativo")
-    Integer maxConversationsMonth
+    Integer maxConversationsMonth,
+
+    // Perfil vertical (camada 7.0). OPCIONAL no PATCH (null = não alterar). Validado contra
+    // ProfileType no controller (400 invalid_profile_id) — não via Bean Validation, porque o
+    // conjunto válido vive no enum, não num @Pattern.
+    String profileId
 ) {
 }

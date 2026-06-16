@@ -19,6 +19,10 @@ export type Me = {
   // role do usuário DENTRO do tenant (owner|admin|agent — camada 5.17 #75); null para
   // super-admin. Usado para guards de capacidade no frontend (ex.: só owner deleta empresa).
   tenantRole: 'owner' | 'admin' | 'agent' | null
+  // Perfil vertical do tenant (camada 7.0): companies.profile_id. null para super-admin.
+  profileId: string | null
+  // Label do "produto" do perfil ("Meada" | "ProcessoBot" | …). Exibido no topo do sidebar.
+  productName: string
 }
 
 export async function getMe(): Promise<Me> {

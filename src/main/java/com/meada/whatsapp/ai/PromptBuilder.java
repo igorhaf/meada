@@ -66,6 +66,8 @@ public class PromptBuilder {
     private final MessageRepository messageRepository;
     private final ContactRepository contactRepository;
     private final com.meada.whatsapp.knowledge.KnowledgeRetrievalService knowledgeRetrievalService;
+    private final com.meada.whatsapp.profiles.CompanyProfileRepository companyProfileRepository;
+    private final com.meada.whatsapp.profiles.ProfilePromptContext profilePromptContext;
 
     public PromptBuilder(AiSettingsRepository aiSettingsRepository,
                          ServiceRepository serviceRepository,
@@ -73,7 +75,9 @@ public class PromptBuilder {
                          BusinessHoursRepository businessHoursRepository,
                          MessageRepository messageRepository,
                          ContactRepository contactRepository,
-                         com.meada.whatsapp.knowledge.KnowledgeRetrievalService knowledgeRetrievalService) {
+                         com.meada.whatsapp.knowledge.KnowledgeRetrievalService knowledgeRetrievalService,
+                         com.meada.whatsapp.profiles.CompanyProfileRepository companyProfileRepository,
+                         com.meada.whatsapp.profiles.ProfilePromptContext profilePromptContext) {
         this.aiSettingsRepository = aiSettingsRepository;
         this.serviceRepository = serviceRepository;
         this.faqRepository = faqRepository;
@@ -81,6 +85,8 @@ public class PromptBuilder {
         this.messageRepository = messageRepository;
         this.contactRepository = contactRepository;
         this.knowledgeRetrievalService = knowledgeRetrievalService;
+        this.companyProfileRepository = companyProfileRepository;
+        this.profilePromptContext = profilePromptContext;
         this.template = loadTemplate();
     }
 
@@ -111,7 +117,13 @@ public class PromptBuilder {
         String rulesValue = settings.map(AiSettings::systemRules).orElse(null);
         String restrictionsValue = settings.map(AiSettings::restrictions).orElse(null);
 
-        String systemPrompt = template
+        // Persona por perfil (camada 7.0): prefixo de voz do "produto" (legal/dental/sushi),
+        // concatenado ANTES do prompt base. generic → "" (o template já é o comportamento
+        // genérico). NÃO substitui o template — só antecede.
+        String profileSegment =
+            profilePromptContext.segmentFor(companyProfileRepository.findProfileId(companyId));
+
+        String systemPrompt = profileSegment + template
             .replace("{{tone}}", tone)
             .replace("{{handoff}}", handoff)
             .replace("{{rules}}", optionalSection("Regras adicionais", rulesValue))

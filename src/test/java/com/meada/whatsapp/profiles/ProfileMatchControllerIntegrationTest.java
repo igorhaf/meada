@@ -1,0 +1,83 @@
+package com.meada.whatsapp.profiles;
+
+import com.meada.whatsapp.admin.AbstractAdminIntegrationTest;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import java.util.UUID;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+/**
+ * Testa GET /admin/me/profile-match e GET /admin/profiles (camada 7.0): super-admin sempre
+ * casa, tenant casa com o próprio perfil, mismatch devolve o subdomínio esperado, e
+ * subdomínio inexistente → 400.
+ */
+class ProfileMatchControllerIntegrationTest extends AbstractAdminIntegrationTest {
+
+    private static final UUID SUPER_SUB = UUID.fromString("88888888-8888-8888-8888-888888888888");
+
+    private String superToken() {
+        return mintValidToken(SUPER_ADMIN_EMAIL, SUPER_SUB);
+    }
+
+    /** Provisiona um tenant cujo perfil de empresa é o dado (profile_id). Devolve o token. */
+    private String seedTenantWithProfile(UUID sub, String email, String profileId) {
+        UUID companyId = seedTenantAdmin(email, sub);
+        jdbcTemplate.update("update companies set profile_id = ? where id = ?", profileId, companyId);
+        return mintValidToken(email, sub);
+    }
+
+    @Test
+    @DisplayName("GET /admin/profiles → catálogo com os 4 perfis (super-admin)")
+    void profiles_catalog() throws Exception {
+        mockMvc.perform(get("/admin/profiles").header("Authorization", "Bearer " + superToken()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items.length()").value(4))
+            .andExpect(jsonPath("$.items[?(@.id == 'legal')].productName").value("ProcessoBot"));
+    }
+
+    @Test
+    @DisplayName("super-admin sempre match em qualquer subdomínio")
+    void superAlwaysMatches() throws Exception {
+        mockMvc.perform(get("/admin/me/profile-match?subdomain=dental")
+                .header("Authorization", "Bearer " + superToken()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.match").value(true))
+            .andExpect(jsonPath("$.productName").value("DentalBot"));
+    }
+
+    @Test
+    @DisplayName("tenant legal acessando 'processo' → match true")
+    void tenantMatchesOwnSubdomain() throws Exception {
+        String t = seedTenantWithProfile(UUID.randomUUID(), TENANT_ADMIN_EMAIL, "legal");
+        mockMvc.perform(get("/admin/me/profile-match?subdomain=processo")
+                .header("Authorization", "Bearer " + t))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.match").value(true))
+            .andExpect(jsonPath("$.productName").value("ProcessoBot"));
+    }
+
+    @Test
+    @DisplayName("tenant legal acessando 'dental' → match false + expectedSubdomain=processo")
+    void tenantMismatchReturnsExpected() throws Exception {
+        String t = seedTenantWithProfile(UUID.randomUUID(), TENANT_ADMIN_EMAIL, "legal");
+        mockMvc.perform(get("/admin/me/profile-match?subdomain=dental")
+                .header("Authorization", "Bearer " + t))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.match").value(false))
+            .andExpect(jsonPath("$.expectedSubdomain").value("processo"))
+            .andExpect(jsonPath("$.expectedProductName").value("ProcessoBot"));
+    }
+
+    @Test
+    @DisplayName("subdomínio inexistente → 400 unknown_subdomain")
+    void unknownSubdomain() throws Exception {
+        mockMvc.perform(get("/admin/me/profile-match?subdomain=naoexiste")
+                .header("Authorization", "Bearer " + superToken()))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.reason").value("unknown_subdomain"));
+    }
+}

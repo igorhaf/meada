@@ -152,6 +152,11 @@ public class CompanyAdminController {
         if (notSuperAdmin(user)) {
             return forbidden();
         }
+        // profileId é opcional no PATCH; quando presente, tem de ser um perfil válido (camada 7.0).
+        if (request.profileId() != null && !request.profileId().isBlank()
+                && com.meada.whatsapp.profiles.ProfileType.fromId(request.profileId()).isEmpty()) {
+            return error(400, "Bad Request", "invalid_profile_id");
+        }
         try {
             service.update(id, request, user.userId());
             return ResponseEntity.ok(service.getDetail(id));

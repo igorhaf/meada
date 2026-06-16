@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Card, Section } from '@/components/ui/card'
 import { ApiError } from '@/lib/api/client'
 import { getCompany, updateCompany, type UpdateCompanyPayload } from '@/lib/api/admin/companies'
+import { getProfiles } from '@/lib/api/admin/profiles'
 
 /**
  * Edição de empresa (camada 6.1). Identidade (name/slug/paleta) + limites do plano. O zod
@@ -27,6 +28,7 @@ const editCompanySchema = z.object({
     .string()
     .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'slug inválido: minúsculas, números e hífens'),
   paletteId: z.string().min(1, 'Selecione uma paleta'),
+  profileId: z.string().min(1, 'Selecione um perfil'),
   // Limites: strings no form (input number devolve string); "" = sem limite → null.
   maxAdmins: z.string(),
   maxFaqs: z.string(),
@@ -68,11 +70,15 @@ export default function CompanyEditPage({ params }: { params: Promise<{ id: stri
       name: '',
       slug: '',
       paletteId: 'meada-default',
+      profileId: 'generic',
       maxAdmins: '',
       maxFaqs: '',
       maxConversationsMonth: '',
     },
   })
+
+  // Catálogo de perfis (camada 7.0) para o dropdown.
+  const { data: profilesData } = useQuery({ queryKey: ['profiles'], queryFn: getProfiles })
 
   // Preenche o form quando o detalhe carrega (reset é idempotente).
   useEffect(() => {
@@ -81,6 +87,7 @@ export default function CompanyEditPage({ params }: { params: Promise<{ id: stri
         name: data.name,
         slug: data.slug,
         paletteId: data.paletteId,
+        profileId: data.profileId,
         maxAdmins: data.maxAdmins == null ? '' : String(data.maxAdmins),
         maxFaqs: data.maxFaqs == null ? '' : String(data.maxFaqs),
         maxConversationsMonth:
@@ -143,6 +150,7 @@ export default function CompanyEditPage({ params }: { params: Promise<{ id: stri
       name: values.name,
       slug: values.slug,
       paletteId: values.paletteId,
+      profileId: values.profileId,
       maxAdmins: toLimit(values.maxAdmins),
       maxFaqs: toLimit(values.maxFaqs),
       maxConversationsMonth: toLimit(values.maxConversationsMonth),
@@ -150,6 +158,8 @@ export default function CompanyEditPage({ params }: { params: Promise<{ id: stri
   }
 
   const paletteId = watch('paletteId')
+  const profileId = watch('profileId')
+  const profileChanged = !!data && profileId !== data.profileId
 
   return (
     <div className="space-y-6">
@@ -205,6 +215,32 @@ export default function CompanyEditPage({ params }: { params: Promise<{ id: stri
                 />
                 {errors.paletteId && (
                   <p className="mt-1 text-sm text-destructive">{errors.paletteId.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="profileId" className="mb-1 block text-sm font-medium">
+                  Perfil (produto)
+                </label>
+                <select
+                  id="profileId"
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  {...register('profileId')}
+                >
+                  {(profilesData?.items ?? []).map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.productName} ({p.id})
+                    </option>
+                  ))}
+                </select>
+                {errors.profileId && (
+                  <p className="mt-1 text-sm text-destructive">{errors.profileId.message}</p>
+                )}
+                {profileChanged && (
+                  <p className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+                    Trocar o perfil muda o produto inteiro para este tenant (tom da IA, navegação
+                    e, futuramente, as features disponíveis). Confirme antes de salvar.
+                  </p>
                 )}
               </div>
             </div>

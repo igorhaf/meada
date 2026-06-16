@@ -94,7 +94,8 @@ public abstract class AbstractIntegrationTest {
         "db/migrations/25_multichannel_and_training.sql",
         "db/migrations/26_admin_operacao.sql",
         "db/migrations/27_medicao_e_saude.sql",
-        "db/migrations/28_plataforma.sql"
+        "db/migrations/28_plataforma.sql",
+        "db/migrations/29_company_profile.sql"
     };
 
     /**

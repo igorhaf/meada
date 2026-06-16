@@ -355,6 +355,47 @@ class CompanyAdminControllerIntegrationTest extends AbstractAdminIntegrationTest
         assertThat(logCount).isZero();
     }
 
+    // ---- PATCH profileId (camada 7.0) ---------------------------------------
+
+    @Test
+    @DisplayName("update com profileId válido → 200 + persiste profile_id + detalhe traz profileId")
+    void update_validProfileId() throws Exception {
+        UUID companyId = seedCompanyReturningId("Vira Legal", "vira-legal");
+        String token = mintValidToken(SUPER_ADMIN_EMAIL, SUB);
+
+        mockMvc.perform(patch("/admin/companies/" + companyId)
+                .header("Authorization", "Bearer " + token)
+                .contentType(APPLICATION_JSON)
+                .content("{\"name\":\"Vira Legal\",\"slug\":\"vira-legal\",\"paletteId\":\"indigo\","
+                    + "\"profileId\":\"legal\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.profileId").value("legal"));
+
+        String profile = jdbcTemplate.queryForObject(
+            "select profile_id from companies where id = ?", String.class, companyId);
+        assertThat(profile).isEqualTo("legal");
+    }
+
+    @Test
+    @DisplayName("update com profileId inválido → 400 invalid_profile_id (não persiste)")
+    void update_invalidProfileId() throws Exception {
+        UUID companyId = seedCompanyReturningId("Profile Ruim", "profile-ruim");
+        String token = mintValidToken(SUPER_ADMIN_EMAIL, SUB);
+
+        mockMvc.perform(patch("/admin/companies/" + companyId)
+                .header("Authorization", "Bearer " + token)
+                .contentType(APPLICATION_JSON)
+                .content("{\"name\":\"Profile Ruim\",\"slug\":\"profile-ruim\",\"paletteId\":\"oceano\","
+                    + "\"profileId\":\"inexistente\"}"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.reason").value("invalid_profile_id"));
+
+        // permaneceu 'generic' (default) — nada persistiu.
+        String profile = jdbcTemplate.queryForObject(
+            "select profile_id from companies where id = ?", String.class, companyId);
+        assertThat(profile).isEqualTo("generic");
+    }
+
     // ---- suspend / reactivate ------------------------------------------------
 
     @Test

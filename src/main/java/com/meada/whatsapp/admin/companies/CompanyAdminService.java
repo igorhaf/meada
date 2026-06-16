@@ -46,7 +46,8 @@ public class CompanyAdminService {
             rs.getString("slug"),
             rs.getString("status"),
             rs.getTimestamp("created_at").toInstant(),
-            rs.getString("palette_id"));
+            rs.getString("palette_id"),
+            rs.getString("profile_id"));
 
     /**
      * Lista empresas com filtros opcionais (status exato, q ilike em name/slug,
@@ -82,7 +83,7 @@ public class CompanyAdminService {
         pageParams.add(pageSize);
         pageParams.add((long) page * pageSize);
         List<CompanyResponse> items = jdbcTemplate.query(
-            "select id, name, slug, status, created_at, palette_id from companies"
+            "select id, name, slug, status, created_at, palette_id, profile_id from companies"
                 + where + " order by created_at desc limit ? offset ?",
             LIST_ROW_MAPPER, pageParams.toArray());
 
@@ -98,7 +99,7 @@ public class CompanyAdminService {
      */
     public CompanyDetailDto getDetail(UUID companyId) {
         CompanyDetailDto base = jdbcTemplate.query(
-                "select c.id, c.name, c.slug, c.status, c.palette_id, c.created_at, "
+                "select c.id, c.name, c.slug, c.status, c.palette_id, c.profile_id, c.created_at, "
                     + "c.max_admins, c.max_faqs, c.max_conversations_month, "
                     + "u.email as owner_email, u.full_name as owner_name "
                     + "from companies c "
@@ -116,7 +117,8 @@ public class CompanyAdminService {
                     (Integer) rs.getObject("max_conversations_month"),
                     0L, 0L, 0L, 0L, null,
                     rs.getString("owner_email"),
-                    rs.getString("owner_name")),
+                    rs.getString("owner_name"),
+                    rs.getString("profile_id")),
                 companyId)
             .stream().findFirst().orElse(null);
 
@@ -144,7 +146,7 @@ public class CompanyAdminService {
             base.createdAt(), base.maxAdmins(), base.maxFaqs(), base.maxConversationsMonth(),
             usersCount, contactsCount, openConversations, messagesLast30d,
             lastActivity == null ? null : lastActivity.toInstant(),
-            base.ownerEmail(), base.ownerName());
+            base.ownerEmail(), base.ownerName(), base.profileId());
     }
 
     private long countOrZero(String sql, Object... params) {
@@ -174,14 +176,29 @@ public class CompanyAdminService {
         payload.put("maxAdmins", req.maxAdmins());
         payload.put("maxFaqs", req.maxFaqs());
         payload.put("maxConversationsMonth", req.maxConversationsMonth());
+        // profileId é OPCIONAL no PATCH (camada 7.0): só entra no payload e no UPDATE quando
+        // enviado. O controller já validou contra ProfileType (400 invalid_profile_id) antes.
+        boolean changesProfile = req.profileId() != null && !req.profileId().isBlank();
+        if (changesProfile) {
+            payload.put("profileId", req.profileId());
+        }
         actionLogger.log(superAdminId, AdminAction.COMPANY_UPDATED,
             AdminAction.TARGET_COMPANY, companyId, payload);
 
-        jdbcTemplate.update(
-            "update companies set name = ?, slug = ?, palette_id = ?, max_admins = ?, "
-                + "max_faqs = ?, max_conversations_month = ?, updated_at = now() where id = ?",
-            req.name(), req.slug(), req.paletteId(), req.maxAdmins(), req.maxFaqs(),
-            req.maxConversationsMonth(), companyId);
+        if (changesProfile) {
+            jdbcTemplate.update(
+                "update companies set name = ?, slug = ?, palette_id = ?, max_admins = ?, "
+                    + "max_faqs = ?, max_conversations_month = ?, profile_id = ?, updated_at = now() "
+                    + "where id = ?",
+                req.name(), req.slug(), req.paletteId(), req.maxAdmins(), req.maxFaqs(),
+                req.maxConversationsMonth(), req.profileId(), companyId);
+        } else {
+            jdbcTemplate.update(
+                "update companies set name = ?, slug = ?, palette_id = ?, max_admins = ?, "
+                    + "max_faqs = ?, max_conversations_month = ?, updated_at = now() where id = ?",
+                req.name(), req.slug(), req.paletteId(), req.maxAdmins(), req.maxFaqs(),
+                req.maxConversationsMonth(), companyId);
+        }
     }
 
     // ---- suspender / reativar ------------------------------------------------

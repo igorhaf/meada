@@ -34,8 +34,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       <GlobalSearch />
       <RealtimeNotifications />
 
-      {/* Sidebar desktop */}
-      <Sidebar role={me?.role} />
+      {/* Sidebar desktop — productName muda por perfil (camada 7.0). */}
+      <Sidebar role={me?.role} productName={me?.productName} />
 
       {/* Drawer mobile */}
       {drawerOpen && (
@@ -47,7 +47,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           />
           <div className="absolute inset-y-0 left-0 flex w-72 max-w-[80%] flex-col border-r border-border bg-background shadow-xl">
             <div className="flex items-center justify-between pr-3">
-              <SidebarBrand />
+              <SidebarBrand productName={me?.productName} />
               <Button
                 variant="ghost"
                 size="icon"

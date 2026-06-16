@@ -72,14 +72,15 @@ export function SidebarNav({
 }
 
 /** Logo da marca no topo do sidebar/drawer. */
-export function SidebarBrand() {
+/** Marca do topo do sidebar. productName é o "produto" do perfil (camada 7.0); default Meada. */
+export function SidebarBrand({ productName = 'Meada' }: { productName?: string }) {
   return (
     <Link
       href="/dashboard"
       className="flex items-center gap-2 px-6 py-5 text-base font-semibold text-foreground"
     >
       <MessagesSquare className="size-5 text-primary" />
-      Meada
+      {productName}
     </Link>
   )
 }
@@ -88,10 +89,16 @@ export function SidebarBrand() {
  * Sidebar fixo do desktop (>= md). Largura fixa, borda à direita, scroll próprio. No mobile
  * fica escondido (o drawer via Sheet assume — ver AppShell).
  */
-export function Sidebar({ role }: { role: 'super_admin' | 'tenant_admin' | undefined }) {
+export function Sidebar({
+  role,
+  productName,
+}: {
+  role: 'super_admin' | 'tenant_admin' | undefined
+  productName?: string
+}) {
   return (
     <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-background md:flex">
-      <SidebarBrand />
+      <SidebarBrand productName={productName} />
       <div className="flex-1 overflow-y-auto">
         <SidebarNav role={role} />
       </div>

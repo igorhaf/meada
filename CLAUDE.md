@@ -159,6 +159,29 @@ Dois perfis, duas vias:
   `public.users` por `auth.uid()`). WRITE via SDK exige `company_id` explícito no payload
   (policy WITH CHECK revalida — defesa em profundidade, provado E2E na 4.4).
 
+## Multi-perfil (camada 7.0)
+
+- **Meada é um monolito que se apresenta como N produtos verticais ("perfis").** Cada perfil
+  (generic/Meada, legal/ProcessoBot, dental/DentalBot, sushi/SushiBot) parece um produto
+  distinto pro cliente final — subdomínio, nome, tom de IA e (futuramente) features próprias.
+- **Perfis são HARDCODED** em dois arquivos espelhados: `src/main/java/com/meada/whatsapp/
+  profiles/ProfileType.java` (enum) e `frontend/lib/profiles/profile-type.ts` (const). O
+  `ProfileTypeParityTest` falha o build se divergirem. NÃO existe tabela de perfis.
+- **Tenant tem EXATAMENTE 1 perfil** (`companies.profile_id`, NOT NULL DEFAULT 'generic',
+  CHECK nos 4 ids). Cravado pelo root ao editar a empresa (PATCH /admin/companies); o tenant
+  não escolhe.
+- **Todos os perfis coexistem HARMONICAMENTE:** feature de um perfil NUNCA pode quebrar ou
+  interferir em outro. Quando houver conflito, resolver com CONDICIONAL explícita por
+  `profile_id`, NUNCA generalizar à força.
+- **Features genéricas (núcleo) ficam disponíveis em TODOS os perfis.** Features específicas
+  vivem em `src/main/java/.../profiles/{perfil}/` e `frontend/profiles/{perfil}/`.
+- **Adicionar um perfil novo** = editar os 2 arquivos (enum Java + const TS), aplicar uma
+  migration de CHECK constraint em `companies.profile_id`, e rodar os testes de paridade.
+  NÃO criar tabela de perfis.
+- **Subdomínio → perfil:** o middleware Next (`frontend/middleware.ts`) injeta
+  `x-meada-subdomain`; `localhost`/domínio-base = 'meada' (universal, login universal). Dev
+  local: ver `docs/MULTI_PROFILE_DEV.md` (entradas de `/etc/hosts`).
+
 ## Estado das camadas
 
 - **1 — Schema multi-tenant:** FECHADA. 11 tabelas, RLS, FKs compostas anti-cross-tenant.
