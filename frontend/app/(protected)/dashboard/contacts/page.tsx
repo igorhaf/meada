@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { DataTable, type Column } from '@/components/ui/data-table'
 import { EmptyState } from '@/components/ui/empty-state'
 import { getMe } from '@/lib/api/me'
+import { getTopContacts } from '@/lib/api/metrics-extra'
 import { getMyContacts, setContactBlocked, type Contact } from '@/lib/supabase/contacts'
 
 const columns: Column<Contact>[] = [
@@ -56,6 +57,14 @@ export default function ContactsPage() {
     enabled: isTenant,
   })
 
+  // Top 10 contatos mais ativos (#68) — backend. Falha silenciosa: a lista principal
+  // de contatos continua útil sem o ranking.
+  const { data: topContacts } = useQuery({
+    queryKey: ['top-contacts'],
+    queryFn: getTopContacts,
+    enabled: isTenant,
+  })
+
   const toggleBlocked = useMutation({
     mutationFn: ({ id, blocked }: { id: string; blocked: boolean }) => setContactBlocked(id, blocked),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['my-contacts'] }),
@@ -95,6 +104,26 @@ export default function ContactsPage() {
           <SignOutButton />
         </div>
       </div>
+      {!isEmpty && topContacts && topContacts.length > 0 && (
+        <div className="mb-6 rounded-xl border border-border bg-card p-5">
+          <h2 className="mb-3 text-sm font-medium">Mais ativos</h2>
+          <ol className="space-y-1.5 text-sm">
+            {topContacts.map((c, i) => (
+              <li key={c.contactId} className="flex items-center gap-2">
+                <span className="w-4 text-right text-muted-foreground">{i + 1}.</span>
+                <Link href={`/dashboard/contacts/${c.contactId}`} className="hover:underline">
+                  {c.name ?? '—'}
+                </Link>
+                <span className="text-muted-foreground">{c.phoneNumber}</span>
+                <span className="ml-auto tabular-nums text-muted-foreground">
+                  {c.messageCount.toLocaleString('pt-BR')} msgs
+                </span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+
       {isEmpty ? (
         <EmptyState
           icon={<Users />}

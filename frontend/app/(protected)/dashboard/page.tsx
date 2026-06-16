@@ -128,6 +128,9 @@ function TenantDashboard() {
           <Link href="/dashboard/saved-replies">
             <Button variant="outline">Respostas prontas</Button>
           </Link>
+          <Link href="/dashboard/security">
+            <Button variant="outline">Segurança</Button>
+          </Link>
           <ThemeToggle />
           <SignOutButton />
         </div>

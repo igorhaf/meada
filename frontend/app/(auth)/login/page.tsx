@@ -7,6 +7,7 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
 import { Button } from '@/components/ui/button'
+import { recordAccessLog } from '@/lib/api/access-logs'
 import { ApiError } from '@/lib/api/client'
 import { acceptInvitation } from '@/lib/api/invitations'
 import { createClient } from '@/lib/supabase/client'
@@ -77,9 +78,17 @@ function LoginInner() {
       if (error) {
         // Mensagem GENÉRICA ao usuário (não vaza existência de conta / enumeration).
         console.error('login failed:', error.message)
+        // Auditoria best-effort do login_failed (camada 5.24 #92): não bloqueia o fluxo.
+        recordAccessLog('login_failed', values.email).catch((e) =>
+          console.error('recordAccessLog login_failed falhou:', e),
+        )
         setAuthError('Email ou senha inválidos.')
         return
       }
+      // Auditoria best-effort do login_success (camada 5.24 #92): não bloqueia o fluxo.
+      recordAccessLog('login_success', values.email).catch((e) =>
+        console.error('recordAccessLog login_success falhou:', e),
+      )
     }
 
     // Sessão ativa neste ponto. Se há convite, aceita ANTES de ir ao dashboard.

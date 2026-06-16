@@ -3,12 +3,18 @@
 import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 import { SignOutButton } from '@/components/sign-out-button'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Button } from '@/components/ui/button'
 import { getMe } from '@/lib/api/me'
+import {
+  downloadMetricsPdf,
+  getMetricsComparison,
+  type MetricsComparison,
+  type MonthlyCounts,
+} from '@/lib/api/metrics-extra'
 import { getTenantMetrics, type MessagesByDay, type TenantMetrics } from '@/lib/supabase/metrics'
 
 /** Card de número grande com rótulo. */
@@ -89,8 +95,65 @@ function MessagesChart({ data }: { data: MessagesByDay[] }) {
   )
 }
 
+/** Rótulos pt-BR das 4 métricas comparadas (ordem fixa de exibição). */
+const COMPARISON_ROWS: { key: keyof MonthlyCounts; label: string }[] = [
+  { key: 'conversations', label: 'Conversas iniciadas' },
+  { key: 'messagesInbound', label: 'Mensagens recebidas' },
+  { key: 'messagesOutbound', label: 'Mensagens enviadas' },
+  { key: 'activeContacts', label: 'Contatos ativos' },
+]
+
+/** Indicador de variação: verde ↑ (subiu), vermelho ↓ (caiu), neutro — (igual). */
+function DeltaBadge({ delta }: { delta: number }) {
+  if (delta > 0) {
+    return <span className="text-sm font-medium text-green-600 tabular-nums">↑ +{delta.toLocaleString('pt-BR')}</span>
+  }
+  if (delta < 0) {
+    return <span className="text-sm font-medium text-red-600 tabular-nums">↓ {delta.toLocaleString('pt-BR')}</span>
+  }
+  return <span className="text-sm text-muted-foreground tabular-nums">— 0</span>
+}
+
+/**
+ * Seção "Comparação mês a mês" (#66): por métrica, mostra o valor do mês atual e a variação
+ * vs o mês anterior. Dados do backend (getMetricsComparison). Some em silêncio se a comparação
+ * não carregar (a tela principal de métricas continua útil).
+ */
+function ComparisonSection({ data }: { data: MetricsComparison }) {
+  return (
+    <div className="rounded-xl border border-border bg-card p-5">
+      <h2 className="mb-4 text-sm font-medium">Comparação mês a mês</h2>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {COMPARISON_ROWS.map((r) => (
+          <div
+            key={r.key}
+            className="flex items-baseline justify-between rounded-lg border border-border bg-background p-3"
+          >
+            <div>
+              <div className="text-2xl font-semibold tabular-nums">
+                {data.current[r.key].toLocaleString('pt-BR')}
+              </div>
+              <div className="text-xs text-muted-foreground">{r.label}</div>
+            </div>
+            <div className="text-right">
+              <DeltaBadge delta={data.deltas[r.key]} />
+              <div className="text-xs text-muted-foreground">
+                mês anterior: {data.previous[r.key].toLocaleString('pt-BR')}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <p className="mt-3 text-xs text-muted-foreground">
+        Mês calendário atual comparado ao anterior (variação = atual − anterior).
+      </p>
+    </div>
+  )
+}
+
 export default function MetricsPage() {
   const router = useRouter()
+  const [exporting, setExporting] = useState(false)
 
   const { data: me } = useQuery({ queryKey: ['me'], queryFn: getMe })
   const isTenant = me?.role === 'tenant_admin'
@@ -106,6 +169,25 @@ export default function MetricsPage() {
     queryFn: getTenantMetrics,
     enabled: isTenant,
   })
+
+  // Comparação mês a mês (#66) — query separada (backend). Falha silenciosa: a tela
+  // principal de métricas continua útil sem ela.
+  const { data: comparison } = useQuery<MetricsComparison>({
+    queryKey: ['metrics-comparison'],
+    queryFn: getMetricsComparison,
+    enabled: isTenant,
+  })
+
+  async function handleExportPdf() {
+    setExporting(true)
+    try {
+      await downloadMetricsPdf()
+    } catch (e) {
+      console.error('failed to export metrics pdf:', e)
+    } finally {
+      setExporting(false)
+    }
+  }
 
   if (me && !isTenant) {
     return (
@@ -131,6 +213,9 @@ export default function MetricsPage() {
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-xl font-semibold">Métricas</h1>
         <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleExportPdf} disabled={exporting}>
+            {exporting ? 'Exportando…' : 'Exportar PDF'}
+          </Button>
           <Link href="/dashboard">
             <Button variant="outline">Voltar</Button>
           </Link>
@@ -149,6 +234,8 @@ export default function MetricsPage() {
             <MetricCard label="Conversas iniciadas" value={data.conversationsStarted30d} />
             <MetricCard label="Contatos novos" value={data.contactsNew30d} />
           </div>
+
+          {comparison && <ComparisonSection data={comparison} />}
 
           <MessagesChart data={data.messagesByDay} />
 

@@ -101,9 +101,9 @@ Lista de 50 features para o MVP funcional do SaaS de atendimento WhatsApp+IA agn
 - [x] 64. Remarcar/cancelar via WhatsApp
 
 ### Análise
-- [ ] 65. Dashboard exportável PDF
-- [ ] 66. Comparação mês a mês
-- [ ] 68. Top contatos
+- [x] 65. Dashboard exportável PDF
+- [x] 66. Comparação mês a mês
+- [x] 68. Top contatos
 
 ### Multi-canal
 - [ ] 72. Suporte email
@@ -126,9 +126,9 @@ Lista de 50 features para o MVP funcional do SaaS de atendimento WhatsApp+IA agn
 - [x] 88. Saved replies
 
 ### Compliance
-- [ ] 89. LGPD exclusão
-- [ ] 90. LGPD exportação
-- [ ] 92. Logs de acesso
+- [x] 89. LGPD exclusão
+- [x] 90. LGPD exportação
+- [x] 92. Logs de acesso
 
 ---
 

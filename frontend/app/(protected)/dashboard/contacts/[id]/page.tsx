@@ -9,6 +9,8 @@ import { SignOutButton } from '@/components/sign-out-button'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Modal } from '@/components/ui/modal'
+import { eraseContact, exportContactData } from '@/lib/api/lgpd'
 import { getMe } from '@/lib/api/me'
 import {
   getContact,
@@ -30,6 +32,11 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
   const queryClient = useQueryClient()
   const [nameDraft, setNameDraft] = useState<string>('')
   const [nameSaved, setNameSaved] = useState(false)
+  // LGPD (camada 5.24): diálogo de exclusão com confirmação por digitação.
+  const [eraseOpen, setEraseOpen] = useState(false)
+  const [eraseConfirm, setEraseConfirm] = useState('')
+  const [exporting, setExporting] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
 
   const { data: me } = useQuery({ queryKey: ['me'], queryFn: getMe })
   const isTenant = me?.role === 'tenant_admin'
@@ -77,6 +84,44 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
       queryClient.invalidateQueries({ queryKey: ['my-contacts'] })
     },
     onError: (err) => console.error('setContactBlocked failed:', err),
+  })
+
+  // O texto que o usuário precisa digitar para liberar a exclusão: nome do contato, ou o
+  // telefone quando não há nome. Espelha o título mostrado na tela.
+  const eraseTarget = contact?.name?.trim() || contact?.phoneNumber || ''
+
+  // Export LGPD (#90): baixa o JSON do backend como arquivo (Blob + objectURL).
+  async function handleExport() {
+    setExportError(null)
+    setExporting(true)
+    try {
+      const data = await exportContactData(id)
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `contato-${id}.json`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('exportContactData failed:', err)
+      setExportError('Não foi possível exportar os dados. Tente novamente.')
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  // Erase LGPD (#89): hard delete irreversível. Após apagar, volta à lista de contatos.
+  const eraseMutation = useMutation({
+    mutationFn: () => eraseContact(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-contacts'] })
+      setEraseOpen(false)
+      router.push('/dashboard/contacts')
+    },
+    onError: (err) => console.error('eraseContact failed:', err),
   })
 
   if (me && !isTenant) {
@@ -171,6 +216,34 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
         </div>
       )}
 
+      {contact && (
+        <div className="mt-6 space-y-3 rounded-xl border border-destructive/40 p-6">
+          <div>
+            <h2 className="text-base font-semibold">Privacidade (LGPD)</h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Exporte todos os dados deste contato ou exclua-os definitivamente. A exclusão
+              remove o contato, suas conversas, mensagens e agendamentos — é irreversível.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" onClick={handleExport} disabled={exporting}>
+              {exporting ? 'Exportando…' : 'Exportar dados (LGPD)'}
+            </Button>
+            <Button
+              variant="outline"
+              className="border-destructive text-destructive hover:bg-destructive/10"
+              onClick={() => {
+                setEraseConfirm('')
+                setEraseOpen(true)
+              }}
+            >
+              Excluir dados (LGPD)
+            </Button>
+          </div>
+          {exportError && <p className="text-sm text-destructive">{exportError}</p>}
+        </div>
+      )}
+
       <h2 className="mt-8 mb-3 text-lg font-semibold">Conversas</h2>
       <div className="space-y-2 rounded-xl border border-border p-4">
         {conversations == null && <p className="text-sm text-muted-foreground">Carregando…</p>}
@@ -193,6 +266,46 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
           </Link>
         ))}
       </div>
+
+      <Modal
+        open={eraseOpen}
+        onClose={() => setEraseOpen(false)}
+        title="Excluir dados do contato (LGPD)"
+        size="md"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Esta ação é <strong>irreversível</strong>. Serão apagados o contato, todas as suas
+            conversas, mensagens e agendamentos. Para confirmar, digite{' '}
+            <span className="font-mono font-medium text-foreground">{eraseTarget}</span> abaixo.
+          </p>
+          <input
+            type="text"
+            value={eraseConfirm}
+            onChange={(e) => setEraseConfirm(e.target.value)}
+            placeholder={eraseTarget}
+            className="w-full rounded-md border border-border px-3 py-2 text-sm"
+            autoComplete="off"
+          />
+          {eraseMutation.isError && (
+            <p className="text-sm text-destructive">
+              Não foi possível excluir os dados. Tente novamente.
+            </p>
+          )}
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="outline" onClick={() => setEraseOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              className="bg-destructive text-white hover:bg-destructive/90"
+              disabled={eraseConfirm.trim() !== eraseTarget || eraseMutation.isPending}
+              onClick={() => eraseMutation.mutate()}
+            >
+              {eraseMutation.isPending ? 'Excluindo…' : 'Excluir definitivamente'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }
