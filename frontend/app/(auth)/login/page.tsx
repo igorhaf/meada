@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Suspense, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
@@ -11,6 +11,7 @@ import { recordAccessLog } from '@/lib/api/access-logs'
 import { getProfileMatch } from '@/lib/api/admin/profiles'
 import { ApiError } from '@/lib/api/client'
 import { acceptInvitation } from '@/lib/api/invitations'
+import { GENERIC_PROFILE } from '@/lib/profiles/profile-type'
 import { currentProfile, currentSubdomain, isUniversalSubdomain } from '@/lib/profiles/subdomain'
 import { createClient } from '@/lib/supabase/client'
 
@@ -111,20 +112,18 @@ function LoginInner() {
     // Validação subdomínio×perfil (camada 7.0): num subdomínio de produto (processo/dental/
     // sushi), o usuário só pode prosseguir se a empresa dele for daquele perfil. No subdomínio
     // universal ('meada'/localhost) qualquer usuário passa (login universal). Super-admin sempre
-    // casa (o backend já decide isso). Mismatch → signOut + UX educada de redirect.
+    // casa (o backend já decide isso).
+    //
+    // Mismatch → signOut + a MESMA mensagem genérica de credencial inválida (decisão de
+    // segurança do arquiteto): NÃO revelar que a conta existe nem em qual produto ela está —
+    // isso vazaria existência de conta e o produto do cliente. Indistinguível de senha errada.
     const sub = currentSubdomain()
     if (!isUniversalSubdomain(sub)) {
       try {
         const result = await getProfileMatch(sub)
         if (!result.match) {
           await supabase.auth.signOut()
-          const expectedSub = result.expectedSubdomain
-          const expectedName = result.expectedProductName ?? 'seu produto'
-          setAuthError(
-            expectedSub
-              ? `Você é cliente do ${expectedName}. Acesse ${expectedSub}.meadadigital.local para entrar.`
-              : 'Sua conta não pertence a este produto.',
-          )
+          setAuthError('Email ou senha inválidos.')
           return
         }
       } catch (err) {
@@ -138,8 +137,14 @@ function LoginInner() {
   }
 
   // Produto pelo subdomínio (camada 7.0): "Bem-vindo ao ProcessoBot" etc. No universal,
-  // o produto é "Meada".
-  const profile = currentProfile()
+  // o produto é "Meada". currentProfile() lê window.location.hostname, que NÃO existe no SSR —
+  // ler direto no render causaria hydration mismatch (server='Meada', client='ProcessoBot').
+  // Padrão SSR-safe: começa no genérico (igual ao servidor) e atualiza para o perfil real
+  // DEPOIS da montagem, no cliente.
+  const [profile, setProfile] = useState(GENERIC_PROFILE)
+  useEffect(() => {
+    setProfile(currentProfile())
+  }, [])
   const title = isInvite ? 'Aceitar convite' : `Bem-vindo ao ${profile.productName}`
   const subtitle = isInvite
     ? mode === 'signup'
