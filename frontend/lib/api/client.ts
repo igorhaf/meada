@@ -12,6 +12,10 @@ export class ApiError extends Error {
   constructor(
     public readonly status: number,
     public readonly reason: string,
+    // Corpo de erro completo (parseado), quando disponível. Alguns endpoints anexam detalhes
+    // além do reason (ex.: 409 conflict_slot do perfil restaurant carrega o conflito). null se
+    // o corpo não for JSON. Callers que não precisam ignoram.
+    public readonly body: unknown = null,
   ) {
     super(`API ${status}: ${reason}`)
     this.name = 'ApiError'
@@ -60,11 +64,13 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
     await supabase.auth.signOut()
     window.location.href = '/login'
     // Lança para interromper o fluxo do caller (o redirect já está em curso).
-    throw new ApiError(401, await readReason(response))
+    const { reason } = await readError(response)
+    throw new ApiError(401, reason)
   }
 
   if (!response.ok) {
-    throw new ApiError(response.status, await readReason(response))
+    const { reason, body } = await readError(response)
+    throw new ApiError(response.status, reason, body)
   }
 
   // 204 No Content (ex.: DELETE, PATCH de toggle) não tem corpo — chamar response.json()
@@ -85,17 +91,17 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
  *    client-side já é a 1ª barreira, este 400 é defensivo).
  * Tolerante a corpo não-JSON.
  */
-async function readReason(response: Response): Promise<string> {
+async function readError(response: Response): Promise<{ reason: string; body: unknown }> {
   try {
     const body = await response.json()
     if (typeof body?.reason === 'string') {
-      return body.reason
+      return { reason: body.reason, body }
     }
     if (response.status === 400) {
-      return 'validation_error'
+      return { reason: 'validation_error', body }
     }
-    return 'unknown'
+    return { reason: 'unknown', body }
   } catch {
-    return response.status === 400 ? 'validation_error' : 'unknown'
+    return { reason: response.status === 400 ? 'validation_error' : 'unknown', body: null }
   }
 }

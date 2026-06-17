@@ -31,12 +31,13 @@ class ProfileMatchControllerIntegrationTest extends AbstractAdminIntegrationTest
     }
 
     @Test
-    @DisplayName("GET /admin/profiles → catálogo com os 4 perfis (super-admin)")
+    @DisplayName("GET /admin/profiles → catálogo com os 5 perfis (super-admin)")
     void profiles_catalog() throws Exception {
         mockMvc.perform(get("/admin/profiles").header("Authorization", "Bearer " + superToken()))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.items.length()").value(4))
-            .andExpect(jsonPath("$.items[?(@.id == 'legal')].productName").value("ProcessoBot"));
+            .andExpect(jsonPath("$.items.length()").value(5))
+            .andExpect(jsonPath("$.items[?(@.id == 'legal')].productName").value("ProcessoBot"))
+            .andExpect(jsonPath("$.items[?(@.id == 'restaurant')].productName").value("MesaBot"));
     }
 
     @Test

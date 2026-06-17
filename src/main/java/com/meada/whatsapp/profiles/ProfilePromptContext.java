@@ -2,6 +2,7 @@ package com.meada.whatsapp.profiles;
 
 import com.meada.whatsapp.messaging.ConversationRepository;
 import com.meada.whatsapp.profiles.legal.LegalCaseContextCache;
+import com.meada.whatsapp.profiles.restaurant.ReservationContextCache;
 import com.meada.whatsapp.profiles.sushi.SushiMenuCache;
 import org.springframework.stereotype.Component;
 
@@ -22,13 +23,16 @@ public class ProfilePromptContext {
 
     private final SushiMenuCache sushiMenuCache;
     private final LegalCaseContextCache legalCaseContextCache;
+    private final ReservationContextCache reservationContextCache;
     private final ConversationRepository conversationRepository;
 
     public ProfilePromptContext(SushiMenuCache sushiMenuCache,
                                 LegalCaseContextCache legalCaseContextCache,
+                                ReservationContextCache reservationContextCache,
                                 ConversationRepository conversationRepository) {
         this.sushiMenuCache = sushiMenuCache;
         this.legalCaseContextCache = legalCaseContextCache;
+        this.reservationContextCache = reservationContextCache;
         this.conversationRepository = conversationRepository;
     }
 
@@ -50,6 +54,13 @@ public class ProfilePromptContext {
             + "cardápio, sugira combinações e harmonizações, e confirme o pedido sempre com o valor "
             + "total e o endereço de entrega. Seja ágil e simpático no atendimento.";
 
+    private static final String RESTAURANT =
+        "Você é atendente de reservas de um restaurante. Tom acolhedor e ágil. Conheça as mesas "
+            + "disponíveis e os horários livres. Quando o cliente pedir reserva, verifique a "
+            + "disponibilidade no contexto injetado, confirme com dia/hora/mesa/pessoas. Não invente "
+            + "mesa que não existe. Se o horário pedido estiver ocupado, ofereça alternativa próxima "
+            + "(30 min antes ou depois) das mesas livres do dia.";
+
     /**
      * Segmento de persona para o perfil, ou "" para generic / perfil desconhecido (fallback
      * seguro: o prompt base já cobre o genérico). Quando não-vazio, vem com um cabeçalho próprio
@@ -61,6 +72,7 @@ public class ProfilePromptContext {
             case LEGAL -> LEGAL;
             case DENTAL -> DENTAL;
             case SUSHI -> SUSHI;
+            case RESTAURANT -> RESTAURANT;
             case GENERIC -> "";
         };
         if (body.isEmpty()) {
@@ -97,6 +109,11 @@ public class ProfilePromptContext {
             UUID contactId = conversationId == null ? null
                 : conversationRepository.findContactIdByConversation(conversationId).orElse(null);
             return persona + legalCaseContextCache.contextSegment(companyId, contactId);
+        }
+        if ("restaurant".equals(profileId)) {
+            // restaurant (7.3): injeta mesas + reservas próximas (por company). IGNORA conversationId
+            // (o contexto é da agenda do restaurante, não do contato).
+            return persona + reservationContextCache.contextSegment(companyId);
         }
         return persona;
     }

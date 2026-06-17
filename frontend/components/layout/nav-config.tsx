@@ -1,12 +1,14 @@
 import {
   Activity,
   AlertTriangle,
+  Armchair,
   BarChart3,
   BookOpen,
   Briefcase,
   Building2,
   Calendar,
   CalendarCheck,
+  CalendarClock,
   ClipboardList,
   Clock,
   HelpCircle,
@@ -20,6 +22,7 @@ import {
   Palette,
   Scale,
   ScrollText,
+  Settings,
   ShieldCheck,
   Sparkles,
   Tag,
@@ -153,6 +156,9 @@ export function getNavForProfile(profileId: string | null | undefined): NavGroup
   if (profileId === 'legal') {
     return [LEGAL_GROUP, ...NAV_GROUPS]
   }
+  if (profileId === 'restaurant') {
+    return [RESTAURANT_GROUP, ...NAV_GROUPS]
+  }
   return NAV_GROUPS
 }
 
@@ -171,5 +177,16 @@ const LEGAL_GROUP: NavGroup = {
   items: [
     { label: 'Clientes', href: '/dashboard/clients', icon: Briefcase },
     { label: 'Processos', href: '/dashboard/cases', icon: Scale },
+  ],
+}
+
+/** Grupo de navegação exclusivo do perfil restaurant (camada 7.3). "Reservas" (não "Restaurante",
+ * pra não colidir com o grupo do sushi). */
+const RESTAURANT_GROUP: NavGroup = {
+  heading: 'Reservas',
+  items: [
+    { label: 'Mesas', href: '/dashboard/tables', icon: Armchair },
+    { label: 'Reservas', href: '/dashboard/reservations', icon: CalendarClock },
+    { label: 'Configurações', href: '/dashboard/restaurant-settings', icon: Settings },
   ],
 }

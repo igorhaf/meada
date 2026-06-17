@@ -84,6 +84,8 @@ public class OutboundService {
     // criar o pedido e remover a tag antes de enviar ao cliente. Só age para profile_id='sushi'.
     private final com.meada.whatsapp.profiles.CompanyProfileRepository companyProfileRepository;
     private final com.meada.whatsapp.profiles.sushi.orders.OrderConfirmHandler orderConfirmHandler;
+    // Camada 7.3 (perfil restaurant): pós-processa a tag <reserva> — cria a reserva e remove a tag.
+    private final com.meada.whatsapp.profiles.restaurant.reservations.ReservationConfirmHandler reservationConfirmHandler;
 
     private final int maxAttempts;
     private final List<Duration> backoffs;
@@ -120,6 +122,7 @@ public class OutboundService {
                            com.meada.whatsapp.admin.health.ErrorLogger errorLogger,
                            com.meada.whatsapp.profiles.CompanyProfileRepository companyProfileRepository,
                            com.meada.whatsapp.profiles.sushi.orders.OrderConfirmHandler orderConfirmHandler,
+                           com.meada.whatsapp.profiles.restaurant.reservations.ReservationConfirmHandler reservationConfirmHandler,
                            @org.springframework.beans.factory.annotation.Value("${gemini.model}")
                            String geminiModel) {
         this.conversationRepository = conversationRepository;
@@ -138,6 +141,7 @@ public class OutboundService {
         this.errorLogger = errorLogger;
         this.companyProfileRepository = companyProfileRepository;
         this.orderConfirmHandler = orderConfirmHandler;
+        this.reservationConfirmHandler = reservationConfirmHandler;
         this.geminiModel = geminiModel;
         this.maxAttempts = retryProps.maxAttempts();
         // converte uma vez (lista YAML de millis → Durations). O RetryRunner valida
@@ -233,6 +237,9 @@ public class OutboundService {
         // Camada 7.1 (perfil sushi): pós-processa a tag <pedido> — cria o pedido e remove a tag
         // do texto antes de enviar. Só age para o perfil sushi; demais perfis seguem intactos.
         AiResponse toSend = maybeProcessSushiOrder(event, conversationId, aiResponse);
+        // Camada 7.3 (perfil restaurant): pós-processa a tag <reserva> — cria a reserva e remove a
+        // tag. Só age para o perfil restaurant. Encadeado após o sushi (perfil é único; só um age).
+        toSend = maybeProcessRestaurantReservation(event, conversationId, toSend);
         Optional<OutboundOutcome> sendFailure = sendAndPersist(event, conversationId, toSend);
         if (sendFailure.isPresent()) {
             return sendFailure.get();   // casos 7/8/9 — já logado lá
@@ -333,6 +340,42 @@ public class OutboundService {
         // Remove a tag do texto de qualquer forma (o cliente nunca vê o JSON), preservando as
         // métricas da IA (tokens/latency) num AiResponse equivalente.
         String stripped = orderConfirmHandler.stripOrderTag(reply);
+        return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
+            aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
+            aiResponse.schedulingIntent(), aiResponse.insights());
+    }
+
+    /**
+     * Pós-processamento do perfil restaurant (camada 7.3): se o tenant é restaurant e a resposta da
+     * IA contém a tag {@code <reserva>}, cria a reserva (ReservationConfirmHandler) e devolve um
+     * AiResponse com o texto SEM a tag. Para qualquer outro perfil, ou sem tag, devolve o aiResponse
+     * original inalterado. Espelho de {@link #maybeProcessSushiOrder}.
+     *
+     * <p>Best-effort: falha em criar a reserva (conflito de slot, fora do horário, mesa inválida)
+     * NÃO impede o envio da mensagem (o handler já loga e retorna empty). A tag é removida sempre
+     * que existir — o cliente não pode ver JSON cru.
+     */
+    private AiResponse maybeProcessRestaurantReservation(MessageInboundProcessedEvent event,
+                                                         UUID conversationId, AiResponse aiResponse) {
+        String reply = aiResponse.reply();
+        if (reply == null || !reservationConfirmHandler.hasReservationTag(reply)) {
+            return aiResponse;   // sem tag → caminho comum (maioria das mensagens).
+        }
+        if (!"restaurant".equals(companyProfileRepository.findProfileId(event.companyId()))) {
+            return aiResponse;   // tag num perfil não-restaurant: não interpretamos (defensivo).
+        }
+        // Resolve contato (id + nome + telefone) da conversa para criar a reserva (guest snapshot).
+        Optional<UUID> contactId = conversationRepository.findContactIdByConversation(conversationId);
+        if (contactId.isPresent()) {
+            String guestName = contactRepository.findNameByConversationId(conversationId)
+                .filter(n -> n != null && !n.isBlank())
+                .orElseGet(() -> contactRepository.findPhoneByConversationId(conversationId).orElse("Cliente"));
+            String guestPhone = contactRepository.findPhoneByConversationId(conversationId).orElse(null);
+            reservationConfirmHandler.parseAndCreate(
+                event.companyId(), conversationId, contactId.get(), guestName, guestPhone, reply);
+        }
+        // Remove a tag do texto de qualquer forma (o cliente nunca vê o JSON), preservando métricas.
+        String stripped = reservationConfirmHandler.stripReservationTag(reply);
         return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
             aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
             aiResponse.schedulingIntent(), aiResponse.insights());

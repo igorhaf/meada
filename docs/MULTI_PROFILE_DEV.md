@@ -12,6 +12,7 @@ perfil tem seu subdomínio; em dev local você simula isso com `/etc/hosts` + su
 | `legal`    | ProcessoBot   | `processo` | `indigo`       |
 | `dental`   | DentalBot     | `dental`   | `celeste`      |
 | `sushi`    | SushiBot      | `sushi`    | `tijolo`       |
+| `restaurant`| MesaBot      | `mesa`     | `tijolo`       |
 
 Fonte de verdade: `src/main/java/com/meada/whatsapp/profiles/ProfileType.java` +
 `frontend/lib/profiles/profile-type.ts` (paridade garantida pelo `ProfileTypeParityTest`).
@@ -24,6 +25,7 @@ Fonte de verdade: `src/main/java/com/meada/whatsapp/profiles/ProfileType.java` +
 127.0.0.1 processo.meadadigital.local
 127.0.0.1 dental.meadadigital.local
 127.0.0.1 sushi.meadadigital.local
+127.0.0.1 mesa.meadadigital.local
 127.0.0.1 api.meadadigital.local
 ```
 
@@ -46,6 +48,7 @@ Acesse (sem porta — o Caddy resolve por subdomínio):
 - `http://processo.meadadigital.local` → **ProcessoBot** (login valida perfil `legal`).
 - `http://dental.meadadigital.local` → **DentalBot** (perfil `dental`).
 - `http://sushi.meadadigital.local` → **SushiBot** (perfil `sushi`).
+- `http://mesa.meadadigital.local` → **MesaBot** (perfil `restaurant`).
 - `http://api.meadadigital.local` → **backend / API**.
 
 O backend é o mesmo para todos os subdomínios — o perfil viaja no header `X-Meada-Subdomain`
@@ -77,7 +80,8 @@ O backend é o mesmo para todos os subdomínios — o perfil viaja no header `X-
 |----------------------|------------------|-------------------------------|---------|
 | `igorhaf3@gmail.com` | `bofo-meca-oleo` | Escritório Modelo Advocacia   | legal   |
 | `igorhaf4@gmail.com` | `bofo-meca-oleo` | Clínica Modelo Odonto         | dental  |
-| `igorhaf5@gmail.com` | `bofo-meca-oleo` | Sushi Modelo                  | sushi   |
+| `igorhaf5@gmail.com` | `bofo-meca-oleo` | Sushi Modelo                  | sushi      |
+| `igorhaf6@gmail.com` | `bofo-meca-oleo` | Restaurante Modelo            | restaurant |
 
 (Seed em `/tmp/seed-multi-profile.sql` — não versionado; roda via psql.)
 

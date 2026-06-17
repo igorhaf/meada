@@ -269,6 +269,54 @@ consultando os processos deles.
 - **Sidebar:** `getNavForProfile('legal')` injeta o grupo "Escritório" (Clientes + Processos).
 - Guia operacional do tenant: `docs/PERFIL_LEGAL.md`.
 
+## Perfil Restaurante (MesaBot, camada 7.3)
+
+Terceiro perfil vertical real (depois do SushiBot e do ProcessoBot). O tenant restaurant
+(`profile_id='restaurant'`) vira um produto de RESERVAS de restaurante: gerencia mesas e reservas,
+e a IA atende clientes via WhatsApp, verifica disponibilidade e confirma a reserva. É o 4º perfil
+real no enum `ProfileType` (5º contando generic).
+
+- **Modelo análogo a sushi/legal:** `restaurant_tables` (catálogo de mesas, ~ sushi_menu_items) +
+  `table_reservations` (reservas, ~ sushi_orders) + `restaurant_reservation_config` (duração/
+  horário, 1:1 com company). Migration 32.
+- **Fluxo por mensagem LIVRE + tag `<reserva>`:** espelho da tag `<pedido>` do sushi. A IA negocia
+  em texto natural; na confirmação emite `<reserva>{"table_id","date":"YYYY-MM-DD","start_time":
+  "HH:MM","num_people":N}</reserva>`. O `ReservationConfirmHandler` parseia via regex (NÃO tool
+  calling — mesma restrição responseSchema do sushi), valida e cria a reserva; o `OutboundService`
+  REMOVE a tag antes de enviar ao cliente (`maybeProcessRestaurantReservation`, encadeado após o
+  sushi no caso 6 — perfil é único, só um age).
+- **Lógica de conflito em SQL transacional (a parte delicada):** `ReservationRepository.findConflict`
+  é um SELECT com a janela materializada (`NOT (end_at <= newStart OR start_at >= newEnd)`), só
+  status bloqueantes (`pendente`/`confirmada`). O `insertReservation` RE-VERIFICA o conflito DENTRO
+  da transação antes do INSERT (fecha a janela de race entre o cache da IA e a persistência). Se
+  conflitar, lança `SlotConflictException` → 409 `conflict_slot` (com detalhes de quem ocupa).
+- **end_at NÃO é coluna gerada:** `timestamptz + interval` não é IMMUTABLE (Postgres rejeita em
+  GENERATED — depende do timezone da sessão p/ DST). É materializado no INSERT pelo repositório
+  (`start_at + duration_minutes`). Lição cravada nesta SM.
+- **Slot 30min, duração 2h FIXAS** (configurável por restaurante em `restaurant_reservation_config`:
+  `duration_minutes` default 120). Buffer entre reservas = 0 nesta SM. Reserva tem de caber inteira
+  na janela `opens_at`..`closes_at` (validado no fuso America/Sao_Paulo, HARDCODED — pendência).
+- **Status hardcoded materializado** (`ReservationStatus` ↔ `reservation-status.ts`,
+  `ReservationStatusParityTest`): `pendente → confirmada → realizada`; `pendente/confirmada →
+  cancelada`; `confirmada → no_show`. Terminais: realizada/cancelada/no_show. Transição inválida →
+  409 `invalid_status_transition`. Só **confirmada** (com dados da reserva) e **cancelada** notificam
+  o cliente (`ReservationNotifier`); realizada/no_show/pendente são silenciosos (quem furou não
+  recebe sermão).
+- **Cache de contexto da IA TTL 15s** (`ReservationContextCache`) — UM QUARTO do sushi/legal (60s)
+  de propósito: a agenda muda rápido. Injeta mesas disponíveis + reservas ativas dos próximos 7 dias
+  + config. Invalidação explícita ao mutar mesa/reserva/config.
+- **POST manual pelo tenant:** `/api/restaurant/reservations` cria reserva sem `conversation_id`
+  (sem WhatsApp) — não notifica (sem canal). NÃO há DELETE de reserva (histórico; "remover" =
+  status cancelada).
+- **Guard:** `RestaurantProfileGuard` (403 forbidden_wrong_profile). `JwtAuthenticationFilter`
+  autentica `/api/restaurant/**` (além de `/admin/**`, `/api/sushi/**`, `/api/legal/**`).
+- **Sidebar:** `getNavForProfile('restaurant')` injeta o grupo "Reservas" (Mesas + Reservas +
+  Configurações) — heading "Reservas" (não "Restaurante", pra não colidir com o sushi).
+- **NÃO TEM nesta SM:** salão de beleza, pousada, agenda de profissionais, cardápio (sushi cobre),
+  pagamento antecipado, no-show com cobrança, scheduler de auto-transição, lembrete "sua reserva é
+  em 1h", reserva em grupo, feriados, buffer. Sem foto/anexo (bloqueador SERVICE_ROLE_KEY).
+- Guia operacional do tenant: `docs/PERFIL_MESABOT.md`.
+
 ## Estado das camadas
 
 - **1 — Schema multi-tenant:** FECHADA. 11 tabelas, RLS, FKs compostas anti-cross-tenant.

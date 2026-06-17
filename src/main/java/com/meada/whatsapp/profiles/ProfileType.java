@@ -26,7 +26,8 @@ public enum ProfileType {
     GENERIC("generic", "Meada", "meada", "meada-default"),
     LEGAL("legal", "ProcessoBot", "processo", "indigo"),
     DENTAL("dental", "DentalBot", "dental", "celeste"),
-    SUSHI("sushi", "SushiBot", "sushi", "tijolo");
+    SUSHI("sushi", "SushiBot", "sushi", "tijolo"),
+    RESTAURANT("restaurant", "MesaBot", "mesa", "tijolo");
 
     private final String id;
     private final String productName;

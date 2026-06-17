@@ -146,6 +146,24 @@ public class ContactRepository {
             .findFirst();
     }
 
+    private static final String FIND_NAME_BY_CONVERSATION =
+        "select c.name from contacts c "
+            + "join conversations cv on cv.contact_id = c.id "
+            + "where cv.id = ?";
+
+    /**
+     * Nome do contato dono de uma conversa — usado pelo perfil restaurant (7.3) como guest_name
+     * snapshot da reserva criada pela IA. {@link Optional#empty()} se a conversa/contato não existe;
+     * o nome pode vir null/vazio (o caller decide o fallback).
+     */
+    public Optional<String> findNameByConversationId(UUID conversationId) {
+        Objects.requireNonNull(conversationId, "conversationId must not be null");
+        return jdbcTemplate.query(FIND_NAME_BY_CONVERSATION,
+                (rs, rowNum) -> rs.getString("name"), conversationId)
+            .stream()
+            .findFirst();
+    }
+
     /**
      * Grava a memória de longo prazo do contato em {@code contact_memory} (camada 5.18 #55).
      * Objeto livre (preferências, fatos persistentes). {@code ?::jsonb} casta a String JSON

@@ -73,11 +73,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final String INVITE_ACCEPT_PREFIX = "/api/invitations/";
     private static final String INVITE_ACCEPT_SUFFIX = "/accept";
 
-    // Endpoints dos perfis verticais (sushi 7.1, legal 7.2): sob /api/sushi/** e /api/legal/**,
-    // mas são TENANT-autenticados (precisam do AuthenticatedUser, como /admin/**). O filtro
-    // também os autentica.
+    // Endpoints dos perfis verticais (sushi 7.1, legal 7.2, restaurant 7.3): sob /api/sushi/**,
+    // /api/legal/** e /api/restaurant/**, mas são TENANT-autenticados (precisam do AuthenticatedUser,
+    // como /admin/**). O filtro também os autentica.
     private static final String SUSHI_PATH_PREFIX = "/api/sushi/";
     private static final String LEGAL_PATH_PREFIX = "/api/legal/";
+    private static final String RESTAURANT_PATH_PREFIX = "/api/restaurant/";
 
     // Junta a company para checar suspensão da empresa no mesmo SELECT (camada 6.1/6.2).
     // u.suspended / u.deleted_at: suspensão e soft-delete do usuário. c.status: 'suspended'
@@ -136,6 +137,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return !uri.startsWith(ADMIN_PATH_PREFIX)
             && !uri.startsWith(SUSHI_PATH_PREFIX)
             && !uri.startsWith(LEGAL_PATH_PREFIX)
+            && !uri.startsWith(RESTAURANT_PATH_PREFIX)
             && !isInviteAccept(request);
     }
 
