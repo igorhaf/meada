@@ -20,10 +20,13 @@ import {
   Megaphone,
   MessageSquare,
   MessageSquareText,
+  Car,
+  ClipboardCheck,
   Package,
   Palette,
   PawPrint,
   Scale,
+  Wrench,
   Scissors,
   ScrollText,
   Settings,
@@ -180,6 +183,9 @@ export function getNavForProfile(profileId: string | null | undefined): NavGroup
   if (profileId === 'pet') {
     return [PET_GROUP, ...NAV_GROUPS]
   }
+  if (profileId === 'oficina') {
+    return [OFICINA_GROUP, ...NAV_GROUPS]
+  }
   return NAV_GROUPS
 }
 
@@ -264,5 +270,16 @@ const PET_GROUP: NavGroup = {
     { label: 'Animais', href: '/dashboard/pet-animals', icon: PawPrint },
     { label: 'Agenda', href: '/dashboard/pet-appointments', icon: CalendarClock },
     { label: 'Configurações', href: '/dashboard/pet-settings', icon: Settings },
+  ],
+}
+
+/** Grupo de navegação exclusivo do perfil oficina (camada 7.9). "Oficina". Rotas /dashboard/oficina-*. */
+const OFICINA_GROUP: NavGroup = {
+  heading: 'Oficina',
+  items: [
+    { label: 'Mecânicos', href: '/dashboard/oficina-mechanics', icon: Wrench },
+    { label: 'Veículos', href: '/dashboard/oficina-vehicles', icon: Car },
+    { label: 'Ordens', href: '/dashboard/oficina-orders', icon: ClipboardCheck },
+    { label: 'Configurações', href: '/dashboard/oficina-settings', icon: Settings },
   ],
 }

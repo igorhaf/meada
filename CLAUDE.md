@@ -562,6 +562,53 @@ WhatsApp agendando na agenda de cada profissional.
 > anterior: slot pontual → intervalo de dias → recorrência indefinida (assinatura) → sub-entidade
 > (animal do tutor). Próximos perfis, se houver, partem deste alicerce.
 
+## Perfil Oficina (OficinaBot, camada 7.9)
+
+NONO perfil vertical real e PRIMEIRO além da fila planejada de 8. O tenant oficina
+(`profile_id='oficina'`) vira um produto de OFICINA MECÂNICA / AUTO CENTER: gerencia mecânicos e os
+veículos dos clientes, abre ordens de serviço (OS) order-based com itens (peça/mão-de-obra) e total,
+e a IA atende clientes via WhatsApp — abre a OS pela queixa, informa o orçamento quando existe e
+CAPTURA A APROVAÇÃO do cliente.
+
+- **EVOLUÇÃO ESTRUTURAL — combina 2 padrões + 1 escapada nova:** (1) order-based com itens + total
+  materializado (espelho SUSHI); (2) sub-entidade de cliente (`os_vehicles` ~ pet_animals, o contact
+  é o dono); (3) **gate de aprovação em DUAS FASES** — a IA ABRE a OS e, num turno POSTERIOR (OS
+  'orcada'), MUTA o estado pra 'aprovada'/'recusada'. **Primeiro perfil em que a IA altera o estado de
+  um artefato existente via conversa, não só cria.**
+- **Modelo (migration 38):** `os_mechanics` (catálogo simples, SEM agenda) + `os_vehicles` (placa
+  UNIQUE por company, sub-entidade do contact) + `os_config` (horário INFORMATIVO, sem slot) +
+  `service_orders` (snapshots customer/vehicle + total_cents) + `os_items` (kind peca|mao_de_obra,
+  line_total_cents). `total_cents` e `line_total_cents` MATERIALIZADOS a cada mutação (lição end_at).
+- **Status hardcoded** (`OsStatus` ↔ `os-status.ts`, parity test): `aberta → orcada/cancelada`;
+  `orcada → aprovada/recusada/cancelada`; `aprovada → em_execucao/cancelada`; `em_execucao →
+  concluida/cancelada`; `concluida → entregue`; terminais recusada/entregue/cancelada. Notificam
+  (texto defensivo): **orcada** (com total), **aprovada**, **concluida**, **entregue**.
+- **Trava de itens (`order_locked`):** itens só são mutáveis em aberta/orcada/aprovada; em
+  em_execucao/concluida/entregue/recusada/cancelada → 409 order_locked.
+- **`empty_budget`:** a OS só vai pra 'orcada' com `total_cents > 0` → 400 empty_budget (não dá pra
+  orçar sem item).
+- **Duas TAGS distintas** (namespace próprio): `<ordem_servico>` ABRE a OS (2 modos: `vehicle_id`
+  existente OU `new_vehicle` cadastra+abre, espelho pet) — `AberturaOsConfirmHandler`; `<aprovacao_os>`
+  MUTA o estado (`decisao` aprovada|recusada, só se a OS estiver 'orcada') — `AprovacaoOsHandler`.
+  OutboundService: `maybeProcessAberturaOs` + `maybeProcessAprovacaoOs`.
+- **Persona OFICINA nova:** tom prestativo-direto, **NUNCA diagnostica defeito, NUNCA inventa preço
+  de peça ou monta orçamento (quem orça é o mecânico), NUNCA promete prazo fora da OS** — sintoma →
+  avaliação presencial. Contexto via `OficinaContextCache` (TTL 20s): mecânicos ativos, veículos do
+  cliente, e as OS abertas/orçadas do cliente (pra capturar a aprovação na OS certa).
+- **Snapshots:** a OS congela customer_name/phone (do contact do veículo) + vehicle_plate/model.
+  Mudar cliente/veículo depois NÃO altera OS passadas.
+- **Cliente NÃO é entidade própria** (continua o contact; snapshots na OS). **Excluir vs arquivar:**
+  veículo/mecânico em uso → 409 (vehicle_in_use / mechanic_in_use); preferir arquivar veículo.
+- **Guard:** `OficinaProfileGuard`. `JwtAuthenticationFilter` autentica `/api/oficina/**` (além dos
+  8 perfis anteriores).
+- **Sidebar:** `getNavForProfile('oficina')` injeta "Oficina" (Mecânicos/Veículos/Ordens/
+  Configurações). Telas `/dashboard/oficina-{mechanics,vehicles,orders,settings}` — a de ordens tem
+  editor de itens inline.
+- **NÃO TEM:** catálogo de peças/serviços pré-cadastrados (orçamento ad-hoc), agendamento de drop-off
+  por horário/slot, FIPE, foto do veículo, histórico rico, pagamento real (Stripe #50), nota fiscal,
+  estoque de peças.
+- Guia operacional do tenant: `docs/PERFIL_OFICINA.md`.
+
 ## Estado das camadas
 
 - **1 — Schema multi-tenant:** FECHADA. 11 tabelas, RLS, FKs compostas anti-cross-tenant.

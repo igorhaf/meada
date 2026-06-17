@@ -27,13 +27,13 @@ class ProfileTypeTest {
     }
 
     @Test
-    @DisplayName("allActive lista os 9 perfis")
+    @DisplayName("allActive lista os 10 perfis")
     void allActive() {
         List<ProfileType> all = ProfileType.allActive();
         assertThat(all).containsExactly(
             ProfileType.GENERIC, ProfileType.LEGAL, ProfileType.DENTAL, ProfileType.SUSHI,
             ProfileType.RESTAURANT, ProfileType.SALON, ProfileType.POUSADA, ProfileType.ACADEMIA,
-            ProfileType.PET);
+            ProfileType.PET, ProfileType.OFICINA);
     }
 
     @Test

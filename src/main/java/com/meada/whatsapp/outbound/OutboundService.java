@@ -95,6 +95,9 @@ public class OutboundService {
     // Camada 7.7 (perfil academia): pós-processa a tag <matricula> — cria a matrícula e remove a tag.
     private final com.meada.whatsapp.profiles.academia.memberships.MatriculaConfirmHandler matriculaConfirmHandler;
     private final com.meada.whatsapp.profiles.pet.appointments.AgendamentoPetConfirmHandler agendamentoPetConfirmHandler;
+    // Camada 7.9 (perfil oficina): pós-processa <ordem_servico> (abre OS) e <aprovacao_os> (muta estado).
+    private final com.meada.whatsapp.profiles.oficina.orders.AberturaOsConfirmHandler aberturaOsConfirmHandler;
+    private final com.meada.whatsapp.profiles.oficina.orders.AprovacaoOsHandler aprovacaoOsHandler;
 
     private final int maxAttempts;
     private final List<Duration> backoffs;
@@ -137,6 +140,8 @@ public class OutboundService {
                            com.meada.whatsapp.profiles.pousada.reservations.ReservaPousadaConfirmHandler reservaPousadaConfirmHandler,
                            com.meada.whatsapp.profiles.academia.memberships.MatriculaConfirmHandler matriculaConfirmHandler,
                            com.meada.whatsapp.profiles.pet.appointments.AgendamentoPetConfirmHandler agendamentoPetConfirmHandler,
+                           com.meada.whatsapp.profiles.oficina.orders.AberturaOsConfirmHandler aberturaOsConfirmHandler,
+                           com.meada.whatsapp.profiles.oficina.orders.AprovacaoOsHandler aprovacaoOsHandler,
                            @org.springframework.beans.factory.annotation.Value("${gemini.model}")
                            String geminiModel) {
         this.conversationRepository = conversationRepository;
@@ -161,6 +166,8 @@ public class OutboundService {
         this.reservaPousadaConfirmHandler = reservaPousadaConfirmHandler;
         this.matriculaConfirmHandler = matriculaConfirmHandler;
         this.agendamentoPetConfirmHandler = agendamentoPetConfirmHandler;
+        this.aberturaOsConfirmHandler = aberturaOsConfirmHandler;
+        this.aprovacaoOsHandler = aprovacaoOsHandler;
         this.geminiModel = geminiModel;
         this.maxAttempts = retryProps.maxAttempts();
         // converte uma vez (lista YAML de millis → Durations). O RetryRunner valida
@@ -270,6 +277,9 @@ public class OutboundService {
         toSend = maybeProcessMatricula(event, conversationId, toSend);
 
         toSend = maybeProcessPetAppointment(event, conversationId, toSend);
+
+        toSend = maybeProcessAberturaOs(event, conversationId, toSend);
+        toSend = maybeProcessAprovacaoOs(event, conversationId, toSend);
         Optional<OutboundOutcome> sendFailure = sendAndPersist(event, conversationId, toSend);
         if (sendFailure.isPresent()) {
             return sendFailure.get();   // casos 7/8/9 — já logado lá
@@ -542,6 +552,53 @@ public class OutboundService {
                 event.companyId(), conversationId, contactId.get(), reply);
         }
         String stripped = agendamentoPetConfirmHandler.stripAgendamentoTag(reply);
+        return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
+            aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
+            aiResponse.schedulingIntent(), aiResponse.insights());
+    }
+
+    /**
+     * Caso o tenant seja perfil 'oficina' (camada 7.9) e a resposta da IA contenha a tag
+     * {@code <ordem_servico>}, ABRE a OS (AberturaOsConfirmHandler resolve o cliente e, no modo
+     * new_vehicle, cadastra o veículo antes) e devolve um AiResponse com a tag removida; senão
+     * devolve o aiResponse original. Tag distinta de todas as outras. Best-effort.
+     */
+    private AiResponse maybeProcessAberturaOs(MessageInboundProcessedEvent event,
+                                              UUID conversationId, AiResponse aiResponse) {
+        String reply = aiResponse.reply();
+        if (reply == null || !aberturaOsConfirmHandler.hasTag(reply)) {
+            return aiResponse;
+        }
+        if (!"oficina".equals(companyProfileRepository.findProfileId(event.companyId()))) {
+            return aiResponse;
+        }
+        Optional<UUID> contactId = conversationRepository.findContactIdByConversation(conversationId);
+        if (contactId.isPresent()) {
+            aberturaOsConfirmHandler.parseAndCreate(event.companyId(), conversationId, contactId.get(), reply);
+        }
+        String stripped = aberturaOsConfirmHandler.stripTag(reply);
+        return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
+            aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
+            aiResponse.schedulingIntent(), aiResponse.insights());
+    }
+
+    /**
+     * Caso o tenant seja perfil 'oficina' (camada 7.9) e a resposta da IA contenha a tag
+     * {@code <aprovacao_os>}, MUTA o estado da OS orçada (aprovada/recusada) e remove a tag. A
+     * NOVIDADE da SM: a IA altera o estado de um artefato existente. Só atua sobre OS em 'orcada'
+     * (o handler valida). Best-effort.
+     */
+    private AiResponse maybeProcessAprovacaoOs(MessageInboundProcessedEvent event,
+                                               UUID conversationId, AiResponse aiResponse) {
+        String reply = aiResponse.reply();
+        if (reply == null || !aprovacaoOsHandler.hasTag(reply)) {
+            return aiResponse;
+        }
+        if (!"oficina".equals(companyProfileRepository.findProfileId(event.companyId()))) {
+            return aiResponse;
+        }
+        aprovacaoOsHandler.parseAndApply(event.companyId(), conversationId, reply);
+        String stripped = aprovacaoOsHandler.stripTag(reply);
         return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
             aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
             aiResponse.schedulingIntent(), aiResponse.insights());

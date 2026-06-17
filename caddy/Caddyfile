@@ -23,7 +23,8 @@ http://mesa.meadadigital.local,
 http://salao.meadadigital.local,
 http://pousada.meadadigital.local,
 http://academia.meadadigital.local,
-http://pet.meadadigital.local {
+http://pet.meadadigital.local,
+http://oficina.meadadigital.local {
 	reverse_proxy frontend:3000
 }
 

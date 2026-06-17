@@ -29,6 +29,7 @@ public class ProfilePromptContext {
     private final com.meada.whatsapp.profiles.pousada.PousadaContextCache pousadaContextCache;
     private final com.meada.whatsapp.profiles.academia.AcademiaContextCache academiaContextCache;
     private final com.meada.whatsapp.profiles.pet.PetContextCache petContextCache;
+    private final com.meada.whatsapp.profiles.oficina.OficinaContextCache oficinaContextCache;
     private final ConversationRepository conversationRepository;
 
     public ProfilePromptContext(SushiMenuCache sushiMenuCache,
@@ -39,6 +40,7 @@ public class ProfilePromptContext {
                                 com.meada.whatsapp.profiles.pousada.PousadaContextCache pousadaContextCache,
                                 com.meada.whatsapp.profiles.academia.AcademiaContextCache academiaContextCache,
                                 com.meada.whatsapp.profiles.pet.PetContextCache petContextCache,
+                                com.meada.whatsapp.profiles.oficina.OficinaContextCache oficinaContextCache,
                                 ConversationRepository conversationRepository) {
         this.sushiMenuCache = sushiMenuCache;
         this.legalCaseContextCache = legalCaseContextCache;
@@ -48,6 +50,7 @@ public class ProfilePromptContext {
         this.pousadaContextCache = pousadaContextCache;
         this.academiaContextCache = academiaContextCache;
         this.petContextCache = petContextCache;
+        this.oficinaContextCache = oficinaContextCache;
         this.conversationRepository = conversationRepository;
     }
 
@@ -105,6 +108,15 @@ public class ProfilePromptContext {
             + "oriente-o com gentileza a agendar uma consulta presencial. Respeite a restrição de "
             + "espécie de cada serviço.";
 
+    private static final String OFICINA =
+        "Você é atendente de uma oficina mecânica / auto center. Tom prestativo e direto, sem "
+            + "julgamento. Você ABRE a ordem de serviço a partir da queixa do cliente e, quando o "
+            + "mecânico já montou o orçamento, informa o total e captura a aprovação. Identifique o "
+            + "veículo (ofereça os já cadastrados; se for o primeiro, peça placa + marca + modelo + "
+            + "ano). NUNCA diagnostique o defeito, NUNCA invente preço de peça nem monte orçamento "
+            + "(quem orça é o mecânico no balcão), e NUNCA prometa um prazo que não esteja na OS. Para "
+            + "qualquer dúvida técnica, oriente a avaliação presencial.";
+
     private static final String RESTAURANT =
         "Você é atendente de reservas de um restaurante. Tom acolhedor e ágil. Conheça as mesas "
             + "disponíveis e os horários livres. Quando o cliente pedir reserva, verifique a "
@@ -128,6 +140,7 @@ public class ProfilePromptContext {
             case POUSADA -> POUSADA;
             case ACADEMIA -> ACADEMIA;
             case PET -> PET;
+            case OFICINA -> OFICINA;
             case GENERIC -> "";
         };
         if (body.isEmpty()) {
@@ -205,6 +218,13 @@ public class ProfilePromptContext {
             UUID contactId = conversationId == null ? null
                 : conversationRepository.findContactIdByConversation(conversationId).orElse(null);
             return persona + petContextCache.contextSegment(companyId, contactId);
+        }
+        if ("oficina".equals(profileId)) {
+            // oficina (7.9): persona + mecânicos + veículos do cliente + OS abertas/orçadas do
+            // cliente (pra capturar aprovação) + instruções e as 2 tags. Resolve o contato pela conversa.
+            UUID contactId = conversationId == null ? null
+                : conversationRepository.findContactIdByConversation(conversationId).orElse(null);
+            return persona + oficinaContextCache.contextSegment(companyId, contactId);
         }
         return persona;
     }
