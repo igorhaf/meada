@@ -374,6 +374,52 @@ consultas e agenda novas, SEM nunca dar diagnóstico ou recomendação clínica.
   vira "realizada" sozinha).
 - Guia operacional do tenant: `docs/PERFIL_DENTAL.md`.
 
+## Perfil Salão (SalãoBot, camada 7.5)
+
+Quinto perfil vertical real (sushi/legal/restaurant/dental/salon). O tenant salon
+(`profile_id='salon'`) vira um produto de SALÃO DE BELEZA: gerencia profissionais e serviços, e a
+IA atende clientes via WhatsApp com tom acolhedor (sem julgamento estético), oferece serviços +
+profissionais, verifica disponibilidade e agenda.
+
+- **EVOLUÇÃO crítica do padrão de conflito:** dental/restaurant checavam conflito por company (1
+  recurso por tenant). O salon tem MÚLTIPLOS profissionais — o conflito é por `professional_id`.
+  `SalonAppointmentRepository.findConflict(professionalId, start, end)` filtra por profissional;
+  **2 clientes no mesmo horário com profissionais DIFERENTES não conflitam** (paralelismo). Fase
+  futura: se um profissional puder atender em salas distintas, refinar.
+- **Modelo:** `salon_professionals` (catálogo) + `salon_offerings` (serviços; nome "offering" no
+  backend p/ não colidir com o Spring `SalonOfferingService` — a UI/rota chama "serviços") +
+  `salon_config` (horário) + `salon_appointments`. Migration 34.
+- **Cliente NÃO é entidade própria (decisão cravada):** salão tem alta rotatividade; modelar
+  `salon_clients` seria over-engineering. O histórico vem do `contact` + `salon_appointments` dele.
+  `guest_name`/`guest_phone` são snapshots do contato. Fase futura se virar prioridade.
+- **Tag `<agendamento>`:** `<agendamento>{"professional_id","service_id","date","start_time",
+  "notes"}</agendamento>`. O `AgendamentoConfirmHandler` resolve o contato da conversa (guest_name =
+  contact.name snapshot), lê `offering.duration_minutes` (snapshot) e cria. OutboundService:
+  `maybeProcessSalonAppointment` (encadeado após sushi/restaurant/dental).
+- **Snapshots no agendamento:** `professional_name` + `service_name` + `price_cents` +
+  `duration_minutes` congelados no momento — alterar serviço/profissional depois NÃO altera
+  agendamentos passados. `end_at` materializado no INSERT (lição SM-D/E).
+- **Slot 15min** (granularidade fina — salão tem serviço curto). **Duração POR SERVIÇO** (não fixa).
+  Buffer = 0 nesta SM. Janela `opens_at`..`closes_at` (default 09:00–20:00).
+- **Status hardcoded** (`SalonAppointmentStatus` ↔ `salon-appointment-status.ts`, parity test):
+  `agendado → confirmado → realizado`; `agendado/confirmado → cancelado`; `confirmado → falta`. Só
+  **confirmado** (com data/hora/profissional) e **cancelado** notificam; agendado/realizado/falta
+  silenciosos. Texto defensivo (sem promessa estética).
+- **Persona SALON nova** (não existia na SM-A, igual restaurant): tom acolhedor, sem julgamento.
+  Contexto dinâmico via `SalonContextCache` (TTL 20s — entre restaurant 15s e dental 30s): serviços
+  ativos, profissionais ativos, histórico do contato, slots livres POR PROFISSIONAL (próximos 7
+  dias). **IA NUNCA recomenda serviço não pedido, NUNCA opina sobre aparência, sem promessa de
+  resultado.**
+- **LGPD:** `notes` é administrativo, sem dado sensível.
+- **Guard:** `SalonProfileGuard`. `JwtAuthenticationFilter` autentica `/api/salon/**` (além de
+  sushi/legal/restaurant/dental).
+- **Sidebar:** `getNavForProfile('salon')` injeta "Salão" (Profissionais/Serviços/Agenda/
+  Configurações). A tela de serviços é `/dashboard/salon-services` (a `/dashboard/services` é a tela
+  GENÉRICA de configuração da IA do core — NÃO colidir).
+- **NÃO TEM:** comissão, pagamento, fidelidade/cashback, estoque, multi-loja, plano de assinatura,
+  scheduler de auto-transição, foto (bloqueador SERVICE_ROLE_KEY).
+- Guia operacional do tenant: `docs/PERFIL_SALAO.md`.
+
 ## Estado das camadas
 
 - **1 — Schema multi-tenant:** FECHADA. 11 tabelas, RLS, FKs compostas anti-cross-tenant.

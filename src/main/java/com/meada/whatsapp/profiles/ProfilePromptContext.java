@@ -25,17 +25,20 @@ public class ProfilePromptContext {
     private final LegalCaseContextCache legalCaseContextCache;
     private final ReservationContextCache reservationContextCache;
     private final com.meada.whatsapp.profiles.dental.DentalContextCache dentalContextCache;
+    private final com.meada.whatsapp.profiles.salon.SalonContextCache salonContextCache;
     private final ConversationRepository conversationRepository;
 
     public ProfilePromptContext(SushiMenuCache sushiMenuCache,
                                 LegalCaseContextCache legalCaseContextCache,
                                 ReservationContextCache reservationContextCache,
                                 com.meada.whatsapp.profiles.dental.DentalContextCache dentalContextCache,
+                                com.meada.whatsapp.profiles.salon.SalonContextCache salonContextCache,
                                 ConversationRepository conversationRepository) {
         this.sushiMenuCache = sushiMenuCache;
         this.legalCaseContextCache = legalCaseContextCache;
         this.reservationContextCache = reservationContextCache;
         this.dentalContextCache = dentalContextCache;
+        this.salonContextCache = salonContextCache;
         this.conversationRepository = conversationRepository;
     }
 
@@ -57,6 +60,14 @@ public class ProfilePromptContext {
             + "cardápio, sugira combinações e harmonizações, e confirme o pedido sempre com o valor "
             + "total e o endereço de entrega. Seja ágil e simpático no atendimento.";
 
+    private static final String SALON =
+        "Você é atendente de um salão de beleza. Tom acolhedor, sem julgamento. Conheça os serviços "
+            + "(com preço quando informado) e a agenda dos profissionais. Quando o cliente PEDIR "
+            + "agendamento, sugira profissionais disponíveis para o serviço pedido (se houver mais de "
+            + "um). NUNCA recomende serviço que o cliente não pediu, NUNCA opine sobre a aparência do "
+            + "cliente, e não prometa resultado estético. Fale como 'vou ver a disponibilidade', 'que "
+            + "tal X com a profissional Y?'.";
+
     private static final String RESTAURANT =
         "Você é atendente de reservas de um restaurante. Tom acolhedor e ágil. Conheça as mesas "
             + "disponíveis e os horários livres. Quando o cliente pedir reserva, verifique a "
@@ -76,6 +87,7 @@ public class ProfilePromptContext {
             case DENTAL -> DENTAL;
             case SUSHI -> SUSHI;
             case RESTAURANT -> RESTAURANT;
+            case SALON -> SALON;
             case GENERIC -> "";
         };
         if (body.isEmpty()) {
@@ -124,6 +136,13 @@ public class ProfilePromptContext {
             UUID contactId = conversationId == null ? null
                 : conversationRepository.findContactIdByConversation(conversationId).orElse(null);
             return persona + dentalContextCache.contextSegment(companyId, contactId);
+        }
+        if ("salon".equals(profileId)) {
+            // salon (7.5): persona + serviços + profissionais + histórico do contato + slots livres
+            // POR profissional (próximos 7 dias). Resolve o contato pela conversa.
+            UUID contactId = conversationId == null ? null
+                : conversationRepository.findContactIdByConversation(conversationId).orElse(null);
+            return persona + salonContextCache.contextSegment(companyId, contactId);
         }
         return persona;
     }

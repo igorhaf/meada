@@ -21,12 +21,14 @@ import {
   Package,
   Palette,
   Scale,
+  Scissors,
   ScrollText,
   Settings,
   ShieldCheck,
   Sparkles,
   Stethoscope,
   Tag,
+  Wand2,
   UtensilsCrossed,
   UserCog,
   Users,
@@ -163,6 +165,9 @@ export function getNavForProfile(profileId: string | null | undefined): NavGroup
   if (profileId === 'dental') {
     return [DENTAL_GROUP, ...NAV_GROUPS]
   }
+  if (profileId === 'salon') {
+    return [SALON_GROUP, ...NAV_GROUPS]
+  }
   return NAV_GROUPS
 }
 
@@ -202,5 +207,16 @@ const DENTAL_GROUP: NavGroup = {
     { label: 'Pacientes', href: '/dashboard/patients', icon: Stethoscope },
     { label: 'Agenda', href: '/dashboard/appointments', icon: CalendarClock },
     { label: 'Configurações', href: '/dashboard/dental-settings', icon: Settings },
+  ],
+}
+
+/** Grupo de navegação exclusivo do perfil salon (camada 7.5). */
+const SALON_GROUP: NavGroup = {
+  heading: 'Salão',
+  items: [
+    { label: 'Profissionais', href: '/dashboard/professionals', icon: Scissors },
+    { label: 'Serviços', href: '/dashboard/salon-services', icon: Wand2 },
+    { label: 'Agenda', href: '/dashboard/salon-appointments', icon: CalendarClock },
+    { label: 'Configurações', href: '/dashboard/salon-settings', icon: Settings },
   ],
 }

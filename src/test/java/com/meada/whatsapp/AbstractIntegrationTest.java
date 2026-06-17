@@ -99,7 +99,8 @@ public abstract class AbstractIntegrationTest {
         "db/migrations/30_sushi.sql",
         "db/migrations/31_legal.sql",
         "db/migrations/32_restaurant.sql",
-        "db/migrations/33_dental.sql"
+        "db/migrations/33_dental.sql",
+        "db/migrations/34_salon.sql"
     };
 
     /**
@@ -213,7 +214,8 @@ public abstract class AbstractIntegrationTest {
               sushi_order_items, sushi_orders, sushi_menu_items, sushi_restaurant_config,
               legal_case_updates, legal_cases, legal_clients,
               table_reservations, restaurant_reservation_config, restaurant_tables,
-              dental_appointments, dental_clinic_config, dental_patients
+              dental_appointments, dental_clinic_config, dental_patients,
+              salon_appointments, salon_config, salon_offerings, salon_professionals
             RESTART IDENTITY CASCADE
             """);
     }

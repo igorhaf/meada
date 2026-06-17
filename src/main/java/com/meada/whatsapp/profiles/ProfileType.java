@@ -27,7 +27,8 @@ public enum ProfileType {
     LEGAL("legal", "ProcessoBot", "processo", "indigo"),
     DENTAL("dental", "DentalBot", "dental", "celeste"),
     SUSHI("sushi", "SushiBot", "sushi", "tijolo"),
-    RESTAURANT("restaurant", "MesaBot", "mesa", "tijolo");
+    RESTAURANT("restaurant", "MesaBot", "mesa", "tijolo"),
+    SALON("salon", "SalãoBot", "salao", "orquidea");
 
     private final String id;
     private final String productName;
