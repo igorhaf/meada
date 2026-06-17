@@ -24,15 +24,18 @@ public class ProfilePromptContext {
     private final SushiMenuCache sushiMenuCache;
     private final LegalCaseContextCache legalCaseContextCache;
     private final ReservationContextCache reservationContextCache;
+    private final com.meada.whatsapp.profiles.dental.DentalContextCache dentalContextCache;
     private final ConversationRepository conversationRepository;
 
     public ProfilePromptContext(SushiMenuCache sushiMenuCache,
                                 LegalCaseContextCache legalCaseContextCache,
                                 ReservationContextCache reservationContextCache,
+                                com.meada.whatsapp.profiles.dental.DentalContextCache dentalContextCache,
                                 ConversationRepository conversationRepository) {
         this.sushiMenuCache = sushiMenuCache;
         this.legalCaseContextCache = legalCaseContextCache;
         this.reservationContextCache = reservationContextCache;
+        this.dentalContextCache = dentalContextCache;
         this.conversationRepository = conversationRepository;
     }
 
@@ -114,6 +117,13 @@ public class ProfilePromptContext {
             // restaurant (7.3): injeta mesas + reservas próximas (por company). IGNORA conversationId
             // (o contexto é da agenda do restaurante, não do contato).
             return persona + reservationContextCache.contextSegment(companyId);
+        }
+        if ("dental".equals(profileId)) {
+            // dental (7.4): persona base da SM-A (intacta) + contexto dinâmico — paciente identificado
+            // pelo telefone (próximas consultas) + slots livres + instruções de agendamento.
+            UUID contactId = conversationId == null ? null
+                : conversationRepository.findContactIdByConversation(conversationId).orElse(null);
+            return persona + dentalContextCache.contextSegment(companyId, contactId);
         }
         return persona;
     }

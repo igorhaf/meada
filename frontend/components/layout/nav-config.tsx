@@ -25,6 +25,7 @@ import {
   Settings,
   ShieldCheck,
   Sparkles,
+  Stethoscope,
   Tag,
   UtensilsCrossed,
   UserCog,
@@ -159,6 +160,9 @@ export function getNavForProfile(profileId: string | null | undefined): NavGroup
   if (profileId === 'restaurant') {
     return [RESTAURANT_GROUP, ...NAV_GROUPS]
   }
+  if (profileId === 'dental') {
+    return [DENTAL_GROUP, ...NAV_GROUPS]
+  }
   return NAV_GROUPS
 }
 
@@ -188,5 +192,15 @@ const RESTAURANT_GROUP: NavGroup = {
     { label: 'Mesas', href: '/dashboard/tables', icon: Armchair },
     { label: 'Reservas', href: '/dashboard/reservations', icon: CalendarClock },
     { label: 'Configurações', href: '/dashboard/restaurant-settings', icon: Settings },
+  ],
+}
+
+/** Grupo de navegação exclusivo do perfil dental (camada 7.4). */
+const DENTAL_GROUP: NavGroup = {
+  heading: 'Consultório',
+  items: [
+    { label: 'Pacientes', href: '/dashboard/patients', icon: Stethoscope },
+    { label: 'Agenda', href: '/dashboard/appointments', icon: CalendarClock },
+    { label: 'Configurações', href: '/dashboard/dental-settings', icon: Settings },
   ],
 }

@@ -86,6 +86,8 @@ public class OutboundService {
     private final com.meada.whatsapp.profiles.sushi.orders.OrderConfirmHandler orderConfirmHandler;
     // Camada 7.3 (perfil restaurant): pós-processa a tag <reserva> — cria a reserva e remove a tag.
     private final com.meada.whatsapp.profiles.restaurant.reservations.ReservationConfirmHandler reservationConfirmHandler;
+    // Camada 7.4 (perfil dental): pós-processa a tag <consulta> — cria a consulta e remove a tag.
+    private final com.meada.whatsapp.profiles.dental.appointments.ConsultaConfirmHandler consultaConfirmHandler;
 
     private final int maxAttempts;
     private final List<Duration> backoffs;
@@ -123,6 +125,7 @@ public class OutboundService {
                            com.meada.whatsapp.profiles.CompanyProfileRepository companyProfileRepository,
                            com.meada.whatsapp.profiles.sushi.orders.OrderConfirmHandler orderConfirmHandler,
                            com.meada.whatsapp.profiles.restaurant.reservations.ReservationConfirmHandler reservationConfirmHandler,
+                           com.meada.whatsapp.profiles.dental.appointments.ConsultaConfirmHandler consultaConfirmHandler,
                            @org.springframework.beans.factory.annotation.Value("${gemini.model}")
                            String geminiModel) {
         this.conversationRepository = conversationRepository;
@@ -142,6 +145,7 @@ public class OutboundService {
         this.companyProfileRepository = companyProfileRepository;
         this.orderConfirmHandler = orderConfirmHandler;
         this.reservationConfirmHandler = reservationConfirmHandler;
+        this.consultaConfirmHandler = consultaConfirmHandler;
         this.geminiModel = geminiModel;
         this.maxAttempts = retryProps.maxAttempts();
         // converte uma vez (lista YAML de millis → Durations). O RetryRunner valida
@@ -240,6 +244,9 @@ public class OutboundService {
         // Camada 7.3 (perfil restaurant): pós-processa a tag <reserva> — cria a reserva e remove a
         // tag. Só age para o perfil restaurant. Encadeado após o sushi (perfil é único; só um age).
         toSend = maybeProcessRestaurantReservation(event, conversationId, toSend);
+        // Camada 7.4 (perfil dental): pós-processa a tag <consulta> — cria a consulta e remove a tag.
+        // Só age para o perfil dental. Encadeado (perfil é único; só um dos post-process age).
+        toSend = maybeProcessDentalAppointment(event, conversationId, toSend);
         Optional<OutboundOutcome> sendFailure = sendAndPersist(event, conversationId, toSend);
         if (sendFailure.isPresent()) {
             return sendFailure.get();   // casos 7/8/9 — já logado lá
@@ -376,6 +383,36 @@ public class OutboundService {
         }
         // Remove a tag do texto de qualquer forma (o cliente nunca vê o JSON), preservando métricas.
         String stripped = reservationConfirmHandler.stripReservationTag(reply);
+        return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
+            aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
+            aiResponse.schedulingIntent(), aiResponse.insights());
+    }
+
+    /**
+     * Pós-processamento do perfil dental (camada 7.4): se o tenant é dental e a resposta da IA
+     * contém a tag {@code <consulta>}, cria a consulta (ConsultaConfirmHandler resolve o paciente
+     * pelo contato) e devolve um AiResponse com o texto SEM a tag. Para outro perfil, ou sem tag,
+     * devolve o aiResponse original. Espelho de {@link #maybeProcessRestaurantReservation}.
+     *
+     * <p>Best-effort: falha em criar a consulta (paciente não identificado, conflito, fora do
+     * horário) NÃO impede o envio (o handler loga e retorna empty). A tag é removida sempre que
+     * existir — o paciente não vê JSON cru.
+     */
+    private AiResponse maybeProcessDentalAppointment(MessageInboundProcessedEvent event,
+                                                     UUID conversationId, AiResponse aiResponse) {
+        String reply = aiResponse.reply();
+        if (reply == null || !consultaConfirmHandler.hasConsultaTag(reply)) {
+            return aiResponse;   // sem tag → caminho comum.
+        }
+        if (!"dental".equals(companyProfileRepository.findProfileId(event.companyId()))) {
+            return aiResponse;   // tag num perfil não-dental: não interpretamos (defensivo).
+        }
+        Optional<UUID> contactId = conversationRepository.findContactIdByConversation(conversationId);
+        if (contactId.isPresent()) {
+            consultaConfirmHandler.parseAndCreate(
+                event.companyId(), conversationId, contactId.get(), reply);
+        }
+        String stripped = consultaConfirmHandler.stripConsultaTag(reply);
         return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
             aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
             aiResponse.schedulingIntent(), aiResponse.insights());

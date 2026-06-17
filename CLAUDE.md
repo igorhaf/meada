@@ -317,6 +317,63 @@ real no enum `ProfileType` (5º contando generic).
   em 1h", reserva em grupo, feriados, buffer. Sem foto/anexo (bloqueador SERVICE_ROLE_KEY).
 - Guia operacional do tenant: `docs/PERFIL_MESABOT.md`.
 
+## Perfil Dental (DentalBot, camada 7.4)
+
+Quarto perfil vertical real (sushi/legal/restaurant/dental). O tenant dental (`profile_id='dental'`)
+vira um produto de CLÍNICA ODONTOLÓGICA: gerencia pacientes e a agenda de consultas, e a IA atende
+pacientes via WhatsApp com tom acolhedor — identifica pelo telefone, responde sobre próximas
+consultas e agenda novas, SEM nunca dar diagnóstico ou recomendação clínica.
+
+- **Modelo análogo aos outros perfis:** `dental_patients` (catálogo, ~ legal_clients) +
+  `dental_appointments` (consultas, ~ table_reservations) + `dental_clinic_config` (duração/horário,
+  1:1 com company). Migration 33.
+- **Fluxo por mensagem LIVRE + tag `<consulta>`:** espelho das tags `<pedido>`/`<reserva>`. A IA
+  negocia em texto natural; na confirmação emite `<consulta>{"date","start_time","type","notes"}
+  </consulta>`. O `ConsultaConfirmHandler` parseia via regex, resolve o paciente pelo contato
+  (`dental_patients.contact_id`) e cria a consulta; o `OutboundService` REMOVE a tag antes de enviar
+  (`maybeProcessDentalAppointment`, encadeado após sushi/restaurant — perfil é único, só um age). Se
+  o paciente não está identificado, retorna empty + warn (a IA não devia emitir a tag sem paciente).
+- **Lógica de conflito em SQL transacional (igual MesaBot):** `findConflict` é um SELECT com a janela
+  materializada (`NOT (end_at <= newStart OR start_at >= newEnd)`), só status bloqueantes
+  (`agendada`/`confirmada`), **por company** — NÃO há `dentist_id` nesta SM (1 dentista por tenant);
+  fase futura adiciona dentist_id e muda o WHERE. O `insertAppointment` re-verifica o conflito DENTRO
+  da transação (defesa race). 409 `conflict_slot` com detalhes.
+- **end_at NÃO é coluna gerada** (mesma lição da SM-D: `timestamptz + interval` não é IMMUTABLE) —
+  materializado no INSERT (`start_at + duration_minutes`).
+- **Slot 30min, duração 30min FIXOS** (configurável: `dental_clinic_config.duration_minutes` default
+  30). Buffer = 0 nesta SM. Janela `opens_at`..`closes_at` (default 08:00–18:00), validada no fuso
+  America/Sao_Paulo (HARDCODED — pendência).
+- **Status hardcoded materializado** (`AppointmentStatus` ↔ `appointment-status.ts`,
+  `AppointmentStatusParityTest`): `agendada → confirmada → realizada`; `agendada/confirmada →
+  cancelada`; `confirmada → falta`. Terminais: realizada/cancelada/falta. Só **confirmada** (com
+  data/hora) e **cancelada** notificam o paciente (`DentalAppointmentNotifier`, texto DEFENSIVO sem
+  promessa clínica); agendada/realizada/falta são silenciosos (quem furou não recebe sermão).
+- **Persona da SM-A INTACTA:** `ProfilePromptContext.DENTAL` (tom técnico-acolhedor, empatia com medo
+  de dentista, NUNCA diagnóstico) NÃO foi tocada — só ganhou contexto DINÂMICO via
+  `DentalContextCache` (TTL 30s, keyed por `(companyId, contactId)`): dados do paciente identificado
+  + próximas consultas + slots livres dos próximos 14 dias + instruções de agendamento. Invalidação
+  por company ao mutar paciente/consulta/config.
+- **IA NUNCA dá diagnóstico, NUNCA recomenda procedimento, NUNCA discute sintoma** — para qualquer
+  dúvida clínica, encaminha ao dentista ("Para isso, vou pedir que o dentista avalie. Posso agendar
+  uma consulta?"). **Cancelamento por IA é BLOQUEADO** (encaminha pro tenant — risco) — a tag só
+  serve para AGENDAR.
+- **LGPD (CRAVADO):** `dental_patients.notes` e `dental_appointments.notes` são **ADMINISTRATIVOS**
+  (preferências de horário, contato), **NÃO clínicos**. Dados clínicos (prontuário, diagnóstico,
+  alergias, plano de tratamento, odontograma) ficam para fase futura, com **criptografia at-rest e
+  log de acesso por usuário**. `type` da consulta é texto livre administrativo ("Limpeza",
+  "Avaliação"), nunca recomendação.
+- **Guard:** `DentalProfileGuard` (403 forbidden_wrong_profile). `JwtAuthenticationFilter` autentica
+  `/api/dental/**` (além de `/admin/**`, `/api/sushi/**`, `/api/legal/**`, `/api/restaurant/**`).
+- **Sidebar:** `getNavForProfile('dental')` injeta o grupo "Consultório" (Pacientes + Agenda +
+  Configurações).
+- **POST manual pelo tenant:** sem `conversation_id` (sem WhatsApp) — não notifica. NÃO há DELETE de
+  consulta (histórico; "remover" = status cancelada).
+- **NÃO TEM nesta SM:** odontograma, plano de tratamento, evolução por sessão, TUSS, anamnese,
+  alergias estruturadas, histórico médico, receituário, atestado, pagamento, `dentist_id`. Sem
+  foto/anexo (bloqueador SERVICE_ROLE_KEY). Sem scheduler de auto-transição (consulta passada não
+  vira "realizada" sozinha).
+- Guia operacional do tenant: `docs/PERFIL_DENTAL.md`.
+
 ## Estado das camadas
 
 - **1 — Schema multi-tenant:** FECHADA. 11 tabelas, RLS, FKs compostas anti-cross-tenant.
