@@ -22,14 +22,16 @@ class ProfileFeatureControllerIntegrationTest extends AbstractAdminIntegrationTe
     private static final String JSON = "application/json";
 
     @Test
-    @DisplayName("super-admin → GET grade com todos os nichos × a feature cms (default false)")
+    @DisplayName("super-admin → GET grade com os nichos configuráveis (sem generic) × a feature cms")
     void grid_listsAllNiches() throws Exception {
         String t = mintValidToken(SUPER_ADMIN_EMAIL, SUB);
         mockMvc.perform(get("/admin/profile-features").header("Authorization", "Bearer " + t))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.features.length()").value(1))
             .andExpect(jsonPath("$.features[0].key").value("cms"))
-            .andExpect(jsonPath("$.niches.length()").value(ProfileType.allActive().size()))
+            // generic ("Meada"/root) NÃO entra na grade.
+            .andExpect(jsonPath("$.niches.length()").value(ProfileType.allActive().size() - 1))
+            .andExpect(jsonPath("$.niches[?(@.profileId == 'generic')]").isEmpty())
             .andExpect(jsonPath("$.niches[?(@.profileId == 'nutri')].flags.cms").value(false));
     }
 
@@ -107,5 +109,15 @@ class ProfileFeatureControllerIntegrationTest extends AbstractAdminIntegrationTe
                 .contentType(JSON).content("{\"enabled\":true}"))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.reason").value("unknown_feature"));
+    }
+
+    @Test
+    @DisplayName("PUT para 'generic' (Meada/root) → 400 unknown_profile (não é configurável)")
+    void genericProfile_400() throws Exception {
+        String t = mintValidToken(SUPER_ADMIN_EMAIL, SUB);
+        mockMvc.perform(put("/admin/profile-features/generic/cms").header("Authorization", "Bearer " + t)
+                .contentType(JSON).content("{\"enabled\":true}"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.reason").value("unknown_profile"));
     }
 }

@@ -57,8 +57,19 @@ public class ProfileFeatureService {
     public static class UnknownFeatureException extends RuntimeException {}
 
     /**
-     * Grade COMPUTADA: nichos (todos os {@link ProfileType}) × features (todos os
-     * {@link ProfileFeature}), com as flags do banco sobrepostas. Ausência de linha = false.
+     * Um perfil é CONFIGURÁVEL por feature flag? O {@link ProfileType#GENERIC} ("Meada") NÃO é —
+     * ele é o produto genérico do próprio admin/root, que não é um tenant-cliente de nicho. As
+     * features (ex.: CMS = página pessoal por tenant) só fazem sentido para os nichos VERTICAIS;
+     * o root já tem o que precisa embutido, sem flag. Por isso o generic não entra na grade nem
+     * aceita toggle.
+     */
+    private static boolean configurable(ProfileType p) {
+        return p != ProfileType.GENERIC;
+    }
+
+    /**
+     * Grade COMPUTADA: nichos CONFIGURÁVEIS (todos os {@link ProfileType} EXCETO generic) × features
+     * (todos os {@link ProfileFeature}), com as flags do banco sobrepostas. Ausência de linha = false.
      */
     public Grid grid() {
         // Sobreposição do banco: (profileId, featureKey) → enabled. Só os desvios existem.
@@ -75,6 +86,9 @@ public class ProfileFeatureService {
 
         List<NicheRow> niches = new ArrayList<>();
         for (ProfileType p : ProfileType.allActive()) {
+            if (!configurable(p)) {
+                continue; // generic ("Meada"/root) não é alvo de feature flag.
+            }
             Map<String, Boolean> flags = new LinkedHashMap<>();
             Map<String, Boolean> ov = overrides.getOrDefault(p.id(), Map.of());
             for (ProfileFeature f : ProfileFeature.allActive()) {
@@ -86,12 +100,15 @@ public class ProfileFeatureService {
     }
 
     /**
-     * Liga/desliga uma feature de um nicho. Valida que ambos os ids são conhecidos
-     * (→ {@link UnknownProfileException}/{@link UnknownFeatureException}), faz o upsert, audita
-     * ({@code PROFILE_FEATURE_TOGGLED}) e invalida o cache do perfil.
+     * Liga/desliga uma feature de um nicho. Valida que o perfil é conhecido E configurável
+     * (generic não é → {@link UnknownProfileException}) e que a feature é conhecida
+     * (→ {@link UnknownFeatureException}), faz o upsert, audita ({@code PROFILE_FEATURE_TOGGLED}) e
+     * invalida o cache do perfil.
      */
     public void setFlag(String profileId, String featureKey, boolean enabled, UUID rootUserId) {
-        if (ProfileType.fromId(profileId).isEmpty()) {
+        ProfileType profile = ProfileType.fromId(profileId).orElse(null);
+        if (profile == null || !configurable(profile)) {
+            // generic não é configurável: tratado como perfil inválido p/ flag (não há o que ligar).
             throw new UnknownProfileException();
         }
         if (ProfileFeature.fromKey(featureKey).isEmpty()) {

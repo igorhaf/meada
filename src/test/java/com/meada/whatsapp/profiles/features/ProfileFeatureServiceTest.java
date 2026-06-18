@@ -36,19 +36,22 @@ class ProfileFeatureServiceTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("grade completa: 1 linha por perfil (allActive) × 1 coluna por feature (allActive)")
+    @DisplayName("grade: 1 linha por nicho CONFIGURÁVEL (todos menos generic) × 1 coluna por feature")
     void grid_isComplete() {
         Grid grid = service.grid();
         assertThat(grid.features()).extracting(ProfileFeatureService.FeatureView::key).containsExactly("cms");
-        assertThat(grid.niches()).hasSize(ProfileType.allActive().size());
+        // generic ("Meada"/root) NÃO entra na grade — não é alvo de feature flag.
+        assertThat(grid.niches()).hasSize(ProfileType.allActive().size() - 1);
+        assertThat(grid.niches()).extracting(NicheRow::profileId).doesNotContain("generic");
         // toda célula presente e default false.
         for (NicheRow n : grid.niches()) {
             assertThat(n.flags()).containsKey("cms");
             assertThat(n.flags().get("cms")).isFalse();
         }
-        // os ids batem com o enum.
+        // os ids batem com o enum SEM o generic.
         assertThat(grid.niches()).extracting(NicheRow::profileId)
-            .containsExactlyElementsOf(ProfileType.allActive().stream().map(ProfileType::id).toList());
+            .containsExactlyElementsOf(ProfileType.allActive().stream()
+                .map(ProfileType::id).filter(id -> !id.equals("generic")).toList());
     }
 
     @Test
@@ -86,6 +89,17 @@ class ProfileFeatureServiceTest extends AbstractIntegrationTest {
     void setFlag_unknownProfile() {
         assertThatThrownBy(() -> service.setFlag("naoexiste", "cms", true, ROOT))
             .isInstanceOf(UnknownProfileException.class);
+    }
+
+    @Test
+    @DisplayName("setFlag para 'generic' (Meada/root) → UnknownProfileException (não é configurável)")
+    void setFlag_genericRejected() {
+        assertThatThrownBy(() -> service.setFlag("generic", "cms", true, ROOT))
+            .isInstanceOf(UnknownProfileException.class);
+        // nada foi gravado.
+        Integer rows = jdbcTemplate.queryForObject(
+            "select count(*) from profile_features where profile_id = 'generic'", Integer.class);
+        assertThat(rows).isZero();
     }
 
     @Test

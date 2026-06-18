@@ -680,7 +680,12 @@ Infra pro ROOT (super-admin) ligar/desligar features por nicho num lugar só. A 
   "Página pessoal (CMS)"). Adicionar feature = editar os 2 arquivos + estender a CHECK de
   `profile_features.feature_key` (migration) + rodar a paridade.
 - **Perfis seguem HARDCODED** (`ProfileType`); NÃO há tabela de perfis. A grade é COMPUTADA: itera
-  `ProfileType.allActive()` × `ProfileFeature.allActive()` e sobrepõe as linhas do banco.
+  os nichos CONFIGURÁVEIS × `ProfileFeature.allActive()` e sobrepõe as linhas do banco.
+- **`generic` ("Meada") NÃO entra na grade nem aceita toggle** (cravado): o genérico é o produto do
+  próprio admin/root, que não é um tenant-cliente de nicho — features (CMS = página pessoal por
+  tenant) só fazem sentido pros nichos VERTICAIS; o root já tem o que precisa embutido, sem flag.
+  `ProfileFeatureService.configurable(p)` (= `p != GENERIC`) gateia `grid()` e `setFlag()` (generic
+  no PUT → 400 `unknown_profile`). Os 10 nichos verticais são configuráveis.
 - **Tabela `profile_features`** (migration 40) guarda SÓ os DESVIOS do default. **Ausência de linha =
   OFF** — o resolver (`ProfileFeatureService`) trata como false. **Default de toda feature = OFF**
   (opt-in explícito do root: tem nicho sem site, então off-pra-todos é o estado natural). PK
