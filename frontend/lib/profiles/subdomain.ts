@@ -43,3 +43,16 @@ export function currentProfile(): Profile {
 export function isUniversalSubdomain(sub: string): boolean {
   return sub === 'meada'
 }
+
+/**
+ * True quando o host é um domínio do PRÓPRIO Meada (painel/produtos) — localhost, 127.0.0.1, ou
+ * qualquer coisa sob meadadigital.local / meadadigital.com. False = domínio CUSTOM de tenant
+ * (CMS, SM-M): o middleware reescreve esses pro render público por domínio.
+ */
+export function isMeadaHost(host: string | null | undefined): boolean {
+  if (!host) return true
+  const hostname = host.split(':')[0]
+  if (hostname === 'localhost' || hostname === '127.0.0.1') return true
+  return hostname === 'meadadigital.local' || hostname.endsWith('.meadadigital.local')
+    || hostname === 'meadadigital.com' || hostname.endsWith('.meadadigital.com')
+}

@@ -714,6 +714,44 @@ Infra pro ROOT (super-admin) ligar/desligar features por nicho num lugar só. A 
 - **Pendência:** SM-M = CMS real (telas + endpoints atrás do `requireFeature(CMS)` + item de nav).
 - Doc: `docs/FEATURE_FLAGS.md`.
 
+## Camada 9.x — CMS / Página pessoal por tenant (SM-M, page builder)
+
+PRIMEIRA feature gateada pela infra de feature flags (camada 9.0). O tenant cujo nicho tem o CMS
+ligado monta uma página pública com BLOCOS (page builder) e pode apontar um DOMÍNIO próprio.
+
+- **Gateado por `requireFeature(CMS)`:** todos os endpoints `/api/cms/**` chamam
+  `ProfileFeatureGuard.requireFeature(user, ProfileFeature.CMS)` no início → 403 `feature_disabled`
+  se o nicho não tem a flag ligada. É o consumo real do gate que a SM-L deixou pronto.
+- **Modelo (migration 41):** `cms_pages` 1:1 com company (company_id PK). `blocks` é JSONB ORDENADO
+  (array de `{id, type, props}`); `type ∈ CmsBlockType` (enum Java ↔ `frontend/lib/cms/cms-block-type.ts`,
+  `CmsBlockTypeParityTest`). 4 tipos iniciais: `hero`, `text`, `services`, `contact`. Validação de
+  blocks é APP-LEVEL no `CmsService` (normaliza `{id,type,props}`, gera id faltante, rejeita type
+  inválido → 400 `invalid_blocks`; sem CHECK no JSONB pra os blocos evoluírem). `published` (rascunho
+  vs publicado), `domain` (host próprio, nullable, UNIQUE global).
+- **Domínio próprio:** `setDomain` valida formato (hostname), normaliza lowercase, rejeita hosts do
+  Meada (`*.meadadigital.com/.local`) → 400 `invalid_domain`, e UNIQUE global → 409 `domain_taken`.
+  Verificação de POSSE (TXT/CNAME) e cert são FASE FUTURA — guardamos + validamos; a página responde
+  no host se ele apontar pra nós.
+- **Público (sem auth):** `/public/cms/by-slug/{slug}` e `/public/cms/by-domain?host=` — NÃO estão na
+  allowlist do `JwtAuthenticationFilter` → passam sem token. Só servem a página PUBLICADA (404 senão);
+  devolvem só a view (title + blocks), nunca campos internos (domain/published/companyId).
+- **Roteamento público:** rota Next `/p/{slug}` (server component, fora do `(protected)`, sem shell)
+  + `/p/by-domain/{host}`. O `middleware.ts` detecta host que NÃO é do Meada (`isMeadaHost`) e
+  REESCREVE pra `/p/by-domain/{host}` (resolve o tenant pelo `cms_pages.domain`). SSR usa
+  `CMS_BACKEND_URL=http://backend:8095` (rede interna do compose), não o Caddy.
+- **Editor (painel tenant):** `/dashboard/cms`, item de nav "Site → Página" injetado por
+  `getNavForProfile(profileId, features)` quando `features?.cms === true`. Drag-drop NATIVO (HTML5
+  `draggable`) + botões ↑↓ pra reordenar; editor de props por tipo; salvar rascunho / publicar /
+  despublicar; configurar domínio. Sem lib de DnD nova.
+- **Caveat cravado (cache de feature flag):** `ProfileFeatureService.enabledFor` é cacheado (TTL 20s)
+  — ligar/desligar o CMS pra um nicho leva até 20s pra propagar ao gate/`/admin/me`. Nos TESTES isso
+  causava cache-bleed (o TRUNCATE zera o banco, não o cache); resolvido com `invalidateAll()` chamado
+  no truncate do `AbstractIntegrationTest`.
+- **NÃO TEM nesta SM:** verificação de posse de domínio + cert automático; mais tipos de bloco (só os
+  4); tema/cores por página; multi-página. São evoluções futuras (o page builder é extensível por
+  `CmsBlockType` + render/editor).
+- Doc: `docs/CMS.md`.
+
 ## Estado das camadas
 
 - **1 — Schema multi-tenant:** FECHADA. 11 tabelas, RLS, FKs compostas anti-cross-tenant.

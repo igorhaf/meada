@@ -106,7 +106,8 @@ public abstract class AbstractIntegrationTest {
         "db/migrations/37_pet.sql",
         "db/migrations/38_oficina.sql",
         "db/migrations/39_nutri.sql",
-        "db/migrations/40_profile_features.sql"
+        "db/migrations/40_profile_features.sql",
+        "db/migrations/41_cms.sql"
     };
 
     /**
@@ -161,6 +162,12 @@ public abstract class AbstractIntegrationTest {
 
     @Autowired
     protected JdbcTemplate jdbcTemplate;
+
+    // Camada 9.0: o resolver de feature flags tem cache Caffeine (TTL 20s). O TRUNCATE zera o banco,
+    // não o cache — sem limpá-lo, um flag setado num teste vazaria pro próximo (cache-bleed). Limpo
+    // no truncate. required=false: o bean existe no contexto completo dos integration tests.
+    @Autowired(required = false)
+    private com.meada.whatsapp.profiles.features.ProfileFeatureService profileFeatureServiceForCacheReset;
 
     /** Disponível para subclasses que testam a camada HTTP (ex. filtro, controller).
      *  Testes de repositório ignoram. webEnvironment=MOCK sobe um servlet mock
@@ -228,9 +235,13 @@ public abstract class AbstractIntegrationTest {
               pet_appointments, pet_animals, pet_config, pet_services, pet_professionals,
               os_items, service_orders, os_vehicles, os_config, os_mechanics,
               nutri_appointments, nutri_plans, nutri_patients, nutri_config, nutri_professionals,
-              profile_features
+              profile_features, cms_pages
             RESTART IDENTITY CASCADE
             """);
+        // Limpa o cache de feature flags (não vive no banco) pra não vazar estado entre testes.
+        if (profileFeatureServiceForCacheReset != null) {
+            profileFeatureServiceForCacheReset.invalidateAll();
+        }
     }
 
     /**

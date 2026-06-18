@@ -13,6 +13,7 @@ import {
   ClipboardList,
   Clock,
   Dumbbell,
+  Globe,
   HelpCircle,
   Home,
   LayoutDashboard,
@@ -168,41 +169,37 @@ export const NAV_GROUPS: NavGroup[] = [
  */
 export function getNavForProfile(
   profileId: string | null | undefined,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- plumbing p/ SM-M (gate hasFeature('cms'))
   features?: Record<string, boolean>,
 ): NavGroup[] {
   // Perfil vertical (camada 7.1/7.2): grupo próprio no topo. Demais perfis seguem o nav padrão.
-  if (profileId === 'sushi') {
-    return [SUSHI_GROUP, ...NAV_GROUPS]
+  const base = profileGroups(profileId)
+  // CMS (camada 9.x / SM-M): o grupo "Site" só aparece se a feature 'cms' está ligada pro nicho
+  // (resolvido em /admin/me.features). superAdmin não tem features → não vê. Vem por último.
+  if (features?.cms === true) {
+    return [...base, CMS_GROUP]
   }
-  if (profileId === 'legal') {
-    return [LEGAL_GROUP, ...NAV_GROUPS]
-  }
-  if (profileId === 'restaurant') {
-    return [RESTAURANT_GROUP, ...NAV_GROUPS]
-  }
-  if (profileId === 'dental') {
-    return [DENTAL_GROUP, ...NAV_GROUPS]
-  }
-  if (profileId === 'salon') {
-    return [SALON_GROUP, ...NAV_GROUPS]
-  }
-  if (profileId === 'pousada') {
-    return [POUSADA_GROUP, ...NAV_GROUPS]
-  }
-  if (profileId === 'academia') {
-    return [ACADEMIA_GROUP, ...NAV_GROUPS]
-  }
-  if (profileId === 'pet') {
-    return [PET_GROUP, ...NAV_GROUPS]
-  }
-  if (profileId === 'oficina') {
-    return [OFICINA_GROUP, ...NAV_GROUPS]
-  }
-  if (profileId === 'nutri') {
-    return [NUTRI_GROUP, ...NAV_GROUPS]
-  }
+  return base
+}
+
+/** Grupos base por perfil (sem o gate de feature flags). */
+function profileGroups(profileId: string | null | undefined): NavGroup[] {
+  if (profileId === 'sushi') return [SUSHI_GROUP, ...NAV_GROUPS]
+  if (profileId === 'legal') return [LEGAL_GROUP, ...NAV_GROUPS]
+  if (profileId === 'restaurant') return [RESTAURANT_GROUP, ...NAV_GROUPS]
+  if (profileId === 'dental') return [DENTAL_GROUP, ...NAV_GROUPS]
+  if (profileId === 'salon') return [SALON_GROUP, ...NAV_GROUPS]
+  if (profileId === 'pousada') return [POUSADA_GROUP, ...NAV_GROUPS]
+  if (profileId === 'academia') return [ACADEMIA_GROUP, ...NAV_GROUPS]
+  if (profileId === 'pet') return [PET_GROUP, ...NAV_GROUPS]
+  if (profileId === 'oficina') return [OFICINA_GROUP, ...NAV_GROUPS]
+  if (profileId === 'nutri') return [NUTRI_GROUP, ...NAV_GROUPS]
   return NAV_GROUPS
+}
+
+/** Grupo "Site" (CMS) — só injetado quando features.cms está on (SM-M). */
+const CMS_GROUP: NavGroup = {
+  heading: 'Site',
+  items: [{ label: 'Página', href: '/dashboard/cms', icon: Globe }],
 }
 
 /** Grupo de navegação exclusivo do perfil sushi (camada 7.1). */

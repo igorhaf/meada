@@ -48,6 +48,9 @@ services:
     environment:
       # var de BROWSER: o navegador chama a API via Caddy (sem porta).
       - NEXT_PUBLIC_API_URL=http://api.meadadigital.local
+      # var de SERVER (SM-M / CMS público): o Next SSR chama o backend pela rede interna do compose,
+      # não via Caddy (o /etc/hosts do host não existe dentro do container).
+      - CMS_BACKEND_URL=http://backend:8095
       # hot-reload de FS dentro do Docker (o inotify nem sempre propaga via bind mount).
       - WATCHPACK_POLLING=true
     ports:

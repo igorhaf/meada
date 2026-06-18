@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-import { subdomainFromHost, SUBDOMAIN_HEADER } from '@/lib/profiles/subdomain'
+import { subdomainFromHost, isMeadaHost, SUBDOMAIN_HEADER } from '@/lib/profiles/subdomain'
 
 /**
  * Middleware de sessão Supabase. ÚNICA responsabilidade: refrescar o token a cada
@@ -24,10 +24,30 @@ import { subdomainFromHost, SUBDOMAIN_HEADER } from '@/lib/profiles/subdomain'
  *     é o objetivo.
  */
 export async function middleware(request: NextRequest) {
+  const host = request.headers.get('host')
+  const path = request.nextUrl.pathname
+
+  // CMS por domínio custom (SM-M): se o host NÃO é um domínio do Meada, é um domínio próprio de
+  // tenant apontado pro nosso servidor → reescreve internamente pro render público por domínio.
+  // Só reescreve requisições de PÁGINA (não /api, /_next, /public, nem o próprio /p) — assets e
+  // chamadas de API seguem normais. A página /p/by-domain/[host] resolve o tenant pelo host.
+  if (
+    !isMeadaHost(host) &&
+    !path.startsWith('/api') &&
+    !path.startsWith('/_next') &&
+    !path.startsWith('/public') &&
+    !path.startsWith('/p/')
+  ) {
+    const hostname = (host ?? '').split(':')[0]
+    const url = request.nextUrl.clone()
+    url.pathname = `/p/by-domain/${hostname}`
+    return NextResponse.rewrite(url)
+  }
+
   // Subdomain detection (camada 7.0): resolve o perfil pelo host e injeta como header de
   // request, para que Server Components / layouts downstream possam ler o perfil sem re-parsear.
   // localhost / domínio-base → 'meada' (genérico/universal).
-  const subdomain = subdomainFromHost(request.headers.get('host'))
+  const subdomain = subdomainFromHost(host)
   request.headers.set(SUBDOMAIN_HEADER, subdomain)
 
   let response = NextResponse.next({ request })

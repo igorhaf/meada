@@ -131,6 +131,11 @@ public class ProfileFeatureService {
         return cache.get(profileId, this::resolveEnabled);
     }
 
+    /** Limpa todo o cache de resolução. Usado pelos testes (o TRUNCATE zera o banco, não o cache). */
+    public void invalidateAll() {
+        cache.invalidateAll();
+    }
+
     private Set<ProfileFeature> resolveEnabled(String profileId) {
         Set<String> keys = repository.enabledKeysFor(profileId);
         Set<ProfileFeature> result = EnumSet.noneOf(ProfileFeature.class);
