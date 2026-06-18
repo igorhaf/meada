@@ -13,73 +13,71 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Testa o CMS público (SM-M): /public/cms/by-slug e /public/cms/by-domain, SEM auth. Só serve a
- * página PUBLICADA; rascunho/inexistente → 404. Devolve só a view (title + blocks), sem campos
- * internos. Estas rotas não estão na allowlist do JwtFilter → passam sem token.
+ * Testa o CMS público multi-página (SM-N): home/página por slug, por domínio verificado, e o ask de
+ * TLS. Sem auth. Só serve publicado; rascunho/não-verificado → 404. View traz nav + tema.
  */
 class CmsPublicControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     private CmsService service;
 
-    private static final UUID CO = UUID.fromString("c9000000-0000-0000-0000-000000000001");
+    private static final UUID CO = UUID.fromString("cf900000-0000-0000-0000-000000000001");
 
     @BeforeEach
     void seed() {
-        jdbcTemplate.update("insert into companies (id, name, slug, profile_id) values (?, ?, ?, 'nutri')",
-            CO, "Pública Co", "publica-co");
+        jdbcTemplate.update("insert into companies (id, name, slug, profile_id) values (?, ?, ?, 'nutri')", CO, "Pública Co", "publica-co");
+    }
+
+    /** Cria home + uma sub-página, ambas publicadas, e publica o site. */
+    private void seedPublishedSite() {
+        CmsPage home = service.createPage(CO, "home", "Início");
+        CmsPage svc = service.createPage(CO, "servicos", "Serviços");
+        service.savePageContent(CO, home.id(), "Início", null, true);
+        service.savePageContent(CO, svc.id(), "Serviços", null, true);
+        service.setPublished(CO, true);
     }
 
     @Test
-    @DisplayName("página publicada → by-slug 200 com title + blocks (sem campos internos)")
-    void bySlug_published() throws Exception {
-        jdbcTemplate.update(
-            "update cms_pages set title='Olá', blocks='[{\"id\":\"b1\",\"type\":\"hero\",\"props\":{}}]'::jsonb where company_id=?",
-            ensure());
-        service.setPublished(CO, true);
+    @DisplayName("home publicada por slug → 200 com nav (2 páginas); sem campos internos")
+    void homeBySlug() throws Exception {
+        seedPublishedSite();
         mockMvc.perform(get("/public/cms/by-slug/publica-co"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.title").value("Olá"))
-            .andExpect(jsonPath("$.blocks.length()").value(1))
-            // a view pública NÃO expõe domain/published/companyId.
-            .andExpect(jsonPath("$.published").doesNotExist())
-            .andExpect(jsonPath("$.domain").doesNotExist());
+            .andExpect(jsonPath("$.title").value("Início"))
+            .andExpect(jsonPath("$.nav.length()").value(2))
+            .andExpect(jsonPath("$.published").doesNotExist());
     }
 
     @Test
-    @DisplayName("rascunho → by-slug 404 page_not_found")
-    void bySlug_draft_404() throws Exception {
-        ensure(); // cria mas não publica
-        mockMvc.perform(get("/public/cms/by-slug/publica-co"))
-            .andExpect(status().isNotFound())
-            .andExpect(jsonPath("$.reason").value("page_not_found"));
+    @DisplayName("página interna por slug → 200")
+    void pageBySlug() throws Exception {
+        seedPublishedSite();
+        mockMvc.perform(get("/public/cms/by-slug/publica-co/servicos"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.title").value("Serviços"));
     }
 
     @Test
-    @DisplayName("slug inexistente → 404")
-    void bySlug_unknown_404() throws Exception {
-        mockMvc.perform(get("/public/cms/by-slug/nao-existe"))
-            .andExpect(status().isNotFound());
+    @DisplayName("site em rascunho → 404; slug inexistente → 404")
+    void draftOrUnknown_404() throws Exception {
+        CmsPage home = service.createPage(CO, "home", "H");
+        service.savePageContent(CO, home.id(), "H", null, true); // página publicada, mas site não
+        mockMvc.perform(get("/public/cms/by-slug/publica-co")).andExpect(status().isNotFound());
+        mockMvc.perform(get("/public/cms/by-slug/nao-existe")).andExpect(status().isNotFound());
     }
 
     @Test
-    @DisplayName("by-domain publicado → 200; rascunho/host desconhecido → 404")
-    void byDomain() throws Exception {
-        ensure();
-        service.setDomain(CO, "minhaloja.com.br");
-        // rascunho ainda → 404
-        mockMvc.perform(get("/public/cms/by-domain").param("host", "minhaloja.com.br"))
-            .andExpect(status().isNotFound());
-        service.setPublished(CO, true);
-        mockMvc.perform(get("/public/cms/by-domain").param("host", "minhaloja.com.br"))
-            .andExpect(status().isOk());
-        mockMvc.perform(get("/public/cms/by-domain").param("host", "outro.com"))
-            .andExpect(status().isNotFound());
-    }
-
-    /** Garante a linha de cms_pages e devolve o companyId. */
-    private UUID ensure() {
-        service.getOrCreate(CO);
-        return CO;
+    @DisplayName("por domínio: só verificado+publicado serve; ask de TLS idem")
+    void byDomainAndTls() throws Exception {
+        seedPublishedSite();
+        service.setDomain(CO, "publicaco.com.br");
+        // ainda não verificado → 404 e TLS não permitido.
+        mockMvc.perform(get("/public/cms/by-domain").param("host", "publicaco.com.br")).andExpect(status().isNotFound());
+        mockMvc.perform(get("/public/cms/tls-allowed").param("domain", "publicaco.com.br")).andExpect(status().isNotFound());
+        // marca verificado direto no banco (o DNS é testado no service).
+        jdbcTemplate.update("update cms_sites set domain_verified = true where company_id = ?", CO);
+        mockMvc.perform(get("/public/cms/by-domain").param("host", "publicaco.com.br")).andExpect(status().isOk());
+        mockMvc.perform(get("/public/cms/tls-allowed").param("domain", "publicaco.com.br")).andExpect(status().isOk());
+        mockMvc.perform(get("/public/cms/tls-allowed").param("domain", "outro.com")).andExpect(status().isNotFound());
     }
 }

@@ -714,42 +714,49 @@ Infra pro ROOT (super-admin) ligar/desligar features por nicho num lugar só. A 
 - **Pendência:** SM-M = CMS real (telas + endpoints atrás do `requireFeature(CMS)` + item de nav).
 - Doc: `docs/FEATURE_FLAGS.md`.
 
-## Camada 9.x — CMS / Página pessoal por tenant (SM-M, page builder)
+## Camada 9.x — CMS / Site por tenant (SM-M base + SM-N multi-página, page builder)
 
 PRIMEIRA feature gateada pela infra de feature flags (camada 9.0). O tenant cujo nicho tem o CMS
-ligado monta uma página pública com BLOCOS (page builder) e pode apontar um DOMÍNIO próprio.
+ligado monta um SITE com N PÁGINAS de BLOCOS (page builder), tema próprio, e pode apontar um
+DOMÍNIO próprio com posse verificada.
 
-- **Gateado por `requireFeature(CMS)`:** todos os endpoints `/api/cms/**` chamam
-  `ProfileFeatureGuard.requireFeature(user, ProfileFeature.CMS)` no início → 403 `feature_disabled`
-  se o nicho não tem a flag ligada. É o consumo real do gate que a SM-L deixou pronto.
-- **Modelo (migration 41):** `cms_pages` 1:1 com company (company_id PK). `blocks` é JSONB ORDENADO
-  (array de `{id, type, props}`); `type ∈ CmsBlockType` (enum Java ↔ `frontend/lib/cms/cms-block-type.ts`,
-  `CmsBlockTypeParityTest`). 4 tipos iniciais: `hero`, `text`, `services`, `contact`. Validação de
-  blocks é APP-LEVEL no `CmsService` (normaliza `{id,type,props}`, gera id faltante, rejeita type
-  inválido → 400 `invalid_blocks`; sem CHECK no JSONB pra os blocos evoluírem). `published` (rascunho
-  vs publicado), `domain` (host próprio, nullable, UNIQUE global).
-- **Domínio próprio:** `setDomain` valida formato (hostname), normaliza lowercase, rejeita hosts do
-  Meada (`*.meadadigital.com/.local`) → 400 `invalid_domain`, e UNIQUE global → 409 `domain_taken`.
-  Verificação de POSSE (TXT/CNAME) e cert são FASE FUTURA — guardamos + validamos; a página responde
-  no host se ele apontar pra nós.
-- **Público (sem auth):** `/public/cms/by-slug/{slug}` e `/public/cms/by-domain?host=` — NÃO estão na
-  allowlist do `JwtAuthenticationFilter` → passam sem token. Só servem a página PUBLICADA (404 senão);
-  devolvem só a view (title + blocks), nunca campos internos (domain/published/companyId).
-- **Roteamento público:** rota Next `/p/{slug}` (server component, fora do `(protected)`, sem shell)
-  + `/p/by-domain/{host}`. O `middleware.ts` detecta host que NÃO é do Meada (`isMeadaHost`) e
-  REESCREVE pra `/p/by-domain/{host}` (resolve o tenant pelo `cms_pages.domain`). SSR usa
-  `CMS_BACKEND_URL=http://backend:8095` (rede interna do compose), não o Caddy.
-- **Editor (painel tenant):** `/dashboard/cms`, item de nav "Site → Página" injetado por
-  `getNavForProfile(profileId, features)` quando `features?.cms === true`. Drag-drop NATIVO (HTML5
-  `draggable`) + botões ↑↓ pra reordenar; editor de props por tipo; salvar rascunho / publicar /
-  despublicar; configurar domínio. Sem lib de DnD nova.
-- **Caveat cravado (cache de feature flag):** `ProfileFeatureService.enabledFor` é cacheado (TTL 20s)
-  — ligar/desligar o CMS pra um nicho leva até 20s pra propagar ao gate/`/admin/me`. Nos TESTES isso
-  causava cache-bleed (o TRUNCATE zera o banco, não o cache); resolvido com `invalidateAll()` chamado
+- **Gateado por `requireFeature(CMS)`:** todos os `/api/cms/**` chamam
+  `ProfileFeatureGuard.requireFeature(user, ProfileFeature.CMS)` → 403 `feature_disabled` se o nicho
+  não tem a flag. É o consumo real do gate da SM-L.
+- **Modelo (migration 41 + 42):** SM-M criou `cms_pages` 1:1; a SM-N REFATOROU em `cms_sites`
+  (config 1:1 com company: domain, domain_verified, verify_token, theme jsonb, published) + NOVA
+  `cms_pages` (N por company: page_slug, title, blocks, is_home, position, published). 1 home por
+  company (índice parcial UNIQUE); UNIQUE (company_id, page_slug).
+- **Blocos (8):** `CmsBlockType` (enum Java ↔ `cms-block-type.ts`, `CmsBlockTypeParityTest`):
+  `hero`, `text`, `services`, `contact`, `gallery`, `faq`, `testimonials`, `map`. `blocks` é JSONB
+  ordenado de `{id, type, props}`; validação app-level no `CmsService` (normaliza, gera id, rejeita
+  type inválido → 400 `invalid_blocks`). Galeria é por URL colada (upload bloqueado — SERVICE_ROLE_KEY).
+- **Tema:** `cms_sites.theme` jsonb (`{primaryColor, dark}`) aplicado no render (CSS var + claro/escuro).
+- **Domínio + posse:** `setDomain` valida hostname/lowercase, rejeita hosts do Meada → 400
+  `invalid_domain`, UNIQUE → 409 `domain_taken`; mudar o domínio ZERA a verificação. Posse por TXT:
+  `startDomainVerification` gera `verify_token`; o tenant publica `_meada-verify=<token>` no DNS;
+  `verifyDomain` consulta via `DnsTxtResolver` (impl `JndiDnsTxtResolver` — JNDI DNS, sem lib;
+  mockável nos testes) e marca `domain_verified`. A página por domínio e o cert SÓ valem verificados.
+- **Público (sem auth):** `/public/cms/by-slug/{slug}` (home), `/by-slug/{slug}/{pageSlug}`,
+  `/by-domain?host=` (+ `/{pageSlug}`), e `/public/cms/tls-allowed?domain=` (ask do Caddy). Fora da
+  allowlist do JwtFilter. Só servem PUBLICADO (site + página); a view traz title+blocks+theme+nav,
+  nunca campos internos.
+- **Roteamento público:** Next `/p/{slug}` + `/p/{slug}/{pageSlug}` (server components, sem shell) +
+  `/p/by-domain/{host}[/{pageSlug}]`. `middleware.ts` reescreve host não-Meada (`isMeadaHost`) →
+  `/p/by-domain/{host}/{subpath}`. SSR usa `CMS_BACKEND_URL=http://backend:8095` (rede do compose).
+- **HTTPS de domínio custom (infra, runbook):** template `on_demand_tls` no `caddy/Caddyfile`
+  (comentado — não ativar em dev) com `ask` apontando pro `/public/cms/tls-allowed` (só emite cert
+  pra domínio verificado+publicado). Emissão real + DNS apontado é operação de PROD (ver docs/CMS.md);
+  não testável no smoke local.
+- **Editor (painel tenant):** `/dashboard/cms`, nav "Site → Página" gateado por `features?.cms`.
+  Multi-página (criar/excluir/definir-home, publicar por página), blocos com drag-drop NATIVO (HTML5)
+  + ↑↓, editor de props por tipo (`components/cms/block-editor.tsx`), tema (cor + dark), domínio +
+  verificação (mostra o token TXT + botão Verificar).
+- **Caveat (cache de feature flag):** `ProfileFeatureService.enabledFor` cacheia TTL 20s — toggle do
+  CMS leva até 20s pra propagar. Nos testes isso causava cache-bleed; resolvido com `invalidateAll()`
   no truncate do `AbstractIntegrationTest`.
-- **NÃO TEM nesta SM:** verificação de posse de domínio + cert automático; mais tipos de bloco (só os
-  4); tema/cores por página; multi-página. São evoluções futuras (o page builder é extensível por
-  `CmsBlockType` + render/editor).
+- **NÃO TEM:** upload de imagem (URL colada), cert HTTPS testado em dev (só runbook), editor visual
+  WYSIWYG (é form por bloco), versionamento/preview de rascunho separado do publicado.
 - Doc: `docs/CMS.md`.
 
 ## Estado das camadas

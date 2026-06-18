@@ -33,3 +33,29 @@ http://nutri.meadadigital.local {
 http://api.meadadigital.local {
 	reverse_proxy backend:8095
 }
+
+# =============================================================================
+# CMS — domínios PRÓPRIOS de tenant (SM-N). Template de PRODUÇÃO — NÃO ativar em dev
+# (o dev roda auto_https off; isto exige :443 + emissão de cert real). Em prod, mover o
+# bloco `on_demand_tls`/`tls` pro escopo global e adicionar o site catch-all abaixo.
+#
+# On-demand TLS: o Caddy emite cert sob demanda pra QUALQUER host que chegar, MAS só depois
+# de perguntar ao backend se o domínio é permitido (verificado + publicado). Sem o "ask", um
+# terceiro apontaria um domínio pro nosso IP e forçaria emissão de cert.
+#
+#   {
+#       on_demand_tls {
+#           ask http://backend:8095/public/cms/tls-allowed
+#       }
+#   }
+#
+#   # Catch-all: qualquer host que NÃO seja meadadigital.* cai aqui (domínio custom de tenant).
+#   # O Next resolve o tenant pelo host (middleware → /p/by-domain/{host}); o backend serve o
+#   # /public/cms/by-domain. O ask acima trava a emissão de cert aos domínios verificados.
+#   https:// {
+#       tls {
+#           on_demand
+#       }
+#       reverse_proxy frontend:3000
+#   }
+# =============================================================================

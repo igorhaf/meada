@@ -27,10 +27,10 @@ export async function middleware(request: NextRequest) {
   const host = request.headers.get('host')
   const path = request.nextUrl.pathname
 
-  // CMS por domínio custom (SM-M): se o host NÃO é um domínio do Meada, é um domínio próprio de
+  // CMS por domínio custom (SM-N): se o host NÃO é um domínio do Meada, é um domínio próprio de
   // tenant apontado pro nosso servidor → reescreve internamente pro render público por domínio.
   // Só reescreve requisições de PÁGINA (não /api, /_next, /public, nem o próprio /p) — assets e
-  // chamadas de API seguem normais. A página /p/by-domain/[host] resolve o tenant pelo host.
+  // chamadas de API seguem normais. Raiz (/) → home; /{pageSlug} → página interna daquele tenant.
   if (
     !isMeadaHost(host) &&
     !path.startsWith('/api') &&
@@ -40,7 +40,8 @@ export async function middleware(request: NextRequest) {
   ) {
     const hostname = (host ?? '').split(':')[0]
     const url = request.nextUrl.clone()
-    url.pathname = `/p/by-domain/${hostname}`
+    const sub = path.replace(/^\/+|\/+$/g, '') // tira barras das pontas
+    url.pathname = sub ? `/p/by-domain/${hostname}/${sub}` : `/p/by-domain/${hostname}`
     return NextResponse.rewrite(url)
   }
 

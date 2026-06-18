@@ -23,7 +23,11 @@ public enum CmsBlockType {
     HERO("hero"),
     TEXT("text"),
     SERVICES("services"),
-    CONTACT("contact");
+    CONTACT("contact"),
+    GALLERY("gallery"),
+    FAQ("faq"),
+    TESTIMONIALS("testimonials"),
+    MAP("map");
 
     private final String id;
 
