@@ -609,6 +609,67 @@ CAPTURA A APROVAÇÃO do cliente.
   estoque de peças.
 - Guia operacional do tenant: `docs/PERFIL_OFICINA.md`.
 
+## Perfil Nutri (NutriBot, camada 8.0)
+
+DÉCIMO perfil vertical real e PRIMEIRA da camada 8.x. O tenant nutri (`profile_id='nutri'`) vira um
+produto de CONSULTÓRIO DE NUTRIÇÃO: gerencia nutricionistas, pacientes e os planos alimentares, e a
+IA atende pacientes via WhatsApp — agenda consultas e ENTREGA o plano que o nutricionista gravou.
+
+- **🔒 TRAVA DE SEGURANÇA CLÍNICA (o coração desta SM, inegociável):** plano alimentar
+  individualizado é conduta privativa do nutricionista (CFN/CRN). A IA **NUNCA** cria/calcula/monta/
+  adapta/resume/ajusta plano; **NUNCA** dá caloria, macro, porção ou número nutricional; **NUNCA**
+  responde "posso comer X?"/"quantas calorias tem Y?"/"isso engorda?"; **NUNCA** opina sobre
+  patologia/suplementação/emagrecimento/restrição. Para qualquer dúvida nutricional → orienta agendar.
+  A trava vive na **persona** (`ProfilePromptContext.NUTRI` + bloco de INSTRUÇÕES do `NutriContextCache`)
+  E no **schema** (a IA NÃO tem policy de escrita de plano; só lê na entrega).
+- **🔒 GUARDA DE TRANSTORNO ALIMENTAR (em toda a conversa):** se o paciente sinalizar restrição
+  intensa, compulsão, purga, contagem obsessiva, peso-meta extremo ou sofrimento com comida/corpo, a
+  IA não dá número, não valida a conduta, acolhe sem reforçar e encaminha ao nutricionista (e, havendo
+  risco, sugere apoio profissional). NUNCA fornece técnica de restrição/compensação.
+- **EVOLUÇÃO ESTRUTURAL — combina agenda (dental/salon: conflito por profissional) + sub-entidade
+  (pet/oficina), com 2 escapadas novas:** (1) **DOIS NÍVEIS de sub-entidade** — paciente é
+  sub-entidade do contact (nível 1), PLANO é sub-entidade do paciente (nível 2); primeiro perfil com
+  sub-entidade aninhada. (2) **Artefato READ-ONLY-PRA-IA** — `nutri_plans.body` é escrito SÓ pelo
+  profissional no painel; a IA tem um modo de ENTREGA (envia o texto gravado) mas NUNCA o edita.
+- **Modelo (migration 39):** `nutri_professionals` (com `crn`) + `nutri_config` (horário) +
+  `nutri_patients` (sub-entidade do contact; goal/dietary_restrictions texto livre SEM número) +
+  `nutri_plans` (sub-entidade do paciente; body markdown; status ativo|arquivado) + `nutri_appointments`
+  (conflito por profissional, end_at materializado, appointment_type primeira|retorno|avaliacao).
+- **1 plano 'ativo' por paciente:** índice parcial `uniq_active_plan_per_patient (patient_id) where
+  status='ativo'`. Criar/ativar um plano arquiva o anterior NA MESMA transação (`NutriPlanService`).
+- **Status hardcoded** (`NutriAppointmentStatus` ↔ `nutri-appointment-status.ts`, parity test):
+  agendado→confirmado/cancelado; confirmado→realizado/cancelado/falta; resto terminal. Notificam
+  **confirmado** (tipo+profissional+data/hora) e **cancelado** (texto SEM conteúdo nutricional).
+- **Duas TAGS distintas** (namespaces próprios): `<consulta_nutri>` AGENDA (2 modos: `patient_id`
+  existente OU `new_patient{name,goal}` cadastra+agenda) via `AgendamentoNutriConfirmHandler`;
+  `<entrega_plano>{patient_id}` ENTREGA o plano ATIVO via `EntregaPlanoHandler`. OutboundService:
+  `maybeProcessConsultaNutri` + `maybeProcessEntregaPlano`.
+- **Entrega de plano = body EXATO, fora da geração da IA + barreira de contato:** o `EntregaPlanoHandler`
+  busca o plano ativo e envia o `body` VERBATIM como mensagem outbound separada (`notifier.sendText`)
+  — NÃO passa pela IA (pra não ser reescrito). Só entrega plano de paciente do **PRÓPRIO contato** da
+  conversa (segurança: `patient.contactId() == conversation.contactId`). Sem plano ativo → não entrega,
+  a IA oferece agendar.
+- **Contexto da IA NÃO injeta o body do plano** (segurança) — só a indicação de quais pacientes do
+  contato têm plano ativo. `NutriContextCache` TTL 20s (profissionais, pacientes do contato com
+  objetivo + flag de plano ativo + última consulta, slots livres por profissional). Invalidação em
+  toda mutação.
+- **Paciente NÃO é entidade do core** (continua o contact; snapshots patient_name/phone nas consultas).
+  **Excluir vs arquivar:** paciente com consulta OU plano → 409 patient_in_use; preferir arquivar.
+- **Guard:** `NutriProfileGuard`. `JwtAuthenticationFilter` autentica `/api/nutri/**` (além dos 9
+  perfis anteriores).
+- **Sidebar:** `getNavForProfile('nutri')` injeta "Nutri" (Profissionais/Pacientes/Planos/Agenda/
+  Configurações). Telas `/dashboard/nutri-{professionals,patients,plans,appointments,settings}` — a de
+  planos tem o editor (title + body markdown + vigência + ativar/arquivar).
+- **NÃO TEM:** plano estruturado em refeições/porções (body é texto livre — estruturar é arriscado),
+  cálculo de TMB/macro/caloria (PROIBIDO por segurança), TACO/USDA, antropometria com gráfico,
+  prescrição de suplemento, anamnese estruturada, foto, pagamento real, bioimpedância.
+- **Lição de teste cravada (SM-K):** com 11 perfis, cada `*ServiceTest` com `@Import(TestConfig)` é um
+  ApplicationContext distinto; o pool Hikari padrão (min-idle 5/max 10) × ~18 contextos estourava o
+  teto de conexões do pooler Supabase (`CannotGetJdbcConnection` no `StartupDatabaseCheck`). Fix:
+  `src/test/resources/application-dev.yml` com pool minúsculo (min-idle 0/max 2) — só nos testes, não
+  toca dev/prod.
+- Guia operacional do tenant: `docs/PERFIL_NUTRI.md`.
+
 ## Estado das camadas
 
 - **1 — Schema multi-tenant:** FECHADA. 11 tabelas, RLS, FKs compostas anti-cross-tenant.

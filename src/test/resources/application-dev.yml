@@ -1,0 +1,15 @@
+# Override de TESTE (profile dev) — só para os integration tests (Testcontainers/Surefire).
+# Os tests usam o pooler remoto do Supabase; cada ApplicationContext de teste com @Import
+# (TestConfig) é um contexto DISTINTO e cada um abre seu próprio pool Hikari. Com 11 perfis
+# verticais há ~18 contextos cacheados ao mesmo tempo — com minimum-idle:5/max:10 do
+# application.yml isso seriam 50-180 conexões simultâneas ao pooler, que estoura o teto
+# (CannotGetJdbcConnection no StartupDatabaseCheck). Os tests rodam single-thread, então um
+# pool minúsculo basta. Isto NÃO afeta o dev/prod reais (que leem o application.yml principal).
+spring:
+  datasource:
+    hikari:
+      minimum-idle: 0
+      maximum-pool-size: 2
+      # libera conexões ociosas rápido pra não segurar slots do pooler entre contextos.
+      idle-timeout: 10000
+      max-lifetime: 30000

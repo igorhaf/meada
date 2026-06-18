@@ -30,6 +30,7 @@ public class ProfilePromptContext {
     private final com.meada.whatsapp.profiles.academia.AcademiaContextCache academiaContextCache;
     private final com.meada.whatsapp.profiles.pet.PetContextCache petContextCache;
     private final com.meada.whatsapp.profiles.oficina.OficinaContextCache oficinaContextCache;
+    private final com.meada.whatsapp.profiles.nutri.NutriContextCache nutriContextCache;
     private final ConversationRepository conversationRepository;
 
     public ProfilePromptContext(SushiMenuCache sushiMenuCache,
@@ -41,6 +42,7 @@ public class ProfilePromptContext {
                                 com.meada.whatsapp.profiles.academia.AcademiaContextCache academiaContextCache,
                                 com.meada.whatsapp.profiles.pet.PetContextCache petContextCache,
                                 com.meada.whatsapp.profiles.oficina.OficinaContextCache oficinaContextCache,
+                                com.meada.whatsapp.profiles.nutri.NutriContextCache nutriContextCache,
                                 ConversationRepository conversationRepository) {
         this.sushiMenuCache = sushiMenuCache;
         this.legalCaseContextCache = legalCaseContextCache;
@@ -51,6 +53,7 @@ public class ProfilePromptContext {
         this.academiaContextCache = academiaContextCache;
         this.petContextCache = petContextCache;
         this.oficinaContextCache = oficinaContextCache;
+        this.nutriContextCache = nutriContextCache;
         this.conversationRepository = conversationRepository;
     }
 
@@ -108,6 +111,19 @@ public class ProfilePromptContext {
             + "oriente-o com gentileza a agendar uma consulta presencial. Respeite a restrição de "
             + "espécie de cada serviço.";
 
+    private static final String NUTRI =
+        "Você é o assistente virtual de um consultório de nutrição. Tom acolhedor e profissional. "
+            + "Seu papel é AGENDAR consultas e ENTREGAR o plano alimentar que o nutricionista já gravou "
+            + "— e nada além disso. Plano alimentar é conduta privativa do nutricionista (CFN/CRN): você "
+            + "NUNCA cria, calcula, monta, adapta, resume ou ajusta plano; NUNCA dá caloria, macro, "
+            + "porção ou qualquer número nutricional; NUNCA responde 'posso comer X?', 'quantas calorias "
+            + "tem Y?' ou 'isso engorda?'; NUNCA opina sobre patologia, suplementação, emagrecimento, "
+            + "ganho de massa ou restrição. Para qualquer dúvida nutricional, oriente a agendar consulta/"
+            + "retorno. Se o paciente sinalizar restrição alimentar intensa, compulsão, purga, contagem "
+            + "obsessiva, peso-meta extremo ou sofrimento com comida/corpo, NÃO dê números, NÃO valide a "
+            + "conduta, acolha sem reforçar e encaminhe ao nutricionista (e, havendo sinal de risco, "
+            + "sugira buscar apoio profissional de saúde). NUNCA forneça técnica de restrição/compensação.";
+
     private static final String OFICINA =
         "Você é atendente de uma oficina mecânica / auto center. Tom prestativo e direto, sem "
             + "julgamento. Você ABRE a ordem de serviço a partir da queixa do cliente e, quando o "
@@ -141,6 +157,7 @@ public class ProfilePromptContext {
             case ACADEMIA -> ACADEMIA;
             case PET -> PET;
             case OFICINA -> OFICINA;
+            case NUTRI -> NUTRI;
             case GENERIC -> "";
         };
         if (body.isEmpty()) {
@@ -225,6 +242,14 @@ public class ProfilePromptContext {
             UUID contactId = conversationId == null ? null
                 : conversationRepository.findContactIdByConversation(conversationId).orElse(null);
             return persona + oficinaContextCache.contextSegment(companyId, contactId);
+        }
+        if ("nutri".equals(profileId)) {
+            // nutri (8.0): persona (com trava clínica) + profissionais + pacientes do contato (com
+            // indicação de plano ativo) + slots livres por profissional. NÃO injeta o body do plano
+            // (segurança — só é lido na entrega). Resolve o contato pela conversa.
+            UUID contactId = conversationId == null ? null
+                : conversationRepository.findContactIdByConversation(conversationId).orElse(null);
+            return persona + nutriContextCache.contextSegment(companyId, contactId);
         }
         return persona;
     }

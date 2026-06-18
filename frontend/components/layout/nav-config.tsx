@@ -22,6 +22,7 @@ import {
   MessageSquareText,
   Car,
   ClipboardCheck,
+  FileText,
   Package,
   Palette,
   PawPrint,
@@ -186,6 +187,9 @@ export function getNavForProfile(profileId: string | null | undefined): NavGroup
   if (profileId === 'oficina') {
     return [OFICINA_GROUP, ...NAV_GROUPS]
   }
+  if (profileId === 'nutri') {
+    return [NUTRI_GROUP, ...NAV_GROUPS]
+  }
   return NAV_GROUPS
 }
 
@@ -281,5 +285,17 @@ const OFICINA_GROUP: NavGroup = {
     { label: 'Veículos', href: '/dashboard/oficina-vehicles', icon: Car },
     { label: 'Ordens', href: '/dashboard/oficina-orders', icon: ClipboardCheck },
     { label: 'Configurações', href: '/dashboard/oficina-settings', icon: Settings },
+  ],
+}
+
+/** Grupo de navegação exclusivo do perfil nutri (camada 8.0). "Nutri". Rotas /dashboard/nutri-*. */
+const NUTRI_GROUP: NavGroup = {
+  heading: 'Nutri',
+  items: [
+    { label: 'Profissionais', href: '/dashboard/nutri-professionals', icon: Stethoscope },
+    { label: 'Pacientes', href: '/dashboard/nutri-patients', icon: Users },
+    { label: 'Planos', href: '/dashboard/nutri-plans', icon: FileText },
+    { label: 'Agenda', href: '/dashboard/nutri-appointments', icon: CalendarClock },
+    { label: 'Configurações', href: '/dashboard/nutri-settings', icon: Settings },
   ],
 }

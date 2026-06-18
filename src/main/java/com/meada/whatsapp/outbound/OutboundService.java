@@ -98,6 +98,9 @@ public class OutboundService {
     // Camada 7.9 (perfil oficina): pós-processa <ordem_servico> (abre OS) e <aprovacao_os> (muta estado).
     private final com.meada.whatsapp.profiles.oficina.orders.AberturaOsConfirmHandler aberturaOsConfirmHandler;
     private final com.meada.whatsapp.profiles.oficina.orders.AprovacaoOsHandler aprovacaoOsHandler;
+    // Camada 8.0 (perfil nutri): pós-processa <consulta_nutri> (agenda) e <entrega_plano> (entrega o body exato).
+    private final com.meada.whatsapp.profiles.nutri.appointments.AgendamentoNutriConfirmHandler agendamentoNutriConfirmHandler;
+    private final com.meada.whatsapp.profiles.nutri.appointments.EntregaPlanoHandler entregaPlanoHandler;
 
     private final int maxAttempts;
     private final List<Duration> backoffs;
@@ -142,6 +145,8 @@ public class OutboundService {
                            com.meada.whatsapp.profiles.pet.appointments.AgendamentoPetConfirmHandler agendamentoPetConfirmHandler,
                            com.meada.whatsapp.profiles.oficina.orders.AberturaOsConfirmHandler aberturaOsConfirmHandler,
                            com.meada.whatsapp.profiles.oficina.orders.AprovacaoOsHandler aprovacaoOsHandler,
+                           com.meada.whatsapp.profiles.nutri.appointments.AgendamentoNutriConfirmHandler agendamentoNutriConfirmHandler,
+                           com.meada.whatsapp.profiles.nutri.appointments.EntregaPlanoHandler entregaPlanoHandler,
                            @org.springframework.beans.factory.annotation.Value("${gemini.model}")
                            String geminiModel) {
         this.conversationRepository = conversationRepository;
@@ -168,6 +173,8 @@ public class OutboundService {
         this.agendamentoPetConfirmHandler = agendamentoPetConfirmHandler;
         this.aberturaOsConfirmHandler = aberturaOsConfirmHandler;
         this.aprovacaoOsHandler = aprovacaoOsHandler;
+        this.agendamentoNutriConfirmHandler = agendamentoNutriConfirmHandler;
+        this.entregaPlanoHandler = entregaPlanoHandler;
         this.geminiModel = geminiModel;
         this.maxAttempts = retryProps.maxAttempts();
         // converte uma vez (lista YAML de millis → Durations). O RetryRunner valida
@@ -280,6 +287,9 @@ public class OutboundService {
 
         toSend = maybeProcessAberturaOs(event, conversationId, toSend);
         toSend = maybeProcessAprovacaoOs(event, conversationId, toSend);
+
+        toSend = maybeProcessConsultaNutri(event, conversationId, toSend);
+        toSend = maybeProcessEntregaPlano(event, conversationId, toSend);
         Optional<OutboundOutcome> sendFailure = sendAndPersist(event, conversationId, toSend);
         if (sendFailure.isPresent()) {
             return sendFailure.get();   // casos 7/8/9 — já logado lá
@@ -599,6 +609,58 @@ public class OutboundService {
         }
         aprovacaoOsHandler.parseAndApply(event.companyId(), conversationId, reply);
         String stripped = aprovacaoOsHandler.stripTag(reply);
+        return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
+            aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
+            aiResponse.schedulingIntent(), aiResponse.insights());
+    }
+
+    /**
+     * Caso o tenant seja perfil 'nutri' (camada 8.0) e a resposta da IA contenha a tag
+     * {@code <consulta_nutri>}, AGENDA a consulta (AgendamentoNutriConfirmHandler resolve o paciente
+     * e, no modo new_patient, cadastra antes) e devolve um AiResponse com a tag removida; senão
+     * devolve o aiResponse original. Tag distinta de {@code <consulta>} (dental). Best-effort.
+     */
+    private AiResponse maybeProcessConsultaNutri(MessageInboundProcessedEvent event,
+                                                 UUID conversationId, AiResponse aiResponse) {
+        String reply = aiResponse.reply();
+        if (reply == null || !agendamentoNutriConfirmHandler.hasTag(reply)) {
+            return aiResponse;
+        }
+        if (!"nutri".equals(companyProfileRepository.findProfileId(event.companyId()))) {
+            return aiResponse;
+        }
+        Optional<UUID> contactId = conversationRepository.findContactIdByConversation(conversationId);
+        if (contactId.isPresent()) {
+            agendamentoNutriConfirmHandler.parseAndCreate(event.companyId(), conversationId, contactId.get(), reply);
+        }
+        String stripped = agendamentoNutriConfirmHandler.stripTag(reply);
+        return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
+            aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
+            aiResponse.schedulingIntent(), aiResponse.insights());
+    }
+
+    /**
+     * Caso o tenant seja perfil 'nutri' (camada 8.0) e a resposta da IA contenha a tag
+     * {@code <entrega_plano>}, ENTREGA o plano alimentar ATIVO do paciente — o EntregaPlanoHandler
+     * envia o BODY EXATO gravado pelo profissional como uma mensagem outbound separada (NÃO passa
+     * pela geração da IA, pra não ser reescrito) e só para paciente do PRÓPRIO contato (segurança).
+     * A tag é removida da mensagem da IA (que pode ter um texto-wrapper "aqui está seu plano:").
+     * Best-effort: sem plano ativo ou sem permissão → nada é entregue, a IA já orienta agendar.
+     */
+    private AiResponse maybeProcessEntregaPlano(MessageInboundProcessedEvent event,
+                                                UUID conversationId, AiResponse aiResponse) {
+        String reply = aiResponse.reply();
+        if (reply == null || !entregaPlanoHandler.hasTag(reply)) {
+            return aiResponse;
+        }
+        if (!"nutri".equals(companyProfileRepository.findProfileId(event.companyId()))) {
+            return aiResponse;
+        }
+        Optional<UUID> contactId = conversationRepository.findContactIdByConversation(conversationId);
+        if (contactId.isPresent()) {
+            entregaPlanoHandler.parseAndDeliver(event.companyId(), conversationId, contactId.get(), reply);
+        }
+        String stripped = entregaPlanoHandler.stripTag(reply);
         return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
             aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
             aiResponse.schedulingIntent(), aiResponse.insights());
