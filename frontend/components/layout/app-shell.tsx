@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { Menu as MenuIcon, X } from 'lucide-react'
+import { usePathname } from 'next/navigation'
 import { useState, type ReactNode } from 'react'
 
 import { AnnouncementBanner } from '@/components/announcement-banner'
@@ -10,6 +11,7 @@ import { RealtimeNotifications } from '@/components/realtime-notifications'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Button } from '@/components/ui/button'
 import { getMe } from '@/lib/api/me'
+import { useCaptureCmsReturn } from '@/lib/cms/use-cms-return'
 import { Sidebar, SidebarBrand, SidebarNav } from './sidebar'
 import { SidebarProvider } from './sidebar-context'
 import { SidebarTab } from './sidebar-tab'
@@ -30,6 +32,25 @@ import { UserDropdown } from './user-dropdown'
 export function AppShell({ children }: { children: ReactNode }) {
   const { data: me } = useQuery({ queryKey: ['me'], queryFn: getMe })
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const pathname = usePathname()
+  const isCms = pathname?.startsWith('/dashboard/cms') ?? false
+  // captura a rota de origem ao entrar no CMS (incondicional — hooks não podem ser condicionais).
+  useCaptureCmsReturn()
+
+  // No CMS, o editor é tela-cheia: escondemos o shell admin (sidebar/header/drawer/banner) e
+  // renderizamos os children full-bleed (sem max-w-6xl). GlobalSearch/RealtimeNotifications seguem
+  // montados (overlays fixed). A saída do CMS é o botão Voltar / logo da topbar do editor.
+  if (isCms) {
+    return (
+      <SidebarProvider>
+        <div className="flex h-screen flex-col bg-background">
+          <GlobalSearch />
+          <RealtimeNotifications />
+          <main className="min-h-0 flex-1">{children}</main>
+        </div>
+      </SidebarProvider>
+    )
+  }
 
   return (
     <SidebarProvider>
