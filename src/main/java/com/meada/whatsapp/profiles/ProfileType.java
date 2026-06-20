@@ -33,7 +33,8 @@ public enum ProfileType {
     ACADEMIA("academia", "AcademiaBot", "academia", "pinheiro"),
     PET("pet", "PetBot", "pet", "coral"),
     OFICINA("oficina", "OficinaBot", "oficina", "aco"),
-    NUTRI("nutri", "NutriBot", "nutri", "salvia");
+    NUTRI("nutri", "NutriBot", "nutri", "salvia"),
+    BARBEARIA("barbearia", "BarbeariaBot", "barbearia", "grafite");
 
     private final String id;
     private final String productName;

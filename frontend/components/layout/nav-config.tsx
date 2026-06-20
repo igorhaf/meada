@@ -17,6 +17,7 @@ import {
   HelpCircle,
   Home,
   LayoutDashboard,
+  ListOrdered,
   Mail,
   Megaphone,
   MessageSquare,
@@ -193,6 +194,7 @@ function profileGroups(profileId: string | null | undefined): NavGroup[] {
   if (profileId === 'pet') return [PET_GROUP, ...NAV_GROUPS]
   if (profileId === 'oficina') return [OFICINA_GROUP, ...NAV_GROUPS]
   if (profileId === 'nutri') return [NUTRI_GROUP, ...NAV_GROUPS]
+  if (profileId === 'barbearia') return [BARBEARIA_GROUP, ...NAV_GROUPS]
   return NAV_GROUPS
 }
 
@@ -306,5 +308,18 @@ const NUTRI_GROUP: NavGroup = {
     { label: 'Planos', href: '/dashboard/nutri-plans', icon: FileText },
     { label: 'Agenda', href: '/dashboard/nutri-appointments', icon: CalendarClock },
     { label: 'Configurações', href: '/dashboard/nutri-settings', icon: Settings },
+  ],
+}
+
+/** Grupo de navegação exclusivo do perfil barbearia (camada 8.1). "Barbearia". Rotas
+ * /dashboard/barber-*. A Fila é a tela da escapada (walk-in com posição derivada). */
+const BARBEARIA_GROUP: NavGroup = {
+  heading: 'Barbearia',
+  items: [
+    { label: 'Barbeiros', href: '/dashboard/barber-barbers', icon: Scissors },
+    { label: 'Serviços', href: '/dashboard/barber-services', icon: Wand2 },
+    { label: 'Agenda', href: '/dashboard/barber-appointments', icon: CalendarClock },
+    { label: 'Fila', href: '/dashboard/barber-queue', icon: ListOrdered },
+    { label: 'Configurações', href: '/dashboard/barber-settings', icon: Settings },
   ],
 }

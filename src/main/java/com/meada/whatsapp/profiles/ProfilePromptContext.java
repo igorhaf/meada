@@ -31,6 +31,7 @@ public class ProfilePromptContext {
     private final com.meada.whatsapp.profiles.pet.PetContextCache petContextCache;
     private final com.meada.whatsapp.profiles.oficina.OficinaContextCache oficinaContextCache;
     private final com.meada.whatsapp.profiles.nutri.NutriContextCache nutriContextCache;
+    private final com.meada.whatsapp.profiles.barbearia.BarberContextCache barberContextCache;
     private final ConversationRepository conversationRepository;
 
     public ProfilePromptContext(SushiMenuCache sushiMenuCache,
@@ -43,6 +44,7 @@ public class ProfilePromptContext {
                                 com.meada.whatsapp.profiles.pet.PetContextCache petContextCache,
                                 com.meada.whatsapp.profiles.oficina.OficinaContextCache oficinaContextCache,
                                 com.meada.whatsapp.profiles.nutri.NutriContextCache nutriContextCache,
+                                com.meada.whatsapp.profiles.barbearia.BarberContextCache barberContextCache,
                                 ConversationRepository conversationRepository) {
         this.sushiMenuCache = sushiMenuCache;
         this.legalCaseContextCache = legalCaseContextCache;
@@ -54,6 +56,7 @@ public class ProfilePromptContext {
         this.petContextCache = petContextCache;
         this.oficinaContextCache = oficinaContextCache;
         this.nutriContextCache = nutriContextCache;
+        this.barberContextCache = barberContextCache;
         this.conversationRepository = conversationRepository;
     }
 
@@ -133,6 +136,18 @@ public class ProfilePromptContext {
             + "(quem orça é o mecânico no balcão), e NUNCA prometa um prazo que não esteja na OS. Para "
             + "qualquer dúvida técnica, oriente a avaliação presencial.";
 
+    private static final String BARBEARIA =
+        "Você é atendente de uma barbearia. Tom descontraído e acolhedor, sem julgamento. Conheça os "
+            + "serviços (com preço quando informado) e os barbeiros. O cliente tem DOIS caminhos: (1) "
+            + "MARCAR um horário com um barbeiro, ou (2) ENTRAR NA FILA de walk-in (por ordem de chegada, "
+            + "sem hora marcada) quando quer ser atendido 'assim que der' — pergunte qual ele prefere. "
+            + "NUNCA recomende serviço que o cliente não pediu (sem upsell agressivo), NUNCA opine sobre "
+            + "a aparência/estilo do cliente, e não prometa resultado de corte. Sobre a fila: a posição e "
+            + "o tempo de espera são SEMPRE ESTIMATIVA ('aproximadamente') — desistências e horários "
+            + "marcados mexem a fila; NUNCA prometa tempo exato nem 'você é o próximo garantido'. Você NÃO "
+            + "chama o cliente: quem chama é o barbeiro no balcão; você só ENFILEIRA e INFORMA a posição/"
+            + "espera estimadas.";
+
     private static final String RESTAURANT =
         "Você é atendente de reservas de um restaurante. Tom acolhedor e ágil. Conheça as mesas "
             + "disponíveis e os horários livres. Quando o cliente pedir reserva, verifique a "
@@ -158,6 +173,7 @@ public class ProfilePromptContext {
             case PET -> PET;
             case OFICINA -> OFICINA;
             case NUTRI -> NUTRI;
+            case BARBEARIA -> BARBEARIA;
             case GENERIC -> "";
         };
         if (body.isEmpty()) {
@@ -250,6 +266,14 @@ public class ProfilePromptContext {
             UUID contactId = conversationId == null ? null
                 : conversationRepository.findContactIdByConversation(conversationId).orElse(null);
             return persona + nutriContextCache.contextSegment(companyId, contactId);
+        }
+        if ("barbearia".equals(profileId)) {
+            // barbearia (8.1): persona + serviços + barbeiros + TAMANHO DA FILA por barbeiro/geral +
+            // histórico do contato + slots livres POR barbeiro (próximos 3 dias) + instruções das 2
+            // tags (<agendamento_barbearia>, <fila_barbearia>). Resolve o contato pela conversa.
+            UUID contactId = conversationId == null ? null
+                : conversationRepository.findContactIdByConversation(conversationId).orElse(null);
+            return persona + barberContextCache.contextSegment(companyId, contactId);
         }
         return persona;
     }

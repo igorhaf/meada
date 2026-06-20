@@ -670,6 +670,62 @@ IA atende pacientes via WhatsApp — agenda consultas e ENTREGA o plano que o nu
   toca dev/prod.
 - Guia operacional do tenant: `docs/PERFIL_NUTRI.md`.
 
+## Perfil Barbearia (BarbeariaBot, camada 8.1)
+
+DÉCIMO PRIMEIRO perfil vertical real (sushi/legal/restaurant/dental/salon/pousada/academia/pet/
+oficina/nutri/barbearia). O tenant barbearia (`profile_id='barbearia'`) vira um produto de BARBEARIA /
+barber shop: gerencia barbeiros e serviços, marca horários na agenda, E gerencia uma FILA DE WALK-IN
+(por ordem de chegada). A IA atende clientes via WhatsApp com tom descontraído-acolhedor e oferece
+DOIS caminhos: MARCAR horário com um barbeiro, ou ENTRAR NA FILA quando o cliente quer ser atendido
+"assim que der".
+
+- **CLONA o chassi do SALON (7.5):** barbeiros (~salon_professionals), serviços (~salon_offerings),
+  config + agenda com conflito POR BARBEIRO (overlap half-open, re-verificado na transação),
+  duração por serviço, snapshots, `end_at` materializado no INSERT (lição timestamptz+interval).
+  Cliente NÃO é entidade (continua contact; snapshots guest_name/phone no appointment e no ticket).
+- **ESCAPADA ESTRUTURAL — FILA DE WALK-IN COM POSIÇÃO DERIVADA (`barber_queue_tickets`):** primeiro
+  perfil com ORDEM RELATIVA sem âncora temporal absoluta (todos os anteriores ancoravam em coordenada
+  absoluta: slot pontual, intervalo de dias, assinatura, order). A POSIÇÃO **não é coluna persistida**
+  — é DERIVADA por query (`BarberQueueRepository.countAhead*`: count de tickets 'aguardando' com
+  `enqueued_at` menor no mesmo escopo, +1). Atender/desistir de quem está à frente **RECOMPUTA todas
+  as posições sem nenhum UPDATE de reordenação**. `enqueued_at` é a âncora de ordem; SEM coluna
+  `position`. Regra de escopo do "qualquer barbeiro" (cravada): ticket GERAL (`barber_id` null)
+  concorre com TODOS os 'aguardando' à frente; ticket de barbeiro X concorre com os de X + os GERAIS à
+  frente (um geral à frente pode pegar o barbeiro X). ETA estimado = soma das durações à frente
+  (informativo; a IA apresenta SEMPRE como estimativa explícita "aproximadamente").
+- **Modelo (migration 43):** `barber_barbers` + `barber_services` (duration 5..480) + `barber_config`
+  (opens/closes + `slot_minutes` + `queue_enabled`) + `barber_appointments` (clone salon_appointments,
+  conflito por barber_id) + `barber_queue_tickets` (a entidade nova). FK do ticket→barber é
+  `on delete set null` (null = qualquer barbeiro); por isso o delete de barbeiro checa tickets
+  EXPLICITAMENTE no service (não só a FK restrict do appointment) → 409 barber_in_use.
+- **DUAS máquinas de status hardcoded** (cada uma com parity test Java↔TS):
+  `BarberAppointmentStatus` (clone salon: agendado→confirmado/cancelado; confirmado→realizado/cancelado/
+  falta) e `BarberQueueStatus` (NOVA: aguardando→chamado/desistiu/expirado; chamado→atendido/desistiu).
+- **A IA NÃO move ticket de status (não chama o próximo):** a transição aguardando→chamado é AÇÃO
+  HUMANA no painel (espelho do "cancelamento bloqueado por IA" do dental) e dispara a notificação
+  "chegou sua vez" (a notificação crítica do walk-in). Só **chamado** (ticket) notifica; os demais são
+  silenciosos. NÃO existe callNext automático (fila→agenda) nesta SM — fica no NÃO TEM.
+- **DUAS TAGS distintas** (namespace próprio, distintas do `<agendamento>` do salon e de todas as
+  outras): `<agendamento_barbearia>` MARCA horário (AgendamentoBarbeariaConfirmHandler, clone salon);
+  `<fila_barbearia>` ENFILEIRA (EntrarFilaHandler; `barber_id` opcional null=qualquer; se
+  queue_enabled=false → no-op). OutboundService: `maybeProcessAgendamentoBarbearia` +
+  `maybeProcessFilaBarbearia` (encadeados após os outros perfis; perfil é único, só um age).
+- **Persona BARBER nova** (tom descontraído-acolhedor, sem julgamento estético, sem prometer resultado
+  de corte, sem upsell agressivo). Contexto via `BarberContextCache` **TTL 10s — A MAIS CURTA do
+  projeto** (abaixo dos 15s do restaurant), porque a fila muda a cada cliente: barbeiros + serviços +
+  TAMANHO DA FILA por barbeiro/geral + agenda/slots livres por barbeiro (próximos 3 dias) + histórico
+  do contato. Invalidação explícita em toda mutação.
+- **Guard:** `BarberProfileGuard` (403 forbidden_wrong_profile). `JwtAuthenticationFilter` autentica
+  `/api/barbearia/**` (além dos 10 perfis anteriores).
+- **Sidebar:** `getNavForProfile('barbearia')` injeta "Barbearia" (Barbeiros/Serviços/Agenda/Fila/
+  Configurações). Telas `/dashboard/barber-{barbers,services,appointments,queue,settings}` — a de fila
+  mostra a posição derivada + ETA e o botão "Chamar". Paleta `grafite` (grafite/âmbar).
+- **NÃO TEM:** callNext automático (converte ticket em atendimento materializando start_at=now() e
+  re-checando a agenda), scheduler de timeout/lembrete da fila, painel de TV/display público/QR,
+  pagamento/comanda/gorjeta (Stripe #50), assinatura de cortes recorrentes (academia cobre recorrência),
+  foto do corte (bloqueador SERVICE_ROLE_KEY), barbeiro com múltiplas cadeiras paralelas. Fases futuras.
+- Guia operacional do tenant: `docs/PERFIL_BARBEARIA.md`.
+
 ## Camada 9.0 — Feature Flags por Nicho (infra de plataforma)
 
 Infra pro ROOT (super-admin) ligar/desligar features por nicho num lugar só. A 1ª feature é o **CMS**

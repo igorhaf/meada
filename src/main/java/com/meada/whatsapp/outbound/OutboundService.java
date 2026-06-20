@@ -101,6 +101,9 @@ public class OutboundService {
     // Camada 8.0 (perfil nutri): pós-processa <consulta_nutri> (agenda) e <entrega_plano> (entrega o body exato).
     private final com.meada.whatsapp.profiles.nutri.appointments.AgendamentoNutriConfirmHandler agendamentoNutriConfirmHandler;
     private final com.meada.whatsapp.profiles.nutri.appointments.EntregaPlanoHandler entregaPlanoHandler;
+    // Camada 8.1 (perfil barbearia): pós-processa <agendamento_barbearia> (marca) e <fila_barbearia> (enfileira).
+    private final com.meada.whatsapp.profiles.barbearia.appointments.AgendamentoBarbeariaConfirmHandler agendamentoBarbeariaConfirmHandler;
+    private final com.meada.whatsapp.profiles.barbearia.queue.EntrarFilaHandler entrarFilaHandler;
 
     private final int maxAttempts;
     private final List<Duration> backoffs;
@@ -147,6 +150,8 @@ public class OutboundService {
                            com.meada.whatsapp.profiles.oficina.orders.AprovacaoOsHandler aprovacaoOsHandler,
                            com.meada.whatsapp.profiles.nutri.appointments.AgendamentoNutriConfirmHandler agendamentoNutriConfirmHandler,
                            com.meada.whatsapp.profiles.nutri.appointments.EntregaPlanoHandler entregaPlanoHandler,
+                           com.meada.whatsapp.profiles.barbearia.appointments.AgendamentoBarbeariaConfirmHandler agendamentoBarbeariaConfirmHandler,
+                           com.meada.whatsapp.profiles.barbearia.queue.EntrarFilaHandler entrarFilaHandler,
                            @org.springframework.beans.factory.annotation.Value("${gemini.model}")
                            String geminiModel) {
         this.conversationRepository = conversationRepository;
@@ -175,6 +180,8 @@ public class OutboundService {
         this.aprovacaoOsHandler = aprovacaoOsHandler;
         this.agendamentoNutriConfirmHandler = agendamentoNutriConfirmHandler;
         this.entregaPlanoHandler = entregaPlanoHandler;
+        this.agendamentoBarbeariaConfirmHandler = agendamentoBarbeariaConfirmHandler;
+        this.entrarFilaHandler = entrarFilaHandler;
         this.geminiModel = geminiModel;
         this.maxAttempts = retryProps.maxAttempts();
         // converte uma vez (lista YAML de millis → Durations). O RetryRunner valida
@@ -290,6 +297,10 @@ public class OutboundService {
 
         toSend = maybeProcessConsultaNutri(event, conversationId, toSend);
         toSend = maybeProcessEntregaPlano(event, conversationId, toSend);
+        // Camada 8.1 (perfil barbearia): <agendamento_barbearia> marca horário; <fila_barbearia>
+        // enfileira o cliente no walk-in. Encadeados (perfil é único; só um age).
+        toSend = maybeProcessAgendamentoBarbearia(event, conversationId, toSend);
+        toSend = maybeProcessFilaBarbearia(event, conversationId, toSend);
         Optional<OutboundOutcome> sendFailure = sendAndPersist(event, conversationId, toSend);
         if (sendFailure.isPresent()) {
             return sendFailure.get();   // casos 7/8/9 — já logado lá
@@ -661,6 +672,57 @@ public class OutboundService {
             entregaPlanoHandler.parseAndDeliver(event.companyId(), conversationId, contactId.get(), reply);
         }
         String stripped = entregaPlanoHandler.stripTag(reply);
+        return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
+            aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
+            aiResponse.schedulingIntent(), aiResponse.insights());
+    }
+
+    /**
+     * Caso o tenant seja perfil 'barbearia' (camada 8.1) e a resposta da IA contenha a tag
+     * {@code <agendamento_barbearia>}, MARCA o horário (AgendamentoBarbeariaConfirmHandler resolve o
+     * contato, conflito por barbeiro) e devolve um AiResponse com a tag removida; senão devolve o
+     * original. Tag distinta do {@code <agendamento>} do salon. Best-effort.
+     */
+    private AiResponse maybeProcessAgendamentoBarbearia(MessageInboundProcessedEvent event,
+                                                        UUID conversationId, AiResponse aiResponse) {
+        String reply = aiResponse.reply();
+        if (reply == null || !agendamentoBarbeariaConfirmHandler.hasAgendamentoTag(reply)) {
+            return aiResponse;
+        }
+        if (!"barbearia".equals(companyProfileRepository.findProfileId(event.companyId()))) {
+            return aiResponse;
+        }
+        Optional<UUID> contactId = conversationRepository.findContactIdByConversation(conversationId);
+        if (contactId.isPresent()) {
+            agendamentoBarbeariaConfirmHandler.parseAndCreate(event.companyId(), conversationId, contactId.get(), reply);
+        }
+        String stripped = agendamentoBarbeariaConfirmHandler.stripAgendamentoTag(reply);
+        return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
+            aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
+            aiResponse.schedulingIntent(), aiResponse.insights());
+    }
+
+    /**
+     * Caso o tenant seja perfil 'barbearia' (camada 8.1) e a resposta da IA contenha a tag
+     * {@code <fila_barbearia>}, ENFILEIRA o cliente no walk-in (EntrarFilaHandler resolve o contato,
+     * calcula posição/ETA derivados) e devolve um AiResponse com a tag removida; senão devolve o
+     * original. Se a fila está desligada (queue_enabled=false), é no-op (nenhum ticket criado). A IA
+     * informa a posição/espera estimadas na própria mensagem. Best-effort.
+     */
+    private AiResponse maybeProcessFilaBarbearia(MessageInboundProcessedEvent event,
+                                                 UUID conversationId, AiResponse aiResponse) {
+        String reply = aiResponse.reply();
+        if (reply == null || !entrarFilaHandler.hasFilaTag(reply)) {
+            return aiResponse;
+        }
+        if (!"barbearia".equals(companyProfileRepository.findProfileId(event.companyId()))) {
+            return aiResponse;
+        }
+        Optional<UUID> contactId = conversationRepository.findContactIdByConversation(conversationId);
+        if (contactId.isPresent()) {
+            entrarFilaHandler.parseAndEnqueue(event.companyId(), conversationId, contactId.get(), reply);
+        }
+        String stripped = entrarFilaHandler.stripFilaTag(reply);
         return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
             aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
             aiResponse.schedulingIntent(), aiResponse.insights());
