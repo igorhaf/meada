@@ -23,6 +23,7 @@ import type {
 import type { CmsNavItem, CmsTheme } from '@/lib/cms/public-fetch'
 import { MeadaHero } from '@/components/cms/blocks/meada-hero'
 import { MeadaCta, MeadaPortfolio, MeadaServices } from '@/components/cms/blocks/meada-sections'
+import { MeadaFooter, MeadaNavbar } from '@/components/cms/blocks/meada-chrome'
 
 /**
  * Renderizador do CMS (SM-N / catálogo ampliado). Renderiza os 18 tipos de bloco. Tema: cor primária
@@ -458,6 +459,8 @@ export const blockComponents = {
   meada_services: MeadaServices,
   meada_portfolio: MeadaPortfolio,
   meada_cta: MeadaCta,
+  meada_navbar: MeadaNavbar,
+  meada_footer: MeadaFooter,
 } as const
 
 /** Renderiza um bloco (com key = block.id). Compartilhado entre CmsRender (público) e o editor. */
@@ -485,6 +488,8 @@ export function renderCmsBlock(b: CmsBlock): React.ReactElement | null {
     case 'meada_services': return <MeadaServices key={b.id} props={b.props} />
     case 'meada_portfolio': return <MeadaPortfolio key={b.id} props={b.props} />
     case 'meada_cta': return <MeadaCta key={b.id} props={b.props} />
+    case 'meada_navbar': return <MeadaNavbar key={b.id} props={b.props} />
+    case 'meada_footer': return <MeadaFooter key={b.id} props={b.props} />
     default: return null
   }
 }

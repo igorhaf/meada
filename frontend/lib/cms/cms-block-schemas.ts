@@ -369,6 +369,41 @@ export const blockSchemas: Record<CmsBlockTypeId, BlockSchema> = {
       { key: 'secondaryHref', label: 'Botão secundário — link', type: 'url' },
     ],
   },
+
+  meada_navbar: {
+    type: 'meada_navbar', label: 'Meada · Navbar', emoji: '🧭',
+    description: 'Barra de navegação fixa com logo Meada + links + botão. Adicione no TOPO de cada página.',
+    fields: [
+      { key: 'brandName', label: 'Marca — nome', type: 'text' },
+      { key: 'brandSuffix', label: 'Marca — sufixo', type: 'text' },
+      { key: 'links', label: 'Links de navegação', type: 'repeater', itemLabel: 'link', itemSchema: [
+        { key: 'label', label: 'Texto', type: 'text' },
+        { key: 'href', label: 'Destino', type: 'text' },
+      ] },
+      { key: 'ctaLabel', label: 'Botão — texto', type: 'text' },
+      { key: 'ctaHref', label: 'Botão — destino', type: 'url' },
+    ],
+  },
+
+  meada_footer: {
+    type: 'meada_footer', label: 'Meada · Rodapé', emoji: '🦶',
+    description: 'Rodapé com logo, redes sociais e colunas de links. Adicione no FIM de cada página.',
+    fields: [
+      { key: 'brandName', label: 'Marca — nome', type: 'text' },
+      { key: 'brandSuffix', label: 'Marca — sufixo', type: 'text' },
+      { key: 'tagline', label: 'Descrição da marca', type: 'textarea' },
+      { key: 'instagramUrl', label: 'Instagram (URL)', type: 'url' },
+      { key: 'whatsappUrl', label: 'WhatsApp (URL)', type: 'url' },
+      { key: 'columns', label: 'Colunas de links', type: 'repeater', itemLabel: 'coluna', itemSchema: [
+        { key: 'heading', label: 'Título da coluna', type: 'text' },
+        { key: 'links', label: 'Links', type: 'repeater', itemLabel: 'link', itemSchema: [
+          { key: 'label', label: 'Texto', type: 'text' },
+          { key: 'href', label: 'Destino', type: 'text' },
+        ] },
+      ] },
+      { key: 'copyright', label: 'Copyright (sem o ano)', type: 'text' },
+    ],
+  },
 }
 
 /** Schema de um tipo (ou undefined se desconhecido). */

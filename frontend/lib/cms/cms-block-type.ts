@@ -33,6 +33,8 @@ export const CMS_BLOCK_TYPES = [
   { id: 'meada_services', label: 'Meada · Serviços' },
   { id: 'meada_portfolio', label: 'Meada · Portfólio' },
   { id: 'meada_cta', label: 'Meada · Chamada final' },
+  { id: 'meada_navbar', label: 'Meada · Navbar' },
+  { id: 'meada_footer', label: 'Meada · Rodapé' },
 ] as const
 
 export type CmsBlockTypeId = (typeof CMS_BLOCK_TYPES)[number]['id']
@@ -144,6 +146,25 @@ export type MeadaCtaProps = {
   secondaryHref: string
 }
 
+export type MeadaNavLink = { label: string; href: string }
+export type MeadaNavbarProps = {
+  brandName: string
+  brandSuffix: string
+  links: MeadaNavLink[]
+  ctaLabel: string
+  ctaHref: string
+}
+export type MeadaFooterColumn = { heading: string; links: MeadaNavLink[] }
+export type MeadaFooterProps = {
+  brandName: string
+  brandSuffix: string
+  tagline: string
+  instagramUrl: string
+  whatsappUrl: string
+  columns: MeadaFooterColumn[]
+  copyright: string
+}
+
 export type CmsBlock =
   | { id: string; type: 'hero'; props: HeroProps }
   | { id: string; type: 'text'; props: TextProps }
@@ -167,6 +188,8 @@ export type CmsBlock =
   | { id: string; type: 'meada_services'; props: MeadaServicesProps }
   | { id: string; type: 'meada_portfolio'; props: MeadaPortfolioProps }
   | { id: string; type: 'meada_cta'; props: MeadaCtaProps }
+  | { id: string; type: 'meada_navbar'; props: MeadaNavbarProps }
+  | { id: string; type: 'meada_footer'; props: MeadaFooterProps }
 
 /** Props default ao adicionar um bloco novo do tipo dado. */
 export function defaultProps(type: CmsBlockTypeId): CmsBlock['props'] {
@@ -270,6 +293,45 @@ export function defaultProps(type: CmsBlockTypeId): CmsBlock['props'] {
         primaryHref: '/contato',
         secondaryLabel: 'Ver Produtos',
         secondaryHref: '/produtos',
+      }
+    case 'meada_navbar':
+      return {
+        brandName: 'Meada',
+        brandSuffix: 'Digital',
+        links: [
+          { label: 'Serviços', href: '/servicos' },
+          { label: 'Produtos', href: '/produtos' },
+          { label: 'Sobre', href: '/sobre' },
+          { label: 'Contato', href: '/contato' },
+        ],
+        ctaLabel: 'Pedir orçamento',
+        ctaHref: '/contato',
+      }
+    case 'meada_footer':
+      return {
+        brandName: 'Meada',
+        brandSuffix: 'Digital',
+        tagline: 'Agência digital especializada em sites e sistemas sob medida para pequenos e médios negócios.',
+        instagramUrl: 'https://instagram.com/meadadigital',
+        whatsappUrl: 'https://wa.me/5581992612292',
+        columns: [
+          { heading: 'Serviços', links: [
+            { label: 'Sites Profissionais', href: '/servicos' },
+            { label: 'Sistemas sob Medida', href: '/servicos' },
+            { label: 'Manutenção & Suporte', href: '/contato' },
+          ] },
+          { heading: 'Empresa', links: [
+            { label: 'Sobre Nós', href: '/sobre' },
+            { label: 'Produtos', href: '/produtos' },
+            { label: 'Serviços', href: '/servicos' },
+          ] },
+          { heading: 'Contato', links: [
+            { label: 'oi@meadadigital.com', href: 'mailto:oi@meadadigital.com' },
+            { label: '(81) 99261-2292', href: 'https://wa.me/5581992612292' },
+            { label: '@meadadigital', href: 'https://instagram.com/meadadigital' },
+          ] },
+        ],
+        copyright: '© Meada Agência Digital. Todos os direitos reservados.',
       }
   }
 }
