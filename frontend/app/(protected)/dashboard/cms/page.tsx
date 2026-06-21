@@ -33,6 +33,7 @@ import {
 } from '@/components/cms/explorer/tree-ops'
 import { columnSchema, rowSchema } from '@/lib/cms/container-schemas'
 import { allBlockSchemas, blockSchema } from '@/lib/cms/cms-block-schemas'
+import { slotsForType, validateSlotKeys, BLOCK_SLOTS } from '@/lib/cms/cms-block-slots'
 import type { CmsBlock, CmsBlockTypeId, CmsColumnWidth, CmsRow, CmsRowProps } from '@/lib/cms/cms-block-type'
 import {
   createCmsPage,
@@ -134,7 +135,11 @@ export default function CmsEditorPage() {
     const col = row.columns.find((c) => c.id === selection.colId)
     if (!col) { setSelection(null); return }
     if (selection.kind === 'column') return
-    if (!col.blocks.some((b) => b.id === selection.blockId)) setSelection(null)
+    const block = col.blocks.find((b) => b.id === selection.blockId)
+    if (!block) { setSelection(null); return }
+    if (selection.kind === 'block') return
+    // kind === 'slot': além do bloco existir, o slotId tem que ser um slot válido do tipo do bloco.
+    if (!slotsForType(block.type).some((s) => s.id === selection.slotId)) setSelection(null)
   }, [tree, selection])
 
   // Escape fecha o painel direito.
@@ -144,6 +149,17 @@ export default function CmsEditorPage() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [selection])
+
+  // DEV: salvaguarda contra "prop fantasma" nos SlotDefs — sem test runner no front, valida em runtime
+  // (uma vez) que os keys de cada slot existem no schema e são disjuntos. Some no build de produção.
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'production') return
+    for (const type of Object.keys(BLOCK_SLOTS)) {
+      const fields = blockSchema(type)?.fields ?? []
+      const problems = validateSlotKeys(type, fields.map((f) => f.key))
+      if (problems.length) console.warn('[CMS slots] problemas de cobertura:', problems)
+    }
+  }, [])
 
   const savePageMut = useMutation({
     mutationFn: () => {
@@ -268,8 +284,13 @@ export default function CmsEditorPage() {
   // nós selecionados resolvidos a partir da árvore (pro painel direito).
   const selRow = selection ? tree.find((r) => r.id === selection.rowId) ?? null : null
   const selCol = selRow && selection && 'colId' in selection ? selRow.columns.find((c) => c.id === selection.colId) ?? null : null
-  const selBlock = selCol && selection?.kind === 'block' ? selCol.blocks.find((b) => b.id === selection.blockId) ?? null : null
+  // selBlock resolve tanto no modo bloco quanto no modo slot (o slot vive dentro de um bloco).
+  const selBlock = selCol && (selection?.kind === 'block' || selection?.kind === 'slot')
+    ? selCol.blocks.find((b) => b.id === selection.blockId) ?? null : null
   const selBlockSchema = selBlock ? blockSchema(selBlock.type) : undefined
+  // SlotDef selecionado (modo slot): qual partição de props o painel filtra.
+  const selSlotDef = selBlock && selection?.kind === 'slot'
+    ? slotsForType(selBlock.type).find((s) => s.id === selection.slotId) ?? null : null
 
   return (
     <div className="flex h-full flex-col">
@@ -365,8 +386,11 @@ export default function CmsEditorPage() {
                   row={row}
                   interactive={{
                     selectedRow: selection?.kind === 'row' && selection.rowId === row.id,
-                    containsSelectedBlock: selection?.kind === 'block' && selection.rowId === row.id,
+                    // contexto da linha vale tanto pro bloco quanto pro slot selecionado (ambos vivem na linha).
+                    containsSelectedBlock: (selection?.kind === 'block' || selection?.kind === 'slot') && selection.rowId === row.id,
                     selectedBlockId: selection?.kind === 'block' ? selection.blockId : null,
+                    selectedSlotBlockId: selection?.kind === 'slot' ? selection.blockId : null,
+                    selectedSlotId: selection?.kind === 'slot' ? selection.slotId : null,
                     onSelectRow: (rowId) => setSelection({ kind: 'row', rowId }),
                     onSelectBlock: (rowId, colId, blockId) => setSelection({ kind: 'block', rowId, colId, blockId }),
                   }}
@@ -445,6 +469,37 @@ export default function CmsEditorPage() {
                 </div>
               </>
             )}
+
+            {/* MODO SLOT — sub-parte de um macro (ex. hero). Mostra SÓ os campos do slot, editando as
+                MESMAS props via a MESMA tree-op. O pai (modo bloco) continua mostrando tudo. */}
+            {selection.kind === 'slot' && selBlock && selBlockSchema && selSlotDef && (() => {
+              const SlotIcon = selSlotDef.icon
+              return (
+              <>
+                <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                  <span className="flex items-center gap-2 font-medium"><SlotIcon className="size-4 text-primary" aria-hidden /> {selSlotDef.label}</span>
+                  <button type="button" onClick={() => setSelection(null)} aria-label="Fechar"><X className="size-4" /></button>
+                </div>
+                <div className="space-y-3 p-4">
+                  <p className="text-xs text-muted-foreground">
+                    Parte de <span className="font-medium">{selBlockSchema.label}</span>.{' '}
+                    <button type="button" className="text-primary underline-offset-2 hover:underline"
+                      onClick={() => setSelection({ kind: 'block', rowId: selRow!.id, colId: selCol!.id, blockId: selBlock.id })}>
+                      Editar bloco inteiro
+                    </button>
+                  </p>
+                  {selBlockSchema.fields.filter((f) => selSlotDef.keys.includes(f.key)).map((f) => (
+                    <FieldRenderer
+                      key={f.key}
+                      field={f}
+                      value={(selBlock.props as Record<string, unknown>)[f.key]}
+                      onChange={(v) => setTree((t) => updateBlockProps(t, selRow!.id, selCol!.id, selBlock.id, { ...selBlock.props, [f.key]: v } as CmsBlock['props']))}
+                    />
+                  ))}
+                </div>
+              </>
+              )
+            })()}
           </aside>
         )}
       </div>

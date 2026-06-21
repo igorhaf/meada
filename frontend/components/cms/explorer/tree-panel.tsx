@@ -30,7 +30,12 @@ import type { LucideIcon } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { blockSchema } from '@/lib/cms/cms-block-schemas'
+import { slotsForType } from '@/lib/cms/cms-block-slots'
 import { blockTypeLabel, type CmsRow } from '@/lib/cms/cms-block-type'
+
+/** Prefixo da chave de expansão de BLOCO no Set `expanded` (que também guarda rowIds). Isola o
+ * namespace: rowId vs bloco-expandido nunca colidem, mesmo sendo ambos ids únicos. */
+export const blockExpandKey = (blockId: string) => `blk:${blockId}`
 
 /**
  * Painel "explorer" do page builder (árvore root → linhas → colunas → blocos). Substitui a lista flat
@@ -58,6 +63,7 @@ export type Selection =
   | { kind: 'row'; rowId: string }
   | { kind: 'column'; rowId: string; colId: string }
   | { kind: 'block'; rowId: string; colId: string; blockId: string }
+  | { kind: 'slot'; rowId: string; colId: string; blockId: string; slotId: string }
   | null
 
 export type TreePanelProps = {
@@ -302,25 +308,63 @@ export function TreePanel(p: TreePanelProps) {
                               const s = blockSchema(b.type)
                               const bSel = sel?.kind === 'block' && sel.blockId === b.id
                               const BlockIcon = BLOCK_ICONS[b.type] ?? Box
+                              // SLOTS: macros (ex. hero) declaram sub-partes. Bloco com slots vira expansível;
+                              // os demais 23 continuam folha (sem chevron). Expansão keyed por blk:id.
+                              const slots = slotsForType(b.type)
+                              const hasSlots = slots.length > 0
+                              const bOpen = hasSlots && p.expanded.has(blockExpandKey(b.id))
                               return (
-                                <div key={b.id}
-                                  draggable
-                                  data-selected={bSel}
-                                  onDragStart={(e) => { e.stopPropagation(); setDrag({ kind: 'block', rowId: row.id, colId: col.id, blockId: b.id }); e.dataTransfer.effectAllowed = 'move' }}
-                                  onDragEnd={endDrag}
-                                  className={nodeRow(bSel, false)}>
-                                  <GripVertical className={grip} aria-hidden />
-                                  {/* bloco é folha — sem twisty; slot reservado pra alinhar */}
-                                  <span className={chevronSlot} aria-hidden />
-                                  <button type="button" onClick={() => p.onSelect({ kind: 'block', rowId: row.id, colId: col.id, blockId: b.id })}
-                                    className="flex min-w-0 flex-1 items-center gap-1.5 text-left">
-                                    {/* ícone monocromático por TIPO de bloco (mapa lucide) — substitui o emoji do schema */}
-                                    <BlockIcon className={cn('size-3.5 shrink-0', bSel ? 'text-primary' : 'text-muted-foreground')} aria-hidden />
-                                    <span className="truncate">{s?.label ?? blockTypeLabel(b.type)}</span>
-                                  </button>
-                                  <NodeButtons onUp={() => p.onMoveBlock(row.id, col.id, b.id, -1)} onDown={() => p.onMoveBlock(row.id, col.id, b.id, 1)}
-                                    onRemove={() => p.onRemoveBlock(row.id, col.id, b.id)} upDisabled={bi === 0} downDisabled={bi === col.blocks.length - 1}
-                                    removeLabel="Excluir bloco" />
+                                <div key={b.id}>
+                                  <div
+                                    draggable
+                                    data-selected={bSel}
+                                    onDragStart={(e) => { e.stopPropagation(); setDrag({ kind: 'block', rowId: row.id, colId: col.id, blockId: b.id }); e.dataTransfer.effectAllowed = 'move' }}
+                                    onDragEnd={endDrag}
+                                    className={nodeRow(bSel, false)}>
+                                    <GripVertical className={grip} aria-hidden />
+                                    {hasSlots ? (
+                                      // macro: chevron que expande os slots (mesmo padrão da linha)
+                                      <button type="button" onClick={() => p.onToggle(blockExpandKey(b.id))} aria-label={bOpen ? 'Recolher' : 'Expandir'}
+                                        className="grid size-4 shrink-0 place-items-center rounded-sm text-muted-foreground hover:bg-muted">
+                                        <ChevronRight className={cn('size-3.5 transition-transform', bOpen && 'rotate-90')} aria-hidden />
+                                      </button>
+                                    ) : (
+                                      // bloco-folha — slot reservado pra alinhar
+                                      <span className={chevronSlot} aria-hidden />
+                                    )}
+                                    <button type="button" onClick={() => p.onSelect({ kind: 'block', rowId: row.id, colId: col.id, blockId: b.id })}
+                                      className="flex min-w-0 flex-1 items-center gap-1.5 text-left">
+                                      {/* ícone monocromático por TIPO de bloco (mapa lucide) — substitui o emoji do schema */}
+                                      <BlockIcon className={cn('size-3.5 shrink-0', bSel ? 'text-primary' : 'text-muted-foreground')} aria-hidden />
+                                      <span className="truncate">{s?.label ?? blockTypeLabel(b.type)}</span>
+                                    </button>
+                                    <NodeButtons onUp={() => p.onMoveBlock(row.id, col.id, b.id, -1)} onDown={() => p.onMoveBlock(row.id, col.id, b.id, 1)}
+                                      onRemove={() => p.onRemoveBlock(row.id, col.id, b.id)} upDisabled={bi === 0} downDisabled={bi === col.blocks.length - 1}
+                                      removeLabel="Excluir bloco" />
+                                  </div>
+
+                                  {/* SLOTS do bloco (sub-nós folha): seleção + ícone + label; SEM ↑↓✕ nem drag
+                                      (partes fixas do macro, sempre presentes no schema). 3º nível de rail. */}
+                                  {bOpen && (
+                                    <div className={rail}>
+                                      {slots.map((slot) => {
+                                        const slotSel = sel?.kind === 'slot' && sel.blockId === b.id && sel.slotId === slot.id
+                                        const SlotIcon = slot.icon
+                                        return (
+                                          <div key={slot.id}
+                                            data-selected={slotSel}
+                                            className={nodeRow(slotSel, false)}>
+                                            <span className={chevronSlot} aria-hidden />
+                                            <button type="button" onClick={() => p.onSelect({ kind: 'slot', rowId: row.id, colId: col.id, blockId: b.id, slotId: slot.id })}
+                                              className="flex min-w-0 flex-1 items-center gap-1.5 text-left">
+                                              <SlotIcon className={cn('size-3.5 shrink-0', slotSel ? 'text-primary' : 'text-muted-foreground')} aria-hidden />
+                                              <span className="truncate">{slot.label}</span>
+                                            </button>
+                                          </div>
+                                        )
+                                      })}
+                                    </div>
+                                  )}
                                 </div>
                               )
                             })}
