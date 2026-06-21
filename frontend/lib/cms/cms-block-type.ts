@@ -29,6 +29,7 @@ export const CMS_BLOCK_TYPES = [
   { id: 'marquee', label: 'Faixa de marcas' },
   { id: 'quote', label: 'Citação' },
   { id: 'cta', label: 'Chamada final (CTA)' },
+  { id: 'meada_hero', label: 'Meada · Hero' },
 ] as const
 
 export type CmsBlockTypeId = (typeof CMS_BLOCK_TYPES)[number]['id']
@@ -97,6 +98,30 @@ export type MarqueeProps = { label: string; items: MarqueeItem[] }
 export type QuoteProps = { text: string; author: string; role: string }
 export type CtaProps = { title: string; subtitle: string; buttonLabel: string; buttonHref: string }
 
+// ---- Blocos da marca Meada (preset meada-dark) ----
+export type MeadaStat = { value: string; label: string }
+export type MeadaTermLine = { kind: 'cmd' | 'check' | 'info' | 'done'; text: string }
+/** Hero institucional Meada — fiel ao meada-page. O título é prefixo + trecho em gradiente +
+ * sufixo. showcase: 'terminal' (animação projeto.sh) ou 'chat' (widget de assistente). */
+export type MeadaHeroProps = {
+  titlePrefix: string
+  gradientText: string
+  titleSuffix: string
+  subtitle: string
+  primaryLabel: string
+  primaryHref: string
+  secondaryLabel: string
+  secondaryHref: string
+  stats: MeadaStat[]
+  showcase: 'terminal' | 'chat'
+  terminalTitle: string
+  terminalLines: MeadaTermLine[]
+  terminalCaptionLeft: string
+  terminalCaptionRight: string
+  chatTitle: string
+  chatMessage: string
+}
+
 export type CmsBlock =
   | { id: string; type: 'hero'; props: HeroProps }
   | { id: string; type: 'text'; props: TextProps }
@@ -116,6 +141,7 @@ export type CmsBlock =
   | { id: string; type: 'marquee'; props: MarqueeProps }
   | { id: string; type: 'quote'; props: QuoteProps }
   | { id: string; type: 'cta'; props: CtaProps }
+  | { id: string; type: 'meada_hero'; props: MeadaHeroProps }
 
 /** Props default ao adicionar um bloco novo do tipo dado. */
 export function defaultProps(type: CmsBlockTypeId): CmsBlock['props'] {
@@ -156,5 +182,38 @@ export function defaultProps(type: CmsBlockTypeId): CmsBlock['props'] {
       return { text: '', author: '', role: '' }
     case 'cta':
       return { title: 'Pronto para começar?', subtitle: '', buttonLabel: '', buttonHref: '' }
+    case 'meada_hero':
+      return {
+        titlePrefix: 'Sites e Sistemas',
+        gradientText: 'Sob Medida',
+        titleSuffix: 'pra Crescer',
+        subtitle: 'Desenvolvimento personalizado do site institucional ao sistema completo. Código limpo, prazo claro e foco no que importa pro seu negócio.',
+        primaryLabel: 'Comece Agora →',
+        primaryHref: '/contato',
+        secondaryLabel: 'Ver Produtos',
+        secondaryHref: '/produtos',
+        stats: [
+          { value: '50+', label: 'Projetos' },
+          { value: '20+', label: 'Tecnologias' },
+          { value: '5+', label: 'Anos no mercado' },
+        ],
+        showcase: 'terminal',
+        terminalTitle: 'meada — projeto.sh',
+        terminalLines: [
+          { kind: 'cmd', text: 'meada start --tipo=ecommerce' },
+          { kind: 'info', text: 'Discovery e arquitetura definidos.' },
+          { kind: 'check', text: 'Frontend Next.js + Tailwind' },
+          { kind: 'check', text: 'Backend escalável + API REST' },
+          { kind: 'check', text: 'Banco de dados + migrations' },
+          { kind: 'check', text: 'Pagamentos integrados' },
+          { kind: 'check', text: 'CI/CD + deploy em produção' },
+          { kind: 'check', text: 'Painel admin para gestão' },
+          { kind: 'done', text: 'Projeto entregue ✦ pronto pra escalar' },
+        ],
+        terminalCaptionLeft: 'do briefing ao ar em produção',
+        terminalCaptionRight: '~ 2-6 sem',
+        chatTitle: 'Assistente Meada',
+        chatMessage: 'Olá! 👋 Sou o assistente da Meada Digital. Como posso te ajudar hoje?',
+      }
   }
 }

@@ -271,6 +271,43 @@ export const blockSchemas: Record<CmsBlockTypeId, BlockSchema> = {
       { key: 'buttonHref', label: 'Link do botão', type: 'url' },
     ],
   },
+
+  meada_hero: {
+    type: 'meada_hero', label: 'Meada · Hero', emoji: '💠',
+    description: 'Hero institucional da marca Meada (preset meada-dark). Título com trecho em gradiente, botões, números e um showcase (terminal animado ou chat).',
+    fields: [
+      { key: 'titlePrefix', label: 'Título — início', type: 'text' },
+      { key: 'gradientText', label: 'Título — trecho em gradiente', type: 'text' },
+      { key: 'titleSuffix', label: 'Título — fim', type: 'text' },
+      { key: 'subtitle', label: 'Subtítulo', type: 'textarea' },
+      { key: 'primaryLabel', label: 'Botão principal — texto', type: 'text' },
+      { key: 'primaryHref', label: 'Botão principal — link', type: 'url' },
+      { key: 'secondaryLabel', label: 'Botão secundário — texto', type: 'text' },
+      { key: 'secondaryHref', label: 'Botão secundário — link', type: 'url' },
+      { key: 'stats', label: 'Números (3)', type: 'repeater', itemLabel: 'número', itemSchema: [
+        { key: 'value', label: 'Valor', type: 'text', hint: 'Ex.: 50+' },
+        { key: 'label', label: 'Descrição', type: 'text' },
+      ] },
+      { key: 'showcase', label: 'Showcase (lado direito)', type: 'select', options: [
+        { value: 'terminal', label: 'Terminal animado (projeto.sh)' },
+        { value: 'chat', label: 'Assistente / chat IA' },
+      ] },
+      { key: 'terminalTitle', label: 'Terminal — título', type: 'text' },
+      { key: 'terminalLines', label: 'Terminal — linhas', type: 'repeater', itemLabel: 'linha', itemSchema: [
+        { key: 'kind', label: 'Tipo', type: 'select', options: [
+          { value: 'cmd', label: '$ comando' },
+          { value: 'check', label: '✓ check' },
+          { value: 'info', label: '› info' },
+          { value: 'done', label: '✦ destaque' },
+        ] },
+        { key: 'text', label: 'Texto', type: 'text' },
+      ] },
+      { key: 'terminalCaptionLeft', label: 'Terminal — rodapé esquerda', type: 'text' },
+      { key: 'terminalCaptionRight', label: 'Terminal — rodapé direita', type: 'text' },
+      { key: 'chatTitle', label: 'Chat — título', type: 'text' },
+      { key: 'chatMessage', label: 'Chat — 1ª mensagem', type: 'textarea' },
+    ],
+  },
 }
 
 /** Schema de um tipo (ou undefined se desconhecido). */

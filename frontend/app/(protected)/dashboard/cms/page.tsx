@@ -64,6 +64,7 @@ export default function CmsEditorPage() {
   const [domainError, setDomainError] = useState<string | null>(null)
   const [primaryColor, setPrimaryColor] = useState('#0f172a')
   const [dark, setDark] = useState(false)
+  const [preset, setPreset] = useState<'' | 'meada-dark'>('')
 
   const [newSlug, setNewSlug] = useState('')
   const [newTitle, setNewTitle] = useState('')
@@ -82,6 +83,7 @@ export default function CmsEditorPage() {
       setDomain(site.domain ?? '')
       setPrimaryColor(site.theme?.primaryColor ?? '#0f172a')
       setDark(site.theme?.dark === true)
+      setPreset(site.theme?.preset === 'meada-dark' ? 'meada-dark' : '')
     }
   }, [site])
 
@@ -152,7 +154,7 @@ export default function CmsEditorPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['cms-site'] }),
   })
   const themeMut = useMutation({
-    mutationFn: () => setCmsTheme({ primaryColor, dark }),
+    mutationFn: () => setCmsTheme({ primaryColor, dark, preset: preset || undefined }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['cms-site'] }),
   })
   const domainMut = useMutation({
@@ -205,7 +207,7 @@ export default function CmsEditorPage() {
     return <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Carregando…</div>
   }
 
-  const shell = cmsShellStyle({ primaryColor, dark })
+  const shell = cmsShellStyle({ primaryColor, dark, preset: preset || undefined })
 
   return (
     <div className="flex h-full flex-col">
@@ -412,13 +414,30 @@ export default function CmsEditorPage() {
           <Section title="Tema">
             <div className="flex flex-wrap items-end gap-4">
               <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">Cor primária</label>
-                <input type="color" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)}
-                  className="h-9 w-16 rounded-md border border-border bg-background" />
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Preset</label>
+                <select value={preset} onChange={(e) => setPreset(e.target.value as '' | 'meada-dark')}
+                  className="h-9 rounded-md border border-border bg-background px-2 text-sm">
+                  <option value="">Genérico (cor + claro/escuro)</option>
+                  <option value="meada-dark">Meada (dark-glass + gradiente)</option>
+                </select>
               </div>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={dark} onChange={(e) => setDark(e.target.checked)} /> Fundo escuro
-              </label>
+              {preset === '' && (
+                <>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Cor primária</label>
+                    <input type="color" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)}
+                      className="h-9 w-16 rounded-md border border-border bg-background" />
+                  </div>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={dark} onChange={(e) => setDark(e.target.checked)} /> Fundo escuro
+                  </label>
+                </>
+              )}
+              {preset === 'meada-dark' && (
+                <p className="max-w-xs text-xs text-muted-foreground">
+                  Preset da marca Meada: fundo near-black, gradiente azul→roxo→rosa e fonte Geist. Use com os blocos <strong>Meada · *</strong>.
+                </p>
+              )}
               <Button type="button" variant="outline" disabled={themeMut.isPending} onClick={() => themeMut.mutate()}>Salvar tema</Button>
             </div>
           </Section>

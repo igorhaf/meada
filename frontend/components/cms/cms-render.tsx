@@ -11,6 +11,7 @@ import type {
   ImageTextSplitProps,
   MapProps,
   MarqueeProps,
+  MeadaHeroProps,
   PackagesProps,
   QuoteProps,
   ServicesProps,
@@ -20,6 +21,7 @@ import type {
   TextProps,
 } from '@/lib/cms/cms-block-type'
 import type { CmsNavItem, CmsTheme } from '@/lib/cms/public-fetch'
+import { MeadaHero } from '@/components/cms/blocks/meada-hero'
 
 /**
  * Renderizador do CMS (SM-N / catálogo ampliado). Renderiza os 18 tipos de bloco. Tema: cor primária
@@ -37,8 +39,21 @@ import type { CmsNavItem, CmsTheme } from '@/lib/cms/public-fetch'
 // ---- helpers ----------------------------------------------------------------
 
 /** Estilo-casca do site: injeta --cms-primary + fundo/cor conforme o tema. Compartilhado entre o
- * render público (CmsRender) e o preview do editor — garante que o preview bate com o /p/. */
+ * render público (CmsRender) e o preview do editor — garante que o preview bate com o /p/.
+ *
+ * preset 'meada-dark': a identidade da marca Meada — fundo near-black #000812, texto claro, Geist,
+ * e a var --cms-gradient (azul→roxo→rosa) que os blocos meada_* usam. Sem preset = tema genérico
+ * (primaryColor + dark), retrocompatível: nenhum site existente muda. */
 export function cmsShellStyle(theme: CmsTheme | null): React.CSSProperties {
+  if (theme?.preset === 'meada-dark') {
+    return {
+      ['--cms-primary' as string]: '#3b82f6',
+      ['--cms-gradient' as string]: 'linear-gradient(125deg, #60a5fa 0%, #a855f7 50%, #ec4899 100%)',
+      background: '#000812',
+      color: '#ffffff',
+      fontFamily: 'var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif',
+    }
+  }
   const primary = theme?.primaryColor || '#0f172a'
   const dark = theme?.dark === true
   return {
@@ -438,6 +453,7 @@ export const blockComponents = {
   marquee: MarqueeBlock,
   quote: QuoteBlock,
   cta: CtaBlock,
+  meada_hero: MeadaHero,
 } as const
 
 /** Renderiza um bloco (com key = block.id). Compartilhado entre CmsRender (público) e o editor. */
@@ -461,6 +477,7 @@ export function renderCmsBlock(b: CmsBlock): React.ReactElement | null {
     case 'marquee': return <MarqueeBlock key={b.id} props={b.props} />
     case 'quote': return <QuoteBlock key={b.id} props={b.props} />
     case 'cta': return <CtaBlock key={b.id} props={b.props} />
+    case 'meada_hero': return <MeadaHero key={b.id} props={b.props} />
     default: return null
   }
 }

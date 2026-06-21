@@ -7,7 +7,8 @@ import type { CmsBlock } from './cms-block-type'
  */
 
 export type CmsNavItem = { pageSlug: string; title: string; isHome: boolean }
-export type CmsTheme = { primaryColor?: string; dark?: boolean }
+export type CmsThemePreset = 'meada-dark'
+export type CmsTheme = { primaryColor?: string; dark?: boolean; preset?: CmsThemePreset }
 export type PublicCmsView = { title: string; blocks: CmsBlock[]; theme: CmsTheme | null; nav: CmsNavItem[] }
 
 function backendBase(): string {

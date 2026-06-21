@@ -42,7 +42,9 @@ public enum CmsBlockType {
     PACKAGES("packages"),
     MARQUEE("marquee"),
     QUOTE("quote"),
-    CTA("cta");
+    CTA("cta"),
+    // Blocos da marca Meada (preset meada-dark) — identidade visual própria (não tematizáveis):
+    MEADA_HERO("meada_hero");
 
     private final String id;
 
