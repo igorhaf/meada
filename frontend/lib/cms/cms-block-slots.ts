@@ -1,4 +1,4 @@
-import { Sparkles, MousePointerClick, MousePointer, Image } from 'lucide-react'
+import { Sparkles, MousePointerClick, MousePointer, Image, Type, Megaphone, Tag, Share2 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 import type { CmsBlockTypeId } from '@/lib/cms/cms-block-type'
@@ -38,6 +38,35 @@ export const BLOCK_SLOTS: Partial<Record<CmsBlockTypeId, SlotDef[]>> = {
     { id: 'buttonPrimary', label: 'Botão primário', icon: MousePointerClick, keys: ['buttonLabel', 'buttonHref'] },
     { id: 'buttonSecondary', label: 'Botão secundário', icon: MousePointer, keys: ['secondaryButtonLabel', 'secondaryButtonHref'] },
     { id: 'image', label: 'Imagem lateral', icon: Image, keys: ['imageUrl'] },
+  ],
+  // Demais macros de PARTES FIXAS — entram só com a entrada aqui (árvore/seleção/painel filtrado de
+  // graça). Os repeaters (navbar.links, footer.columns) ficam FORA dos slots nesta fase: as keys
+  // listadas são só as partes fixas, e os fields não-cobertos seguem editáveis no modo bloco (pai).
+  image_text_split: [
+    { id: 'content', label: 'Conteúdo', icon: Type, keys: ['eyebrow', 'title', 'body'] },
+    { id: 'image', label: 'Imagem', icon: Image, keys: ['imageUrl'] },
+    { id: 'button', label: 'Botão', icon: MousePointerClick, keys: ['buttonLabel', 'buttonHref'] },
+  ],
+  cta: [
+    { id: 'content', label: 'Conteúdo', icon: Type, keys: ['title', 'subtitle'] },
+    { id: 'button', label: 'Botão', icon: MousePointerClick, keys: ['buttonLabel', 'buttonHref'] },
+  ],
+  banner_strip: [
+    { id: 'message', label: 'Mensagem', icon: Megaphone, keys: ['message'] },
+    { id: 'button', label: 'Botão', icon: MousePointerClick, keys: ['buttonLabel', 'buttonHref'] },
+  ],
+  meada_cta: [
+    { id: 'content', label: 'Conteúdo', icon: Type, keys: ['titlePrefix', 'gradientText', 'subtitle'] },
+    { id: 'buttonPrimary', label: 'Botão primário', icon: MousePointerClick, keys: ['primaryLabel', 'primaryHref'] },
+    { id: 'buttonSecondary', label: 'Botão secundário', icon: MousePointer, keys: ['secondaryLabel', 'secondaryHref'] },
+  ],
+  meada_navbar: [
+    { id: 'brand', label: 'Marca', icon: Tag, keys: ['brandName', 'brandSuffix'] },
+    { id: 'cta', label: 'Botão CTA', icon: MousePointerClick, keys: ['ctaLabel', 'ctaHref'] },
+  ],
+  meada_footer: [
+    { id: 'brand', label: 'Marca', icon: Tag, keys: ['brandName', 'brandSuffix', 'tagline'] },
+    { id: 'social', label: 'Redes', icon: Share2, keys: ['instagramUrl', 'whatsappUrl'] },
   ],
 }
 
