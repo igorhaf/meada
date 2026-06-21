@@ -726,6 +726,80 @@ DOIS caminhos: MARCAR horário com um barbeiro, ou ENTRAR NA FILA quando o clien
   foto do corte (bloqueador SERVICE_ROLE_KEY), barbeiro com múltiplas cadeiras paralelas. Fases futuras.
 - Guia operacional do tenant: `docs/PERFIL_BARBEARIA.md`.
 
+## Perfil Eventos (EventosBot, camada 8.2)
+
+DÉCIMO SEGUNDO perfil vertical real (sushi/legal/restaurant/dental/salon/pousada/academia/pet/
+oficina/nutri/barbearia/eventos) e 13º contando generic. O tenant eventos (`profile_id='eventos'`)
+vira um produto de CASA DE FESTAS / BUFFET / CERIMONIAL / ESPAÇO DE EVENTOS: gerencia
+cerimonialistas, abre PROPOSTAS (orçamento + cronograma do dia) e captura a aprovação do cliente. A
+IA atende clientes via WhatsApp com tom prestativo-consultivo de organizador de festa.
+
+- **CLONA o chassi do OFICINA (camada 7.9):** order-based com itens + total materializado + gate de
+  aprovação em 2 fases via tag que muta o estado de um artefato existente. `service_orders →
+  event_proposals`; `os_items → event_proposal_items`; `<aprovacao_os> → <aprovacao_proposta>`. A IA
+  ABRE a proposta e, num turno POSTERIOR (proposta 'orcada'), MUTA o estado pra 'aprovada'/'recusada'.
+- **ESCAPADA ESTRUTURAL — CRONOGRAMA ORDENADO do dia do evento (`event_timeline_items`):** primeiro
+  perfil com DOIS tipos de sub-item no MESMO artefato — (1) itens de ORÇAMENTO (`event_proposal_items`:
+  descrição+qtd+preço, `line_total_cents` materializado, ENTRAM no `total_cents`) e (2) marcos de
+  CRONOGRAMA (`event_timeline_items`: horário+título+descrição, ORDENADOS por `start_time` na leitura,
+  NÃO entram no total). O cronograma é o "dia do evento" organizacional (ex.: 19:00 recepção / 20:00
+  cerimônia / 23:00 festa). Os `os_items` do Oficina são linhas de PREÇO sem ordem temporal; aqui há
+  linhas de PREÇO **e** linhas de CRONOGRAMA. Não confundir.
+- **SEM conflito de agenda/data (cravado):** a casa de festas faz ~1 evento/data; `event_date` é
+  CAMPO livre na proposta, não recurso disputado por minuto (igual `expected_delivery` do Oficina).
+  NÃO há máquina de conflito 409 de data nesta SM. Detecção de "data já tem evento" como aviso
+  informativo no painel é fase futura.
+- **Cliente NÃO é entidade própria** (continua o contact; snapshots `customer_name`/`customer_phone`
+  na proposta — igual oficina/salon). A tag de abertura tem UM modo só (não os 2 modos
+  vehicle_id/new_vehicle do Oficina — não há sub-entidade de cliente; a sub-entidade nova é o
+  cronograma, filho da PROPOSTA).
+- **Modelo (migration 45):** `event_planners` (catálogo simples, ~os_mechanics, SEM agenda) +
+  `event_config` (business_name + notes, 1:1, SEM horário/slot — não há agenda) + `event_proposals`
+  (snapshots + total materializado) + `event_proposal_items` (preço, entra no total) +
+  `event_timeline_items` (cronograma, ordenado por start_time, NÃO entra no total). `total_cents` e
+  `line_total_cents` materializados no INSERT/UPDATE de item de orçamento (lição end_at/Oficina).
+- **Status hardcoded materializado** (`EventProposalStatus` ↔ `event-proposal-status.ts`,
+  `EventProposalStatusParityTest`) — espelho do `OsStatus` adaptado ao funil:
+  `rascunho → orcada/cancelada`; `orcada → aprovada/recusada/cancelada`; `aprovada → fechada/cancelada`;
+  `fechada → realizada/cancelada`; terminais realizada/recusada/cancelada. Transição inválida → 409
+  `invalid_status_transition`. Em 'orcada' exige `total_cents > 0` → 400 `empty_budget`. Notificam
+  (texto defensivo): **orcada** (com total), **aprovada**, **fechada**, **recusada**;
+  rascunho/realizada/cancelada silenciosos.
+  (rascunho = proposta aberta sem orçamento; orcada = aguardando aprovação; aprovada = cliente
+  aceitou; fechada = "contrato" fechado/sinal combinado fora do app; realizada = a festa aconteceu.)
+- **Trava de itens (`proposal_locked`):** itens (orçamento E cronograma) só mutáveis em
+  `rascunho/orcada/aprovada`; em `fechada/realizada/recusada/cancelada` → 409 `proposal_locked`
+  (decisão cravada: depois que o contrato fecha o escopo congela; antes disso a equipe ainda ajusta
+  orçamento e cronograma).
+- **Duas TAGS distintas** (namespace próprio, distintas de TODAS as outras): `<proposta_evento>` ABRE
+  a proposta em 'rascunho' (UM modo só — `PropostaEventoConfirmHandler` resolve o contato da conversa;
+  total 0, SEM itens — a equipe monta o orçamento no painel, espelho da OS aberta sem itens);
+  `<aprovacao_proposta>` MUTA o estado (`decisao` aprovada|recusada, só se a proposta estiver 'orcada')
+  — `AprovacaoPropostaHandler`, clone exato do `AprovacaoOsHandler`. OutboundService:
+  `maybeProcessPropostaEvento` + `maybeProcessAprovacaoProposta` (encadeados após os outros perfis;
+  perfil é único, só um age). Best-effort; o OutboundService REMOVE a tag antes de enviar ao cliente.
+- **A IA só ABRE proposta e CAPTURA aprovação** — NÃO move a proposta pra 'fechada'/'realizada' nem
+  fecha preço/contrato/desconto (ações administrativas do painel). NUNCA confirma disponibilidade de
+  data não confirmada ("vou verificar com a equipe"), NUNCA inventa item/valor de pacote, NUNCA promete
+  estrutura do espaço não informada.
+- **Persona EVENTOS nova** (`ProfilePromptContext.EVENTOS`, tom prestativo-consultivo). Contexto via
+  `EventosContextCache` (TTL 20s — a proposta não muda a cada segundo): cerimonialistas ativos +
+  propostas do cliente em aberto (rascunho/orcada) com id+tipo+data+status+total (pra IA capturar a
+  aprovação na proposta ORÇADA certa) + instruções e as 2 tags. NÃO injeta o cronograma inteiro
+  (organizacional do painel). Invalidação explícita em toda mutação.
+- **Guard:** `EventosProfileGuard` (403 forbidden_wrong_profile). `JwtAuthenticationFilter` autentica
+  `/api/eventos/**` (além dos 11 perfis anteriores).
+- **Sidebar:** `getNavForProfile('eventos')` injeta "Eventos" (Cerimonialistas/Propostas/
+  Configurações). Telas `/dashboard/eventos-{planners,proposals,settings}` — a de propostas tem os DOIS
+  editores inline (orçamento com total recalculado + cronograma ordenado por horário). Paleta `ambar`
+  (dourado/champanhe). POST manual pelo tenant cria proposta sem `conversation_id` (sem WhatsApp) — não
+  notifica (sem canal).
+- **NÃO TEM nesta SM:** conflito de agenda/data, catálogo de pacotes pré-cadastrados (orçamento ad-hoc,
+  igual o Oficina), contrato com assinatura digital/PDF/e-sign (o "contrato" é o estado 'fechada'),
+  pagamento/sinal/parcelas (Stripe #50), fornecedores/terceiros como entidades com agenda (multi-pool),
+  foto/mood board (bloqueador SERVICE_ROLE_KEY), lista de convidados/RSVP/mesa. Fases futuras.
+- Guia operacional do tenant: `docs/PERFIL_EVENTOS.md`.
+
 ## Camada 9.0 — Feature Flags por Nicho (infra de plataforma)
 
 Infra pro ROOT (super-admin) ligar/desligar features por nicho num lugar só. A 1ª feature é o **CMS**

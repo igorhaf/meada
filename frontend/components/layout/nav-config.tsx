@@ -22,6 +22,7 @@ import {
   Megaphone,
   MessageSquare,
   MessageSquareText,
+  PartyPopper,
   Car,
   ClipboardCheck,
   FileText,
@@ -198,6 +199,7 @@ function profileGroups(profileId: string | null | undefined): NavGroup[] {
   if (profileId === 'oficina') return [OFICINA_GROUP, ...NAV_GROUPS]
   if (profileId === 'nutri') return [NUTRI_GROUP, ...NAV_GROUPS]
   if (profileId === 'barbearia') return [BARBEARIA_GROUP, ...NAV_GROUPS]
+  if (profileId === 'eventos') return [EVENTOS_GROUP, ...NAV_GROUPS]
   return NAV_GROUPS
 }
 
@@ -324,5 +326,16 @@ const BARBEARIA_GROUP: NavGroup = {
     { label: 'Agenda', href: '/dashboard/barber-appointments', icon: CalendarClock },
     { label: 'Fila', href: '/dashboard/barber-queue', icon: ListOrdered },
     { label: 'Configurações', href: '/dashboard/barber-settings', icon: Settings },
+  ],
+}
+
+/** Grupo de navegação exclusivo do perfil eventos (camada 8.2). "Eventos". Rotas
+ * /dashboard/eventos-*. Propostas tem os DOIS editores inline (orçamento + cronograma). */
+const EVENTOS_GROUP: NavGroup = {
+  heading: 'Eventos',
+  items: [
+    { label: 'Cerimonialistas', href: '/dashboard/eventos-planners', icon: PartyPopper },
+    { label: 'Propostas', href: '/dashboard/eventos-proposals', icon: ClipboardList },
+    { label: 'Configurações', href: '/dashboard/eventos-settings', icon: Settings },
   ],
 }

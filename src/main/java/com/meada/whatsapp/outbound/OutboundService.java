@@ -104,6 +104,9 @@ public class OutboundService {
     // Camada 8.1 (perfil barbearia): pós-processa <agendamento_barbearia> (marca) e <fila_barbearia> (enfileira).
     private final com.meada.whatsapp.profiles.barbearia.appointments.AgendamentoBarbeariaConfirmHandler agendamentoBarbeariaConfirmHandler;
     private final com.meada.whatsapp.profiles.barbearia.queue.EntrarFilaHandler entrarFilaHandler;
+    // Camada 8.2 (perfil eventos): pós-processa <proposta_evento> (abre proposta) e <aprovacao_proposta> (muta estado).
+    private final com.meada.whatsapp.profiles.eventos.proposals.PropostaEventoConfirmHandler propostaEventoConfirmHandler;
+    private final com.meada.whatsapp.profiles.eventos.proposals.AprovacaoPropostaHandler aprovacaoPropostaHandler;
 
     private final int maxAttempts;
     private final List<Duration> backoffs;
@@ -152,6 +155,8 @@ public class OutboundService {
                            com.meada.whatsapp.profiles.nutri.appointments.EntregaPlanoHandler entregaPlanoHandler,
                            com.meada.whatsapp.profiles.barbearia.appointments.AgendamentoBarbeariaConfirmHandler agendamentoBarbeariaConfirmHandler,
                            com.meada.whatsapp.profiles.barbearia.queue.EntrarFilaHandler entrarFilaHandler,
+                           com.meada.whatsapp.profiles.eventos.proposals.PropostaEventoConfirmHandler propostaEventoConfirmHandler,
+                           com.meada.whatsapp.profiles.eventos.proposals.AprovacaoPropostaHandler aprovacaoPropostaHandler,
                            @org.springframework.beans.factory.annotation.Value("${gemini.model}")
                            String geminiModel) {
         this.conversationRepository = conversationRepository;
@@ -182,6 +187,8 @@ public class OutboundService {
         this.entregaPlanoHandler = entregaPlanoHandler;
         this.agendamentoBarbeariaConfirmHandler = agendamentoBarbeariaConfirmHandler;
         this.entrarFilaHandler = entrarFilaHandler;
+        this.propostaEventoConfirmHandler = propostaEventoConfirmHandler;
+        this.aprovacaoPropostaHandler = aprovacaoPropostaHandler;
         this.geminiModel = geminiModel;
         this.maxAttempts = retryProps.maxAttempts();
         // converte uma vez (lista YAML de millis → Durations). O RetryRunner valida
@@ -301,6 +308,10 @@ public class OutboundService {
         // enfileira o cliente no walk-in. Encadeados (perfil é único; só um age).
         toSend = maybeProcessAgendamentoBarbearia(event, conversationId, toSend);
         toSend = maybeProcessFilaBarbearia(event, conversationId, toSend);
+        // Camada 8.2 (perfil eventos): <proposta_evento> abre a proposta; <aprovacao_proposta> muta o
+        // estado da proposta orçada. Encadeados (perfil é único; só um age).
+        toSend = maybeProcessPropostaEvento(event, conversationId, toSend);
+        toSend = maybeProcessAprovacaoProposta(event, conversationId, toSend);
         Optional<OutboundOutcome> sendFailure = sendAndPersist(event, conversationId, toSend);
         if (sendFailure.isPresent()) {
             return sendFailure.get();   // casos 7/8/9 — já logado lá
@@ -723,6 +734,53 @@ public class OutboundService {
             entrarFilaHandler.parseAndEnqueue(event.companyId(), conversationId, contactId.get(), reply);
         }
         String stripped = entrarFilaHandler.stripFilaTag(reply);
+        return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
+            aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
+            aiResponse.schedulingIntent(), aiResponse.insights());
+    }
+
+    /**
+     * Caso o tenant seja perfil 'eventos' (camada 8.2) e a resposta da IA contenha a tag
+     * {@code <proposta_evento>}, ABRE a proposta (PropostaEventoConfirmHandler resolve o cliente da
+     * conversa — snapshots; UM modo só, sem sub-entidade) e devolve um AiResponse com a tag removida;
+     * senão devolve o aiResponse original. Tag distinta de todas as outras. Best-effort.
+     */
+    private AiResponse maybeProcessPropostaEvento(MessageInboundProcessedEvent event,
+                                                  UUID conversationId, AiResponse aiResponse) {
+        String reply = aiResponse.reply();
+        if (reply == null || !propostaEventoConfirmHandler.hasTag(reply)) {
+            return aiResponse;
+        }
+        if (!"eventos".equals(companyProfileRepository.findProfileId(event.companyId()))) {
+            return aiResponse;
+        }
+        Optional<UUID> contactId = conversationRepository.findContactIdByConversation(conversationId);
+        if (contactId.isPresent()) {
+            propostaEventoConfirmHandler.parseAndCreate(event.companyId(), conversationId, contactId.get(), reply);
+        }
+        String stripped = propostaEventoConfirmHandler.stripTag(reply);
+        return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
+            aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
+            aiResponse.schedulingIntent(), aiResponse.insights());
+    }
+
+    /**
+     * Caso o tenant seja perfil 'eventos' (camada 8.2) e a resposta da IA contenha a tag
+     * {@code <aprovacao_proposta>}, MUTA o estado da proposta orçada (aprovada/recusada) e remove a
+     * tag — o gate de aprovação em 2 fases (clone do Oficina): a IA altera o estado de um artefato
+     * existente. Só atua sobre proposta em 'orcada' (o handler valida). Best-effort.
+     */
+    private AiResponse maybeProcessAprovacaoProposta(MessageInboundProcessedEvent event,
+                                                     UUID conversationId, AiResponse aiResponse) {
+        String reply = aiResponse.reply();
+        if (reply == null || !aprovacaoPropostaHandler.hasTag(reply)) {
+            return aiResponse;
+        }
+        if (!"eventos".equals(companyProfileRepository.findProfileId(event.companyId()))) {
+            return aiResponse;
+        }
+        aprovacaoPropostaHandler.parseAndApply(event.companyId(), conversationId, reply);
+        String stripped = aprovacaoPropostaHandler.stripTag(reply);
         return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
             aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
             aiResponse.schedulingIntent(), aiResponse.insights());

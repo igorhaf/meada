@@ -106,6 +106,7 @@ O backend é o mesmo para todos os subdomínios — o perfil viaja no header `X-
 | `igorhaf10@gmail.com`| `bofo-meca-oleo` | Pet Shop Modelo               | pet        |
 | `igorhaf11@gmail.com`| `bofo-meca-oleo` | Oficina Modelo                | oficina    |
 | `igorhaf12@gmail.com`| `bofo-meca-oleo` | Nutri Modelo                  | nutri      |
+| `igorhaf14@gmail.com`| `bofo-meca-oleo` | Eventos Modelo                | eventos    |
 
 (Seed em `/tmp/seed-multi-profile.sql` — não versionado; roda via psql.)
 

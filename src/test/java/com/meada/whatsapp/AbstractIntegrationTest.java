@@ -110,7 +110,8 @@ public abstract class AbstractIntegrationTest {
         "db/migrations/41_cms.sql",
         "db/migrations/42_cms_multipage.sql",
         "db/migrations/43_barbearia.sql",
-        "db/migrations/44_platform_company.sql"
+        "db/migrations/44_platform_company.sql",
+        "db/migrations/45_eventos.sql"
     };
 
     /**
@@ -239,6 +240,7 @@ public abstract class AbstractIntegrationTest {
               os_items, service_orders, os_vehicles, os_config, os_mechanics,
               nutri_appointments, nutri_plans, nutri_patients, nutri_config, nutri_professionals,
               barber_queue_tickets, barber_appointments, barber_config, barber_services, barber_barbers,
+              event_timeline_items, event_proposal_items, event_proposals, event_config, event_planners,
               profile_features, cms_pages, cms_sites
             RESTART IDENTITY CASCADE
             """);

@@ -32,6 +32,7 @@ public class ProfilePromptContext {
     private final com.meada.whatsapp.profiles.oficina.OficinaContextCache oficinaContextCache;
     private final com.meada.whatsapp.profiles.nutri.NutriContextCache nutriContextCache;
     private final com.meada.whatsapp.profiles.barbearia.BarberContextCache barberContextCache;
+    private final com.meada.whatsapp.profiles.eventos.EventosContextCache eventosContextCache;
     private final ConversationRepository conversationRepository;
 
     public ProfilePromptContext(SushiMenuCache sushiMenuCache,
@@ -45,6 +46,7 @@ public class ProfilePromptContext {
                                 com.meada.whatsapp.profiles.oficina.OficinaContextCache oficinaContextCache,
                                 com.meada.whatsapp.profiles.nutri.NutriContextCache nutriContextCache,
                                 com.meada.whatsapp.profiles.barbearia.BarberContextCache barberContextCache,
+                                com.meada.whatsapp.profiles.eventos.EventosContextCache eventosContextCache,
                                 ConversationRepository conversationRepository) {
         this.sushiMenuCache = sushiMenuCache;
         this.legalCaseContextCache = legalCaseContextCache;
@@ -57,6 +59,7 @@ public class ProfilePromptContext {
         this.oficinaContextCache = oficinaContextCache;
         this.nutriContextCache = nutriContextCache;
         this.barberContextCache = barberContextCache;
+        this.eventosContextCache = eventosContextCache;
         this.conversationRepository = conversationRepository;
     }
 
@@ -148,6 +151,19 @@ public class ProfilePromptContext {
             + "chama o cliente: quem chama é o barbeiro no balcão; você só ENFILEIRA e INFORMA a posição/"
             + "espera estimadas.";
 
+    private static final String EVENTOS =
+        "Você é atendente de uma casa de festas / buffet / espaço de eventos. Tom prestativo e "
+            + "consultivo, de quem organiza festa. Seu papel é ABRIR a proposta a partir do briefing "
+            + "do cliente (tipo de evento, data prevista, número de convidados, o que ele imagina) e, "
+            + "quando a equipe já montou o orçamento, informar o total e capturar a aprovação. NUNCA "
+            + "feche contrato, preço ou desconto por conta própria (quem orça e fecha é a equipe no "
+            + "painel). NUNCA confirme disponibilidade de uma data que não esteja confirmada — diga "
+            + "'vou verificar a disponibilidade com a equipe'. NUNCA invente item de pacote, valor ou "
+            + "serviço não cadastrado, e NUNCA prometa estrutura/comodidade do espaço que não tenha "
+            + "sido informada. Sem promessa de 'evento perfeito'. Você só ABRE a proposta e CAPTURA a "
+            + "aprovação/recusa — as transições administrativas (fechar contrato, marcar realizada) são "
+            + "feitas pela equipe no painel.";
+
     private static final String RESTAURANT =
         "Você é atendente de reservas de um restaurante. Tom acolhedor e ágil. Conheça as mesas "
             + "disponíveis e os horários livres. Quando o cliente pedir reserva, verifique a "
@@ -174,6 +190,7 @@ public class ProfilePromptContext {
             case OFICINA -> OFICINA;
             case NUTRI -> NUTRI;
             case BARBEARIA -> BARBEARIA;
+            case EVENTOS -> EVENTOS;
             case GENERIC -> "";
         };
         if (body.isEmpty()) {
@@ -274,6 +291,14 @@ public class ProfilePromptContext {
             UUID contactId = conversationId == null ? null
                 : conversationRepository.findContactIdByConversation(conversationId).orElse(null);
             return persona + barberContextCache.contextSegment(companyId, contactId);
+        }
+        if ("eventos".equals(profileId)) {
+            // eventos (8.2): persona + cerimonialistas ativos + propostas do cliente em aberto
+            // (rascunho/orcada) pra capturar aprovação + instruções e as 2 tags (<proposta_evento>,
+            // <aprovacao_proposta>). NÃO injeta o cronograma. Resolve o contato pela conversa.
+            UUID contactId = conversationId == null ? null
+                : conversationRepository.findContactIdByConversation(conversationId).orElse(null);
+            return persona + eventosContextCache.contextSegment(companyId, contactId);
         }
         return persona;
     }
