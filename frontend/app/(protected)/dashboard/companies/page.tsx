@@ -9,19 +9,31 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ApiError } from '@/lib/api/client'
 import { getCompanies, type Company, type CompanyFilters } from '@/lib/api/admin/companies'
+import { PROFILES, getProfile } from '@/lib/profiles/profile-type'
 import { CreateCompanyDialog } from './create-company-dialog'
 
 const PAGE_SIZE = 20
+
+/** Rótulo do produto/nicho a partir do profile_id (fallback: o próprio id). */
+function nicheLabel(profileId: string): string {
+  return getProfile(profileId)?.productName ?? profileId
+}
 
 /**
  * Lista GLOBAL de empresas (rota canônica do super-admin — camada 6.1). Filtros (status,
  * busca) e paginação são server-side: o backend faz o ilike/limit/offset, o frontend só
  * carrega a query key e renderiza a página. A autorização é do backend (403
  * forbidden_not_super_admin → tratado inline). "Detalhes" leva ao drill-down /[id].
+ *
+ * Coluna "Nicho" (controle geral): mostra o perfil vertical de cada tenant (NutriBot,
+ * OficinaBot, …) a partir de company.profileId, resolvido pelo catálogo materializado em
+ * lib/profiles/profile-type. O filtro de nicho é CLIENT-SIDE: filtra a página já carregada
+ * (não o total no servidor) — suficiente p/ visão de relance.
  */
 export default function CompaniesPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [status, setStatus] = useState<'' | 'active' | 'suspended'>('')
+  const [profile, setProfile] = useState('')
   const [q, setQ] = useState('')
   const [page, setPage] = useState(0)
 
@@ -65,7 +77,9 @@ export default function CompaniesPage() {
 
   const total = data?.total ?? 0
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
-  const items = data?.items ?? []
+  const allItems = data?.items ?? []
+  // Filtro de nicho aplicado client-side sobre a página carregada.
+  const items = profile ? allItems.filter((c) => c.profileId === profile) : allItems
 
   return (
     <div className="space-y-6">
@@ -75,7 +89,7 @@ export default function CompaniesPage() {
         actions={<Button onClick={() => setDialogOpen(true)}>Nova empresa</Button>}
       />
 
-      {/* Filtros: status + busca por nome/slug (server-side). */}
+      {/* Filtros: status + nicho (client-side) + busca por nome/slug (server-side). */}
       <div className="flex flex-wrap items-center gap-2">
         <select
           value={status}
@@ -88,6 +102,18 @@ export default function CompaniesPage() {
           <option value="">Todos os status</option>
           <option value="active">Ativas</option>
           <option value="suspended">Suspensas</option>
+        </select>
+        <select
+          value={profile}
+          onChange={(e) => setProfile(e.target.value)}
+          className="h-9 rounded-md border border-border bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+        >
+          <option value="">Todos os nichos</option>
+          {PROFILES.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.productName}
+            </option>
+          ))}
         </select>
         <input
           value={q}
@@ -118,6 +144,9 @@ export default function CompaniesPage() {
                   Status
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Nicho
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Criada em
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -128,13 +157,13 @@ export default function CompaniesPage() {
             <tbody>
               {isPending ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                  <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
                     Carregando…
                   </td>
                 </tr>
               ) : items.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                  <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
                     Nenhuma empresa encontrada.
                   </td>
                 </tr>
@@ -150,6 +179,9 @@ export default function CompaniesPage() {
                       <Badge variant={c.status === 'active' ? 'success' : 'danger'}>
                         {c.status === 'active' ? 'ativa' : 'suspensa'}
                       </Badge>
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <Badge variant="muted">{nicheLabel(c.profileId)}</Badge>
                     </td>
                     <td className="px-4 py-3.5">{new Date(c.createdAt).toLocaleString('pt-BR')}</td>
                     <td className="px-4 py-3.5">
