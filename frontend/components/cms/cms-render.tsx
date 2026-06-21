@@ -510,9 +510,21 @@ function colSpanClass(w: CmsColumnWidth): string {
   return COL_SPAN[Math.max(1, Math.min(12, w))] ?? 'md:col-span-12'
 }
 
+/** Hooks OPCIONAIS de interação do EDITOR. Ausentes no /p/ público → render IDÊNTICO, parity preservada.
+ *  Quando presentes, cada bloco vira um alvo clicável com destaque de seleção (ring em volta), e clicar
+ *  na seção FORA de um bloco seleciona a linha. */
+export type RowInteractive = {
+  selectedBlockId?: string | null
+  selectedRow?: boolean
+  containsSelectedBlock?: boolean
+  onSelectBlock?: (rowId: string, colId: string, blockId: string) => void
+  onSelectRow?: (rowId: string) => void
+}
+
 /** Renderiza UMA linha: <section> com fundo/padding + grid responsivo de colunas (12 → 1 no mobile).
- * Compartilhado entre o público (/p/) e o preview do editor — garante parity. */
-export function RowSection({ row }: { row: CmsRow }) {
+ * Compartilhado entre o público (/p/) e o preview do editor — garante parity. `interactive` só é passado
+ * pelo editor; no /p/ é undefined e o render fica igual ao de produção. */
+export function RowSection({ row, interactive }: { row: CmsRow; interactive?: RowInteractive }) {
   const p = row.props ?? {}
   const bgStyle = p.bg === 'primary' ? { background: 'var(--cms-primary)', color: '#fff' }
     : p.bg === 'muted' ? { background: 'rgba(0,0,0,0.04)' } : undefined
@@ -522,12 +534,47 @@ export function RowSection({ row }: { row: CmsRow }) {
   const align = { start: 'md:items-start', center: 'md:items-center', stretch: 'md:items-stretch' }[p.align ?? 'stretch']
   const px = p.maxWidth === 'full' ? '' : 'px-6'
 
+  // No editor: clicar na seção FORA de um bloco (alvo = a própria <section>) seleciona a LINHA. Destaques
+  // em 2 pesos: linha selecionada → anel FORTE (ring-2 primary/60); linha que CONTÉM o bloco selecionado
+  // → realce de CONTEXTO por fundo tonal + barra lateral (NÃO anel: o ring-inset some atrás do halo do
+  // bloco; fundo+barra não disputam pixel com ele). border-l-2 transparent fixa reserva o espaço pra não
+  // "pular" o conteúdo ao ativar. No /p/ público (sem interactive) a seção é estática.
+  const sectionProps = interactive
+    ? {
+        onClick: (e: React.MouseEvent) => { if (e.target === e.currentTarget) interactive.onSelectRow?.(row.id) },
+        className: cn(
+          padY, 'relative cursor-pointer border-l-2 border-transparent transition-colors',
+          interactive.selectedRow
+            ? 'ring-2 ring-inset ring-primary/60'
+            : interactive.containsSelectedBlock && 'border-primary/50 bg-primary/[0.04]',
+        ),
+      }
+    : { className: cn(padY) }
+
   return (
-    <section className={cn(padY)} style={bgStyle}>
+    <section {...sectionProps} style={bgStyle}>
       <div className={cn('mx-auto grid grid-cols-1 md:grid-cols-12', px, gap, align, maxW)}>
         {(row.columns ?? []).map((col) => (
           <div key={col.id} className={colSpanClass(col.width)}>
-            {(col.blocks ?? []).map(renderCmsBlock)}
+            {(col.blocks ?? []).map((b) =>
+              interactive ? (
+                // wrapper clicável + destaque AO REDOR do componente (ring com offset = halo com respiro).
+                <div
+                  key={b.id}
+                  onClick={(e) => { e.stopPropagation(); interactive.onSelectBlock?.(row.id, col.id, b.id) }}
+                  className={cn(
+                    'relative cursor-pointer rounded-sm transition-shadow',
+                    interactive.selectedBlockId === b.id
+                      ? 'ring-2 ring-primary ring-offset-2 ring-offset-background'
+                      : 'hover:ring-2 hover:ring-primary/30',
+                  )}
+                >
+                  {renderCmsBlock(b)}
+                </div>
+              ) : (
+                renderCmsBlock(b)
+              ),
+            )}
           </div>
         ))}
       </div>

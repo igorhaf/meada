@@ -359,18 +359,19 @@ export default function CmsEditorPage() {
             </div>
           ) : (
             <div style={shell} onClick={(e) => { if (e.target === e.currentTarget) setSelection(null) }}>
-              {tree.map((row) => {
-                const rowSel = selection?.kind === 'row' && selection.rowId === row.id
-                return (
-                  <div
-                    key={row.id}
-                    onClick={(e) => { e.stopPropagation(); setSelection({ kind: 'row', rowId: row.id }) }}
-                    className={cn('relative cursor-pointer', rowSel && 'ring-2 ring-inset ring-primary')}
-                  >
-                    <RowSection row={row} />
-                  </div>
-                )
-              })}
+              {tree.map((row) => (
+                <RowSection
+                  key={row.id}
+                  row={row}
+                  interactive={{
+                    selectedRow: selection?.kind === 'row' && selection.rowId === row.id,
+                    containsSelectedBlock: selection?.kind === 'block' && selection.rowId === row.id,
+                    selectedBlockId: selection?.kind === 'block' ? selection.blockId : null,
+                    onSelectRow: (rowId) => setSelection({ kind: 'row', rowId }),
+                    onSelectBlock: (rowId, colId, blockId) => setSelection({ kind: 'block', rowId, colId, blockId }),
+                  }}
+                />
+              ))}
             </div>
           )}
         </div>
