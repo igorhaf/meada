@@ -1,5 +1,6 @@
 import { apiFetch } from '@/lib/api/client'
-import type { CmsBlock } from '@/lib/cms/cms-block-type'
+import type { CmsRow } from '@/lib/cms/cms-block-type'
+import { normalizeToTree } from '@/lib/cms/cms-tree'
 
 /**
  * SDK do CMS do TENANT (SM-N), multi-página. Atrás do gate de feature (403 feature_disabled se o
@@ -28,7 +29,7 @@ export type CmsPage = {
   companyId: string
   pageSlug: string
   title: string
-  blocks: CmsBlock[]
+  blocks: CmsRow[]   // árvore (linhas → colunas → blocos); normalizada na leitura
   isHome: boolean
   position: number
   published: boolean
@@ -38,8 +39,10 @@ export type CmsPage = {
 
 export type CmsSiteView = { site: CmsSite; pages: CmsPage[] }
 
-export function getCmsSite(): Promise<CmsSiteView> {
-  return apiFetch<CmsSiteView>('/api/cms/site')
+export async function getCmsSite(): Promise<CmsSiteView> {
+  const view = await apiFetch<CmsSiteView>('/api/cms/site')
+  // normaliza cada página: flat legado → árvore (idempotente). O editor lê pages[].blocks.
+  return { ...view, pages: view.pages.map((p) => ({ ...p, blocks: normalizeToTree(p.blocks) })) }
 }
 
 export function setCmsPublished(published: boolean): Promise<CmsSite> {
@@ -68,7 +71,7 @@ export function createCmsPage(pageSlug: string, title: string): Promise<CmsPage>
 
 export function saveCmsPage(
   id: string,
-  input: { title?: string; blocks?: CmsBlock[]; published?: boolean },
+  input: { title?: string; blocks?: CmsRow[]; published?: boolean },
 ): Promise<CmsPage> {
   return apiFetch<CmsPage>(`/api/cms/pages/${id}`, { method: 'PUT', body: JSON.stringify(input) })
 }

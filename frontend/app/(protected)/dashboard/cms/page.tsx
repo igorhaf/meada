@@ -12,9 +12,28 @@ import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
 import { Section } from '@/components/ui/card'
 import { FieldRenderer } from '@/components/cms/field-renderer'
-import { renderCmsBlock, cmsShellStyle } from '@/components/cms/cms-render'
+import { renderCmsBlock, cmsShellStyle, RowSection } from '@/components/cms/cms-render'
+import { TreePanel, type Selection } from '@/components/cms/explorer/tree-panel'
+import {
+  addBlockToColumn,
+  addColumn,
+  addRow,
+  moveBlockAcross,
+  moveBlockWithin,
+  moveColumn,
+  moveRow,
+  removeBlock,
+  removeColumn,
+  removeRow,
+  reorderColumn,
+  reorderRow,
+  setColumnWidth,
+  updateBlockProps,
+  updateRowProps,
+} from '@/components/cms/explorer/tree-ops'
+import { columnSchema, rowSchema } from '@/lib/cms/container-schemas'
 import { allBlockSchemas, blockSchema } from '@/lib/cms/cms-block-schemas'
-import { blockTypeLabel, defaultProps, type CmsBlock, type CmsBlockTypeId } from '@/lib/cms/cms-block-type'
+import type { CmsBlock, CmsBlockTypeId, CmsColumnWidth, CmsRow, CmsRowProps } from '@/lib/cms/cms-block-type'
 import {
   createCmsPage,
   deleteCmsPage,
@@ -32,16 +51,17 @@ import {
 import { useCmsBack } from '@/lib/cms/use-cms-return'
 import { cn } from '@/lib/utils'
 
-function newId(): string {
-  return 'b-' + Math.random().toString(36).slice(2, 10)
-}
+/** Alvo pendente do catálogo: ao escolher um bloco, cria uma coluna na linha (kind 'column') ou
+ * empilha um bloco na coluna (kind 'block'). */
+type CatalogTarget = { kind: 'column'; rowId: string } | { kind: 'block'; rowId: string; colId: string } | null
 
 /**
- * Editor do CMS multi-página (SM-N) — TELA CHEIA. O AppShell esconde o shell admin nas rotas
- * /dashboard/cms; aqui montamos o editor próprio: topbar (logo Meada→/dashboard + Voltar + seletor de
- * página + Configurações + Salvar + Publicar), sidebar ESQUERDO de blocos (clique-toggle, empurra o
- * preview), PREVIEW central (blocos reais), e painel DIREITO de propriedades (overlay ao clicar num
- * bloco; fecha com X / Escape / clicar-fora). Configs de site (Páginas/Tema/Domínio) num MODAL.
+ * Editor do CMS multi-página — TELA CHEIA, page builder ESTRUTURAL (árvore root → linhas → colunas →
+ * blocos). O AppShell esconde o shell admin nas rotas /dashboard/cms; aqui montamos o editor próprio:
+ * topbar (logo Meada + Voltar + seletor de página + Configurações + Salvar + Publicar), painel ESQUERDO
+ * "explorer" (árvore de linhas/colunas/blocos, ↑↓✕ por nó), PREVIEW central (linhas reais via
+ * RowSection), e painel DIREITO de propriedades em 3 modos (linha/coluna/bloco). Configs do site num
+ * MODAL. A árvore persiste no campo `blocks` (agora CmsRow[]); o flat legado é normalizado na leitura.
  */
 export default function CmsEditorPage() {
   const qc = useQueryClient()
@@ -50,14 +70,15 @@ export default function CmsEditorPage() {
 
   const [selectedId, setSelectedId] = useState<string | null>(null) // página selecionada
   const [title, setTitle] = useState('')
-  const [blocks, setBlocks] = useState<CmsBlock[]>([])
+  const [tree, setTree] = useState<CmsRow[]>([])
   const [pagePublished, setPagePublished] = useState(false)
   const [savedAt, setSavedAt] = useState<string | null>(null)
 
   // estado do EDITOR (tela-cheia)
-  const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null) // bloco — inicia null (overlay só ao clicar)
+  const [selection, setSelection] = useState<Selection>(null) // nó selecionado (linha/coluna/bloco)
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [leftOpen, setLeftOpen] = useState(true)
-  const [showCatalog, setShowCatalog] = useState(false)
+  const [catalogTarget, setCatalogTarget] = useState<CatalogTarget>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
   const [domain, setDomain] = useState('')
@@ -73,9 +94,6 @@ export default function CmsEditorPage() {
   const site = data?.site
   const pages = data?.pages ?? []
   const selected = pages.find((p) => p.id === selectedId) ?? null
-
-  const selectedBlock = blocks.find((b) => b.id === selectedBlockId) ?? null
-  const blockSchemaSel = selectedBlock ? blockSchema(selectedBlock.type) : undefined
 
   // sincroniza estado do site quando carrega.
   useEffect(() => {
@@ -95,33 +113,42 @@ export default function CmsEditorPage() {
     }
   }, [pages, selectedId])
 
-  // carrega o conteúdo da página selecionada no editor; zera o bloco selecionado (troca de página).
+  // carrega o conteúdo da página selecionada no editor; zera seleção e expande todas as linhas (troca de página).
   useEffect(() => {
     if (selected) {
+      const rows = selected.blocks ?? []
       setTitle(selected.title)
-      setBlocks(selected.blocks ?? [])
+      setTree(rows)
       setPagePublished(selected.published)
+      setExpanded(new Set(rows.map((r) => r.id)))
     }
-    setSelectedBlockId(null)
+    setSelection(null)
   }, [selectedId]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // se o bloco selecionado sumiu dos blocks atuais, fecha o painel direito.
+  // se o nó selecionado sumiu da árvore atual, fecha o painel direito.
   useEffect(() => {
-    if (selectedBlockId && !blocks.some((b) => b.id === selectedBlockId)) setSelectedBlockId(null)
-  }, [blocks, selectedBlockId])
+    if (!selection) return
+    const row = tree.find((r) => r.id === selection.rowId)
+    if (!row) { setSelection(null); return }
+    if (selection.kind === 'row') return
+    const col = row.columns.find((c) => c.id === selection.colId)
+    if (!col) { setSelection(null); return }
+    if (selection.kind === 'column') return
+    if (!col.blocks.some((b) => b.id === selection.blockId)) setSelection(null)
+  }, [tree, selection])
 
   // Escape fecha o painel direito.
   useEffect(() => {
-    if (!selectedBlock) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setSelectedBlockId(null) }
+    if (!selection) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setSelection(null) }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [selectedBlock])
+  }, [selection])
 
   const savePageMut = useMutation({
     mutationFn: () => {
       if (!selectedId) throw new Error('sem página')
-      return saveCmsPage(selectedId, { title, blocks, published: pagePublished })
+      return saveCmsPage(selectedId, { title, blocks: tree, published: pagePublished })
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['cms-site'] })
@@ -169,29 +196,58 @@ export default function CmsEditorPage() {
   const verifyStartMut = useMutation({ mutationFn: () => startDomainVerification(), onSuccess: () => qc.invalidateQueries({ queryKey: ['cms-site'] }) })
   const verifyMut = useMutation({ mutationFn: () => verifyDomain(), onSuccess: () => qc.invalidateQueries({ queryKey: ['cms-site'] }) })
 
-  // ---- ações de bloco ----
-  function updateBlockProps(id: string, props: CmsBlock['props']) {
-    setBlocks((bs) => bs.map((b) => (b.id === id ? ({ ...b, props } as CmsBlock) : b)))
+  // ---- ações da árvore (linha / coluna / bloco) ----
+  function toggleRow(rowId: string) {
+    setExpanded((s) => { const next = new Set(s); next.has(rowId) ? next.delete(rowId) : next.add(rowId); return next })
   }
-  function moveBlock(id: string, dir: -1 | 1) {
-    setBlocks((bs) => {
-      const i = bs.findIndex((b) => b.id === id)
-      const target = i + dir
-      if (i < 0 || target < 0 || target >= bs.length) return bs
-      const next = [...bs]
-      ;[next[i], next[target]] = [next[target], next[i]]
+  function handleAddRow() {
+    setTree((t) => {
+      const next = addRow(t)
+      const created = next[next.length - 1]
+      setExpanded((s) => new Set(s).add(created.id))
+      setSelection({ kind: 'row', rowId: created.id })
       return next
     })
   }
-  function removeBlock(id: string) {
-    setBlocks((bs) => bs.filter((b) => b.id !== id))
-    if (selectedBlockId === id) setSelectedBlockId(null)
+  function handleMoveRow(rowId: string, dir: -1 | 1) { setTree((t) => moveRow(t, rowId, dir)) }
+  function handleRemoveRow(rowId: string) {
+    setTree((t) => removeRow(t, rowId))
+    if (selection?.rowId === rowId) setSelection(null)
   }
-  function addBlock(type: CmsBlockTypeId) {
-    const block = { id: newId(), type, props: defaultProps(type) } as CmsBlock
-    setBlocks((bs) => [...bs, block])
-    setSelectedBlockId(block.id)
-    setShowCatalog(false)
+  function handleMoveColumn(rowId: string, colId: string, dir: -1 | 1) { setTree((t) => moveColumn(t, rowId, colId, dir)) }
+  function handleRemoveColumn(rowId: string, colId: string) {
+    setTree((t) => removeColumn(t, rowId, colId))
+    if (selection && 'colId' in selection && selection.colId === colId) setSelection(null)
+  }
+  function handleMoveBlock(rowId: string, colId: string, blockId: string, dir: -1 | 1) { setTree((t) => moveBlockWithin(t, rowId, colId, blockId, dir)) }
+  function handleRemoveBlock(rowId: string, colId: string, blockId: string) {
+    setTree((t) => removeBlock(t, rowId, colId, blockId))
+    if (selection?.kind === 'block' && selection.blockId === blockId) setSelection(null)
+  }
+
+  // catálogo escolhe o bloco e cria coluna (na linha) ou empilha bloco (na coluna).
+  function pickFromCatalog(type: CmsBlockTypeId) {
+    if (!catalogTarget) return
+    if (catalogTarget.kind === 'column') {
+      const rowId = catalogTarget.rowId
+      setTree((t) => {
+        const next = addColumn(t, rowId, type)
+        const row = next.find((r) => r.id === rowId)
+        const col = row?.columns[row.columns.length - 1]
+        if (col) setSelection({ kind: 'column', rowId, colId: col.id })
+        return next
+      })
+    } else {
+      const { rowId, colId } = catalogTarget
+      setTree((t) => {
+        const next = addBlockToColumn(t, rowId, colId, type)
+        const col = next.find((r) => r.id === rowId)?.columns.find((c) => c.id === colId)
+        const block = col?.blocks[col.blocks.length - 1]
+        if (block) setSelection({ kind: 'block', rowId, colId, blockId: block.id })
+        return next
+      })
+    }
+    setCatalogTarget(null)
   }
 
   // ---- estados de borda ----
@@ -208,6 +264,12 @@ export default function CmsEditorPage() {
   }
 
   const shell = cmsShellStyle({ primaryColor, dark, preset: preset || undefined })
+
+  // nós selecionados resolvidos a partir da árvore (pro painel direito).
+  const selRow = selection ? tree.find((r) => r.id === selection.rowId) ?? null : null
+  const selCol = selRow && selection && 'colId' in selection ? selRow.columns.find((c) => c.id === selection.colId) ?? null : null
+  const selBlock = selCol && selection?.kind === 'block' ? selCol.blocks.find((b) => b.id === selection.blockId) ?? null : null
+  const selBlockSchema = selBlock ? blockSchema(selBlock.type) : undefined
 
   return (
     <div className="flex h-full flex-col">
@@ -245,43 +307,33 @@ export default function CmsEditorPage() {
         </div>
       </div>
 
-      {/* ---- CORPO: esquerdo (push) + preview + direito (overlay) ---- */}
+      {/* ---- CORPO: explorer (push) + preview + propriedades (overlay) ---- */}
       <div className="relative flex min-h-0 flex-1">
-        {/* ESQUERDO — blocos (empurra o preview) */}
+        {/* ESQUERDO — explorer (empurra o preview) */}
         <aside className={cn(
           'shrink-0 overflow-hidden border-r border-border transition-[width] duration-200 ease-out',
-          leftOpen ? 'w-64' : 'w-0 border-r-0',
+          leftOpen ? 'w-72' : 'w-0 border-r-0',
         )}>
-          <div className="flex h-full w-64 flex-col">
-            <div className="border-b border-border p-3">
-              <Button className="w-full" onClick={() => setShowCatalog(true)}>+ Adicionar bloco</Button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-2">
-              {blocks.length === 0 && (
-                <p className="rounded-lg border border-dashed border-border p-4 text-center text-xs text-muted-foreground">Nenhum bloco ainda.</p>
-              )}
-              <ul className="space-y-1">
-                {blocks.map((b, i) => {
-                  const s = blockSchema(b.type)
-                  const isSel = b.id === selectedBlockId
-                  return (
-                    <li key={b.id}>
-                      <div className={cn('group flex items-center gap-1 rounded-md border px-2 py-2 text-sm', isSel ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50')}>
-                        <button type="button" className="flex min-w-0 flex-1 items-center gap-2 text-left" onClick={() => setSelectedBlockId(b.id)}>
-                          <span aria-hidden>{s?.emoji ?? '▫️'}</span>
-                          <span className="truncate">{s?.label ?? blockTypeLabel(b.type)}</span>
-                        </button>
-                        <span className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-                          <button type="button" onClick={() => moveBlock(b.id, -1)} disabled={i === 0} className="rounded px-1 text-xs hover:bg-muted disabled:opacity-30" aria-label="Subir">↑</button>
-                          <button type="button" onClick={() => moveBlock(b.id, 1)} disabled={i === blocks.length - 1} className="rounded px-1 text-xs hover:bg-muted disabled:opacity-30" aria-label="Descer">↓</button>
-                          <button type="button" onClick={() => removeBlock(b.id)} className="rounded px-1 text-xs text-destructive hover:bg-destructive/10" aria-label="Excluir">✕</button>
-                        </span>
-                      </div>
-                    </li>
-                  )
-                })}
-              </ul>
-            </div>
+          <div className="h-full w-72">
+            <TreePanel
+              tree={tree}
+              selection={selection}
+              expanded={expanded}
+              onSelect={setSelection}
+              onToggle={toggleRow}
+              onAddRow={handleAddRow}
+              onMoveRow={handleMoveRow}
+              onRemoveRow={handleRemoveRow}
+              onAddColumn={(rowId) => setCatalogTarget({ kind: 'column', rowId })}
+              onMoveColumn={handleMoveColumn}
+              onRemoveColumn={handleRemoveColumn}
+              onAddBlock={(rowId, colId) => setCatalogTarget({ kind: 'block', rowId, colId })}
+              onMoveBlock={handleMoveBlock}
+              onRemoveBlock={handleRemoveBlock}
+              onReorderRow={(dragId, targetId) => setTree((t) => reorderRow(t, dragId, targetId))}
+              onReorderColumn={(rowId, dragColId, targetColId) => setTree((t) => reorderColumn(t, rowId, dragColId, targetColId))}
+              onMoveBlockAcross={(from, to) => setTree((t) => moveBlockAcross(t, from, to))}
+            />
           </div>
         </aside>
 
@@ -289,9 +341,9 @@ export default function CmsEditorPage() {
         <button
           type="button"
           onClick={() => setLeftOpen((v) => !v)}
-          aria-label={leftOpen ? 'Recolher blocos' : 'Abrir blocos'}
+          aria-label={leftOpen ? 'Recolher explorer' : 'Abrir explorer'}
           className="absolute top-1/2 z-20 flex h-16 w-6 -translate-y-1/2 items-center justify-center rounded-r-xl border border-l-0 border-border bg-background text-muted-foreground shadow-md transition-[left] duration-200 hover:bg-muted hover:text-foreground"
-          style={{ left: leftOpen ? '16rem' : '0' }}
+          style={{ left: leftOpen ? '18rem' : '0' }}
         >
           {leftOpen ? <X className="size-4" /> : <Menu className="size-4" />}
         </button>
@@ -299,19 +351,23 @@ export default function CmsEditorPage() {
         {/* PREVIEW — clicar em área neutra (alvo = container) fecha o painel direito */}
         <div
           className="min-w-0 flex-1 overflow-auto"
-          onClick={(e) => { if (e.target === e.currentTarget) setSelectedBlockId(null) }}
+          onClick={(e) => { if (e.target === e.currentTarget) setSelection(null) }}
         >
-          {blocks.length === 0 ? (
+          {tree.length === 0 ? (
             <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-              Adicione blocos pela barra à esquerda — o preview aparece aqui.
+              Adicione uma linha pela árvore à esquerda — o preview aparece aqui.
             </div>
           ) : (
-            <div style={shell} onClick={(e) => { if (e.target === e.currentTarget) setSelectedBlockId(null) }}>
-              {blocks.map((b) => {
-                const isSel = b.id === selectedBlockId
+            <div style={shell} onClick={(e) => { if (e.target === e.currentTarget) setSelection(null) }}>
+              {tree.map((row) => {
+                const rowSel = selection?.kind === 'row' && selection.rowId === row.id
                 return (
-                  <div key={b.id} onClick={() => setSelectedBlockId(b.id)} className={cn('relative cursor-pointer', isSel && 'ring-2 ring-inset ring-primary')}>
-                    <div className="pointer-events-none">{renderCmsBlock(b)}</div>
+                  <div
+                    key={row.id}
+                    onClick={(e) => { e.stopPropagation(); setSelection({ kind: 'row', rowId: row.id }) }}
+                    className={cn('relative cursor-pointer', rowSel && 'ring-2 ring-inset ring-primary')}
+                  >
+                    <RowSection row={row} />
                   </div>
                 )
               })}
@@ -319,33 +375,89 @@ export default function CmsEditorPage() {
           )}
         </div>
 
-        {/* DIREITO — propriedades (overlay absolute ao container; NÃO cobre a topbar) */}
-        {selectedBlock && blockSchemaSel && (
+        {/* DIREITO — propriedades (3 modos: linha / coluna / bloco) */}
+        {selection && (selRow || selBlock) && (
           <aside className="absolute inset-y-0 right-0 z-40 flex w-[340px] flex-col overflow-y-auto border-l border-border bg-card shadow-xl">
-            <div className="flex items-center justify-between border-b border-border px-4 py-3">
-              <span className="flex items-center gap-2 font-medium"><span aria-hidden>{blockSchemaSel.emoji}</span> {blockSchemaSel.label}</span>
-              <button type="button" onClick={() => setSelectedBlockId(null)} aria-label="Fechar"><X className="size-4" /></button>
-            </div>
-            <div className="space-y-3 p-4">
-              <p className="text-xs text-muted-foreground">{blockSchemaSel.description}</p>
-              {blockSchemaSel.fields.map((f) => (
-                <FieldRenderer
-                  key={f.key}
-                  field={f}
-                  value={(selectedBlock.props as Record<string, unknown>)[f.key]}
-                  onChange={(v) => updateBlockProps(selectedBlock.id, { ...selectedBlock.props, [f.key]: v } as CmsBlock['props'])}
-                />
-              ))}
-            </div>
+            {/* MODO LINHA */}
+            {selection.kind === 'row' && selRow && (
+              <>
+                <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                  <span className="flex items-center gap-2 font-medium"><span aria-hidden>{rowSchema.emoji}</span> {rowSchema.label}</span>
+                  <button type="button" onClick={() => setSelection(null)} aria-label="Fechar"><X className="size-4" /></button>
+                </div>
+                <div className="space-y-3 p-4">
+                  <p className="text-xs text-muted-foreground">Layout da linha (seção) — colunas lado a lado, responsivo. No celular as colunas empilham.</p>
+                  {rowSchema.fields.map((f) => (
+                    <FieldRenderer
+                      key={f.key}
+                      field={f}
+                      value={(selRow.props as Record<string, unknown>)[f.key]}
+                      onChange={(v) => setTree((t) => updateRowProps(t, selRow.id, { ...selRow.props, [f.key]: v } as CmsRowProps))}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* MODO COLUNA */}
+            {selection.kind === 'column' && selCol && (
+              <>
+                <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                  <span className="flex items-center gap-2 font-medium"><span aria-hidden>{columnSchema.emoji}</span> {columnSchema.label}</span>
+                  <button type="button" onClick={() => setSelection(null)} aria-label="Fechar"><X className="size-4" /></button>
+                </div>
+                <div className="space-y-3 p-4">
+                  <p className="text-xs text-muted-foreground">Largura da coluna no grid de 12. Some as larguras das colunas de uma linha pra chegar a 12 (ex.: 6 + 6, 4 + 4 + 4).</p>
+                  {columnSchema.fields.map((f) => (
+                    <FieldRenderer
+                      key={f.key}
+                      field={f}
+                      value={typeof selCol.width === 'number' ? String(selCol.width) : ''}
+                      onChange={(v) => {
+                        const n = parseInt(String(v), 10)
+                        const width: CmsColumnWidth = Number.isFinite(n) ? Math.max(1, Math.min(12, n)) : 'auto'
+                        setTree((t) => setColumnWidth(t, selRow!.id, selCol.id, width))
+                      }}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* MODO BLOCO */}
+            {selection.kind === 'block' && selBlock && selBlockSchema && (
+              <>
+                <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                  <span className="flex items-center gap-2 font-medium"><span aria-hidden>{selBlockSchema.emoji}</span> {selBlockSchema.label}</span>
+                  <button type="button" onClick={() => setSelection(null)} aria-label="Fechar"><X className="size-4" /></button>
+                </div>
+                <div className="space-y-3 p-4">
+                  <p className="text-xs text-muted-foreground">{selBlockSchema.description}</p>
+                  {selBlockSchema.fields.map((f) => (
+                    <FieldRenderer
+                      key={f.key}
+                      field={f}
+                      value={(selBlock.props as Record<string, unknown>)[f.key]}
+                      onChange={(v) => setTree((t) => updateBlockProps(t, selRow!.id, selCol!.id, selBlock.id, { ...selBlock.props, [f.key]: v } as CmsBlock['props']))}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
           </aside>
         )}
       </div>
 
-      {/* ---- CATÁLOGO ---- */}
-      <Modal open={showCatalog} onClose={() => setShowCatalog(false)} title="Adicionar bloco" size="lg">
+      {/* ---- CATÁLOGO (escolhe o bloco; cria coluna ou empilha) ---- */}
+      <Modal
+        open={catalogTarget !== null}
+        onClose={() => setCatalogTarget(null)}
+        title={catalogTarget?.kind === 'column' ? 'Nova coluna — escolha o bloco' : 'Adicionar bloco à coluna'}
+        size="lg"
+      >
         <div className="grid gap-3 sm:grid-cols-2">
           {allBlockSchemas().map((s) => (
-            <button key={s.type} type="button" onClick={() => addBlock(s.type)}
+            <button key={s.type} type="button" onClick={() => pickFromCatalog(s.type)}
               className="rounded-lg border border-border p-4 text-left transition-colors hover:border-primary hover:bg-primary/5">
               <div className="flex items-center gap-2 font-medium"><span aria-hidden className="text-lg">{s.emoji}</span> {s.label}</div>
               <p className="mt-1 text-xs text-muted-foreground">{s.description}</p>

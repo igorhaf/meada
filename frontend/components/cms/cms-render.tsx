@@ -1,6 +1,9 @@
+import { cn } from '@/lib/utils'
 import type {
   BannerStripProps,
   CmsBlock,
+  CmsColumnWidth,
+  CmsRow,
   ColumnsProps,
   ContactProps,
   CtaProps,
@@ -494,6 +497,44 @@ export function renderCmsBlock(b: CmsBlock): React.ReactElement | null {
   }
 }
 
+// ---- layout estrutural: linhas → colunas (grid de 12, responsivo) ----------
+
+// As 12 strings LITERAIS md:col-span-N (anti-tree-shake do Tailwind 4 — nunca interpolar).
+const COL_SPAN: Record<number, string> = {
+  1: 'md:col-span-1', 2: 'md:col-span-2', 3: 'md:col-span-3', 4: 'md:col-span-4',
+  5: 'md:col-span-5', 6: 'md:col-span-6', 7: 'md:col-span-7', 8: 'md:col-span-8',
+  9: 'md:col-span-9', 10: 'md:col-span-10', 11: 'md:col-span-11', 12: 'md:col-span-12',
+}
+function colSpanClass(w: CmsColumnWidth): string {
+  if (w === 'auto') return 'md:col-span-12'
+  return COL_SPAN[Math.max(1, Math.min(12, w))] ?? 'md:col-span-12'
+}
+
+/** Renderiza UMA linha: <section> com fundo/padding + grid responsivo de colunas (12 → 1 no mobile).
+ * Compartilhado entre o público (/p/) e o preview do editor — garante parity. */
+export function RowSection({ row }: { row: CmsRow }) {
+  const p = row.props ?? {}
+  const bgStyle = p.bg === 'primary' ? { background: 'var(--cms-primary)', color: '#fff' }
+    : p.bg === 'muted' ? { background: 'rgba(0,0,0,0.04)' } : undefined
+  const padY = { none: '', sm: 'py-6', md: 'py-12', lg: 'py-20' }[p.paddingY ?? 'md']
+  const gap = { sm: 'gap-4', md: 'gap-6', lg: 'gap-10' }[p.gap ?? 'md']
+  const maxW = { narrow: 'max-w-3xl', wide: 'max-w-6xl', full: 'max-w-none' }[p.maxWidth ?? 'wide']
+  const align = { start: 'md:items-start', center: 'md:items-center', stretch: 'md:items-stretch' }[p.align ?? 'stretch']
+  const px = p.maxWidth === 'full' ? '' : 'px-6'
+
+  return (
+    <section className={cn(padY)} style={bgStyle}>
+      <div className={cn('mx-auto grid grid-cols-1 md:grid-cols-12', px, gap, align, maxW)}>
+        {(row.columns ?? []).map((col) => (
+          <div key={col.id} className={colSpanClass(col.width)}>
+            {(col.blocks ?? []).map(renderCmsBlock)}
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 export function CmsRender({
   title,
   blocks,
@@ -502,7 +543,7 @@ export function CmsRender({
   navBase,
 }: {
   title: string
-  blocks: CmsBlock[]
+  blocks: CmsRow[]
   theme: CmsTheme | null
   nav: CmsNavItem[]
   navBase: string
@@ -518,7 +559,7 @@ export function CmsRender({
           ))}
         </nav>
       )}
-      {blocks.map(renderCmsBlock)}
+      {blocks.map((row) => <RowSection key={row.id} row={row} />)}
       {blocks.length === 0 && (
         <div className="flex min-h-[50vh] items-center justify-center opacity-50">
           <p>{title || 'Página em construção.'}</p>

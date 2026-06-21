@@ -335,3 +335,48 @@ export function defaultProps(type: CmsBlockTypeId): CmsBlock['props'] {
       }
   }
 }
+
+// ============================================================================
+// Árvore estrutural (page builder): página = linhas → colunas → blocos.
+// A FOLHA (CmsBlock) NÃO muda; row/column são containers (não entram em
+// CMS_BLOCK_TYPES nem no enum Java — não disparam o parity test).
+// ============================================================================
+
+/** Largura de uma coluna no grid de 12. 1..12 = span fixo; 'auto' = fallback (→ span 12). */
+export type CmsColumnWidth = number | 'auto'
+
+export type CmsRowProps = {
+  bg?: 'none' | 'muted' | 'primary'
+  paddingY?: 'none' | 'sm' | 'md' | 'lg'
+  gap?: 'sm' | 'md' | 'lg'
+  align?: 'start' | 'center' | 'stretch'
+  maxWidth?: 'narrow' | 'wide' | 'full'
+}
+
+export type CmsColumn = { id: string; width: CmsColumnWidth; blocks: CmsBlock[] }
+export type CmsRow = { id: string; props: CmsRowProps; columns: CmsColumn[] }
+/** Página = árvore de linhas. O campo persistido continua se chamando `blocks`. */
+export type CmsTree = CmsRow[]
+
+let _seq = 0
+function rand(prefix: string): string {
+  _seq = (_seq + 1) % 1_000_000
+  return prefix + Date.now().toString(36) + '-' + _seq.toString(36) + Math.random().toString(36).slice(2, 6)
+}
+export function newRowId(): string { return rand('r-') }
+export function newColId(): string { return rand('c-') }
+export function newBlockId(): string { return rand('b-') }
+
+export function defaultRowProps(): CmsRowProps {
+  return { bg: 'none', paddingY: 'md', gap: 'md', align: 'stretch', maxWidth: 'wide' }
+}
+export function emptyColumn(width: CmsColumnWidth = 12): CmsColumn {
+  return { id: newColId(), width, blocks: [] }
+}
+export function emptyRow(): CmsRow {
+  return { id: newRowId(), props: defaultRowProps(), columns: [] }
+}
+/** Cria uma coluna já com um bloco do tipo dado (fluxo "arrastar componente → vira coluna"). */
+export function columnWithBlock(type: CmsBlockTypeId, width: CmsColumnWidth = 12): CmsColumn {
+  return { id: newColId(), width, blocks: [{ id: newBlockId(), type, props: defaultProps(type) } as CmsBlock] }
+}

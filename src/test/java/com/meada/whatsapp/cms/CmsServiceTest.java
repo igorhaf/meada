@@ -164,6 +164,77 @@ class CmsServiceTest extends AbstractIntegrationTest {
         assertThat(service.domainAllowedForTls("naoexiste.com")).isFalse();
     }
 
+    // ---- migração / árvore de blocos (page builder estrutural) ---------------
+
+    @Test
+    @DisplayName("migração: blocks flat legado → árvore (1 linha/1 coluna span-12 por bloco), type preservado")
+    void blocks_flatLegacyMigratesToTree() throws Exception {
+        CmsPage p = service.createPage(CO_A, "home", "Home");
+        var flat = objectMapper.readTree("""
+            [ {"id":"b-old1","type":"hero","props":{"title":"Oi"}},
+              {"id":"b-old2","type":"text","props":{"body":"x"}} ]
+            """);
+        CmsPage saved = service.savePageContent(CO_A, p.id(), "Home", flat, true);
+        // agora é árvore: 2 linhas (1 por bloco legado).
+        assertThat(saved.blocks()).hasSize(2);
+        var row0 = saved.blocks().get(0);
+        assertThat(row0.has("columns")).isTrue();
+        assertThat(row0.get("columns")).hasSize(1);
+        var col0 = row0.get("columns").get(0);
+        assertThat(col0.get("width").asInt()).isEqualTo(12);
+        assertThat(col0.get("blocks")).hasSize(1);
+        assertThat(col0.get("blocks").get(0).get("type").asText()).isEqualTo("hero");
+        assertThat(col0.get("blocks").get(0).get("id").asText()).isNotBlank();
+    }
+
+    @Test
+    @DisplayName("árvore com 2 colunas passa intacta; widths preservados; re-salvar é idempotente")
+    void blocks_treePassesThroughAndIdempotent() throws Exception {
+        CmsPage p = service.createPage(CO_A, "home", "Home");
+        var tree = objectMapper.readTree("""
+            [ { "id":"r1", "props":{"bg":"muted"}, "columns":[
+                  {"id":"c1","width":6,"blocks":[{"id":"b1","type":"hero","props":{}}]},
+                  {"id":"c2","width":6,"blocks":[{"id":"b2","type":"text","props":{"body":"y"}}]} ] } ]
+            """);
+        CmsPage saved = service.savePageContent(CO_A, p.id(), "Home", tree, true);
+        assertThat(saved.blocks()).hasSize(1);
+        var cols = saved.blocks().get(0).get("columns");
+        assertThat(cols).hasSize(2);
+        assertThat(cols.get(0).get("width").asInt()).isEqualTo(6);
+        assertThat(cols.get(1).get("width").asInt()).isEqualTo(6);
+        // idempotência: re-salvar a saída normalizada dá o mesmo formato.
+        CmsPage again = service.savePageContent(CO_A, p.id(), "Home", objectMapper.valueToTree(saved.blocks()), true);
+        assertThat(again.blocks().get(0).get("columns")).hasSize(2);
+        assertThat(again.blocks().get(0).get("columns").get(0).get("width").asInt()).isEqualTo(6);
+    }
+
+    @Test
+    @DisplayName("árvore com type de bloco inválido numa coluna → InvalidBlocks")
+    void blocks_treeInvalidLeafType() throws Exception {
+        CmsPage p = service.createPage(CO_A, "home", "Home");
+        var bad = objectMapper.readTree("""
+            [ { "id":"r1", "props":{}, "columns":[
+                  {"id":"c1","width":12,"blocks":[{"id":"b1","type":"naoexiste","props":{}}]} ] } ]
+            """);
+        assertThatThrownBy(() -> service.savePageContent(CO_A, p.id(), "X", bad, null))
+            .isInstanceOf(InvalidBlocksException.class);
+    }
+
+    @Test
+    @DisplayName("width fora de 1..12 sofre clamp; ausente/inválido vira \"auto\"")
+    void blocks_widthNormalization() throws Exception {
+        CmsPage p = service.createPage(CO_A, "home", "Home");
+        var tree = objectMapper.readTree("""
+            [ { "id":"r1", "props":{}, "columns":[
+                  {"id":"c1","width":99,"blocks":[{"id":"b1","type":"hero","props":{}}]},
+                  {"id":"c2","blocks":[{"id":"b2","type":"text","props":{}}]} ] } ]
+            """);
+        CmsPage saved = service.savePageContent(CO_A, p.id(), "Home", tree, true);
+        var cols = saved.blocks().get(0).get("columns");
+        assertThat(cols.get(0).get("width").asInt()).isEqualTo(12);      // 99 → clamp 12
+        assertThat(cols.get(1).get("width").asText()).isEqualTo("auto"); // ausente → "auto"
+    }
+
     // ---- fake DNS ------------------------------------------------------------
 
     static class FakeDnsResolver implements DnsTxtResolver {

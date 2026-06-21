@@ -1,4 +1,5 @@
-import type { CmsBlock } from './cms-block-type'
+import type { CmsRow } from './cms-block-type'
+import { normalizeToTree } from './cms-tree'
 
 /**
  * Fetch SERVER-SIDE da página pública do CMS (SM-N). Roda no servidor Next; usa a base INTERNA do
@@ -9,7 +10,8 @@ import type { CmsBlock } from './cms-block-type'
 export type CmsNavItem = { pageSlug: string; title: string; isHome: boolean }
 export type CmsThemePreset = 'meada-dark'
 export type CmsTheme = { primaryColor?: string; dark?: boolean; preset?: CmsThemePreset }
-export type PublicCmsView = { title: string; blocks: CmsBlock[]; theme: CmsTheme | null; nav: CmsNavItem[] }
+/** blocks agora é a ÁRVORE (CmsRow[]); normalizeToTree converte o flat legado na leitura. */
+export type PublicCmsView = { title: string; blocks: CmsRow[]; theme: CmsTheme | null; nav: CmsNavItem[] }
 
 function backendBase(): string {
   return process.env.CMS_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8095'
@@ -19,7 +21,8 @@ async function fetchPublic(path: string): Promise<PublicCmsView | null> {
   try {
     const res = await fetch(`${backendBase()}${path}`, { cache: 'no-store' })
     if (!res.ok) return null
-    return (await res.json()) as PublicCmsView
+    const view = (await res.json()) as { title: string; blocks: unknown; theme: CmsTheme | null; nav: CmsNavItem[] }
+    return { ...view, blocks: normalizeToTree(view.blocks) }
   } catch {
     return null
   }

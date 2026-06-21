@@ -3,7 +3,9 @@ package com.meada.whatsapp.cms;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,7 +31,9 @@ public class CmsService {
     private static final Pattern DOMAIN = Pattern.compile("^(?=.{1,253}$)([a-z0-9](-?[a-z0-9])*\\.)+[a-z]{2,}$");
     private static final Pattern PAGE_SLUG = Pattern.compile("^[a-z0-9]+(-[a-z0-9]+)*$");
     private static final String VERIFY_PREFIX = "_meada-verify=";
-    private static final int MAX_BLOCKS = 50;
+    private static final int MAX_BLOCKS = 50;   // total de blocos-folha na árvore
+    private static final int MAX_ROWS = 30;
+    private static final int MAX_COLS_ROW = 6;
     private static final int MAX_PAGES = 30;
     private static final SecureRandom RANDOM = new SecureRandom();
 
@@ -271,33 +275,134 @@ public class CmsService {
         return slug;
     }
 
+    /**
+     * Normaliza os blocks da página. O page builder evoluiu de uma lista FLAT de blocos para uma
+     * ÁRVORE (linhas → colunas → blocos). Aceita AMBOS os formatos (retrocompat): detecta o flat
+     * legado por shape e o converte em árvore; valida a árvore recursivamente. O campo persistido
+     * continua se chamando {@code blocks}, agora contendo {@code CmsRow[]}.
+     */
     private ArrayNode normalizeBlocks(JsonNode blocks) {
-        if (blocks == null || !blocks.isArray() || blocks.size() > MAX_BLOCKS) {
+        if (blocks == null || !blocks.isArray()) {
             throw new InvalidBlocksException();
         }
-        ArrayNode out = objectMapper.createArrayNode();
-        for (JsonNode b : blocks) {
-            if (!b.isObject()) {
-                throw new InvalidBlocksException();
-            }
-            String type = b.path("type").asText(null);
-            if (CmsBlockType.fromId(type).isEmpty()) {
-                throw new InvalidBlocksException();
-            }
-            JsonNode props = b.get("props");
-            if (props == null || !props.isObject()) {
-                props = objectMapper.createObjectNode();
-            }
-            String id = b.path("id").asText(null);
-            if (id == null || id.isBlank()) {
-                id = UUID.randomUUID().toString();
-            }
-            ObjectNode norm = objectMapper.createObjectNode();
-            norm.put("id", id);
-            norm.put("type", type);
-            norm.set("props", props);
-            out.add(norm);
+        if (isFlatLegacy(blocks)) {
+            return normalizeTree(flatToTree(blocks));
         }
-        return out;
+        return normalizeTree(blocks);
+    }
+
+    /** Flat legado = array não-vazio cujo 1º item tem {@code type} e NÃO tem {@code columns}. */
+    private boolean isFlatLegacy(JsonNode arr) {
+        if (arr.size() == 0) {
+            return false;
+        }
+        JsonNode first = arr.get(0);
+        return first.isObject() && first.has("type") && !first.has("columns");
+    }
+
+    /** flat → árvore: cada bloco vira 1 linha de 1 coluna span-12 (passthrough). Espelha o TS. */
+    private ArrayNode flatToTree(JsonNode flat) {
+        ArrayNode rows = objectMapper.createArrayNode();
+        for (JsonNode b : flat) {
+            String bid = b.path("id").asText(null);
+            String suffix = (bid == null || bid.isBlank()) ? UUID.randomUUID().toString() : bid;
+            ObjectNode col = objectMapper.createObjectNode();
+            col.put("id", "c-" + suffix);
+            col.put("width", 12);
+            ArrayNode colBlocks = objectMapper.createArrayNode();
+            colBlocks.add(b);
+            col.set("blocks", colBlocks);
+
+            ObjectNode row = objectMapper.createObjectNode();
+            row.put("id", "r-" + suffix);
+            row.set("props", objectMapper.createObjectNode());
+            ArrayNode cols = objectMapper.createArrayNode();
+            cols.add(col);
+            row.set("columns", cols);
+            rows.add(row);
+        }
+        return rows;
+    }
+
+    /** Valida e normaliza a árvore: rows[] → columns[] → blocks[] (folha com type ∈ enum). */
+    private ArrayNode normalizeTree(JsonNode rows) {
+        if (!rows.isArray() || rows.size() > MAX_ROWS) {
+            throw new InvalidBlocksException();
+        }
+        int[] leafCount = {0};
+        ArrayNode outRows = objectMapper.createArrayNode();
+        for (JsonNode row : rows) {
+            if (!row.isObject()) {
+                throw new InvalidBlocksException();
+            }
+            JsonNode cols = row.get("columns");
+            if (cols == null || !cols.isArray() || cols.size() > MAX_COLS_ROW) {
+                throw new InvalidBlocksException();
+            }
+            ObjectNode outRow = objectMapper.createObjectNode();
+            outRow.put("id", nonBlankId(row, "r-"));
+            outRow.set("props", row.has("props") && row.get("props").isObject()
+                ? row.get("props") : objectMapper.createObjectNode());
+
+            ArrayNode outCols = objectMapper.createArrayNode();
+            for (JsonNode col : cols) {
+                if (!col.isObject()) {
+                    throw new InvalidBlocksException();
+                }
+                JsonNode colBlocks = col.get("blocks");
+                if (colBlocks == null || !colBlocks.isArray()) {
+                    throw new InvalidBlocksException();
+                }
+                ArrayNode outBlocks = objectMapper.createArrayNode();
+                for (JsonNode b : colBlocks) {
+                    outBlocks.add(normalizeLeaf(b, leafCount));
+                }
+                ObjectNode outCol = objectMapper.createObjectNode();
+                outCol.put("id", nonBlankId(col, "c-"));
+                outCol.set("width", normalizeWidth(col.get("width")));
+                outCol.set("blocks", outBlocks);
+                outCols.add(outCol);
+            }
+            outRow.set("columns", outCols);
+            outRows.add(outRow);
+        }
+        return outRows;
+    }
+
+    /** Valida um bloco-folha {@code {id,type,props}} (type ∈ enum) e conta o total de folhas. */
+    private ObjectNode normalizeLeaf(JsonNode b, int[] leafCount) {
+        if (!b.isObject()) {
+            throw new InvalidBlocksException();
+        }
+        String type = b.path("type").asText(null);
+        if (CmsBlockType.fromId(type).isEmpty()) {
+            throw new InvalidBlocksException();
+        }
+        leafCount[0]++;
+        if (leafCount[0] > MAX_BLOCKS) {
+            throw new InvalidBlocksException();
+        }
+        JsonNode props = b.get("props");
+        if (props == null || !props.isObject()) {
+            props = objectMapper.createObjectNode();
+        }
+        ObjectNode norm = objectMapper.createObjectNode();
+        norm.put("id", nonBlankId(b, "b-"));
+        norm.put("type", type);
+        norm.set("props", props);
+        return norm;
+    }
+
+    /** width: int 1..12 (clamp) ou "auto" (default tolerante p/ dados ruins). */
+    private JsonNode normalizeWidth(JsonNode w) {
+        if (w != null && w.isInt()) {
+            return IntNode.valueOf(Math.max(1, Math.min(12, w.asInt())));
+        }
+        return TextNode.valueOf("auto");
+    }
+
+    private String nonBlankId(JsonNode n, String prefix) {
+        String id = n.path("id").asText(null);
+        return (id == null || id.isBlank()) ? prefix + UUID.randomUUID() : id;
     }
 }
