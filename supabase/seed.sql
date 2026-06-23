@@ -128,8 +128,7 @@ begin
       ('nutrevida',    'Nutre Vida',         'nutri',      false),
       ('navalhaouro',  'Navalha de Ouro',    'barbearia',  true),
       ('festamax',     'Festa Max',          'eventos',    false),
-      ('glowestetica', 'Glow Estética',      'estetica',   true),
-      ('meadashow',    'Meada Show',         'generic',    true)
+      ('glowestetica', 'Glow Estética',      'estetica',   true)
     ) as v(slug, name, profile_id, with_cms)
   loop
     -- company idempotente por slug
@@ -156,3 +155,27 @@ begin
     end if;
   end loop;
 end $$;
+
+-- ========================================================================
+-- 4) COMPANY-ÂNCORA DA PLATAFORMA (migration 44) — o "Meada" institucional.
+-- is_platform=true; o super-admin edita o CMS dela DIRETO no painel (/dashboard/cms),
+-- sem ser tenant. A raiz meadadigital.local serve este CMS. id/slug fixos e canônicos.
+-- (Recriada aqui pra sobreviver a db reset + deleções acidentais.)
+-- ========================================================================
+insert into public.companies (id, name, slug, profile_id, status, is_platform)
+values ('00000000-0000-0000-0000-000000000000', 'Meada', 'meada', 'generic', 'active', true)
+on conflict (id) do update set is_platform = true, slug = excluded.slug, name = excluded.name;
+
+insert into public.cms_sites (company_id, published)
+values ('00000000-0000-0000-0000-000000000000', true)
+on conflict (company_id) do update set published = true;
+
+insert into public.cms_pages (company_id, page_slug, title, blocks, is_home, published)
+values ('00000000-0000-0000-0000-000000000000', 'home', 'Meada',
+  jsonb_build_array(jsonb_build_object(
+    'id', 'hero-1', 'type', 'hero',
+    'props', jsonb_build_object(
+      'title', 'Meada',
+      'subtitle', 'Atendimento com IA por WhatsApp para o seu negócio.'))),
+  true, true)
+on conflict do nothing;

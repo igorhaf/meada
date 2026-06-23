@@ -7,11 +7,11 @@ import { fetchHomeBySlug } from '@/lib/cms/public-fetch'
 import { SUBDOMAIN_HEADER, isUniversalSubdomain } from '@/lib/profiles/subdomain'
 
 /**
- * Slug do tenant generic que representa o SITE INSTITUCIONAL do Meada. A raiz do domínio-base
- * (meadadigital.com) serve o CMS DESTE tenant — editado na área administrativa como qualquer
- * outro tenant (transparente). Trocar este slug = trocar qual company é "o Meada".
+ * Slug da COMPANY-ÂNCORA da plataforma (is_platform=true, migration 44) — o "Meada"
+ * institucional. A raiz do domínio-base (meadadigital.com) serve o CMS DESTA company,
+ * que o SUPER-ADMIN edita direto no painel (/dashboard/cms), sem ser tenant.
  */
-const MEADA_INSTITUTIONAL_SLUG = 'meadashow'
+const MEADA_INSTITUTIONAL_SLUG = 'meada'
 
 /**
  * Raiz do host.
