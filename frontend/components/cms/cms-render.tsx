@@ -624,9 +624,15 @@ export function CmsRender({
   nav: CmsNavItem[]
   navBase: string
 }) {
+  // Se a página já tem uma navbar PRÓPRIA como bloco (meada_navbar), NÃO desenha o nav
+  // genérico de fallback — senão aparecem dois menus (o cru por cima da navbar da marca).
+  // O nav genérico só serve a páginas sem navbar própria (tenant genérico multi-página).
+  const hasOwnNavbar = blocks.some((row) =>
+    (row.columns ?? []).some((col) => (col.blocks ?? []).some((b) => b.type === 'meada_navbar')),
+  )
   return (
     <main className="min-h-screen" style={cmsShellStyle(theme)}>
-      {nav.length > 1 && (
+      {nav.length > 1 && !hasOwnNavbar && (
         <nav className="flex flex-wrap items-center justify-center gap-4 border-b border-black/10 px-6 py-4 text-sm">
           {nav.map((n) => (
             <a key={n.pageSlug} href={n.isHome ? `${navBase || '/'}` : `${navBase}/${n.pageSlug}`} className="hover:underline">
