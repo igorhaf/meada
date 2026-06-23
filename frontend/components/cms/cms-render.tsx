@@ -575,20 +575,32 @@ export function RowSection({ row, interactive }: { row: CmsRow; interactive?: Ro
               // slot ativo NESTE bloco → destaque vai pra sub-parte (activeSlot) e o ring-do-bloco some.
               const slotActive = interactive.selectedSlotBlockId === b.id ? (interactive.selectedSlotId ?? undefined) : undefined
               return (
-                // wrapper clicável + destaque AO REDOR do componente (ring com offset = halo com respiro).
+                // wrapper clicável. No EDITOR:
+                //  - o CONTEÚDO recebe pointer-events:none → links/botões NÃO navegam e o clique
+                //    sempre cai no wrapper (seleciona o bloco). (slot é selecionado pela árvore.)
+                //  - o RING é um OVERLAY absoluto POR CIMA (z + ring-inset) → aparece mesmo sobre
+                //    blocos full-bleed (meada_*), que antes engoliam o ring-offset atrás do fundo.
                 <div
                   key={b.id}
                   onClick={(e) => { e.stopPropagation(); interactive.onSelectBlock?.(row.id, col.id, b.id) }}
-                  className={cn(
-                    'relative cursor-pointer rounded-sm transition-shadow',
-                    slotActive
-                      ? '' // com slot ativo, o ring fica na sub-parte (dentro do bloco), não em volta
-                      : interactive.selectedBlockId === b.id
-                        ? 'ring-2 ring-primary ring-offset-2 ring-offset-background'
-                        : 'hover:ring-2 hover:ring-primary/30',
-                  )}
+                  className="group relative cursor-pointer"
                 >
-                  {renderCmsBlock(b, { activeSlot: slotActive })}
+                  <div className="pointer-events-none">
+                    {renderCmsBlock(b, { activeSlot: slotActive })}
+                  </div>
+                  {!slotActive && (
+                    <div
+                      aria-hidden
+                      className={cn(
+                        'pointer-events-none absolute inset-0 z-10 rounded-sm transition',
+                        // hover via group-hover (o overlay é pointer-events-none; quem recebe o
+                        // mouse é o wrapper .group).
+                        interactive.selectedBlockId === b.id
+                          ? 'ring-2 ring-inset ring-blue-500 bg-blue-500/[0.06]'
+                          : 'ring-inset group-hover:ring-2 group-hover:ring-blue-400/40',
+                      )}
+                    />
+                  )}
                 </div>
               )
             })}
