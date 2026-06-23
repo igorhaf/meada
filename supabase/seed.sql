@@ -166,16 +166,24 @@ insert into public.companies (id, name, slug, profile_id, status, is_platform)
 values ('00000000-0000-0000-0000-000000000000', 'Meada', 'meada', 'generic', 'active', true)
 on conflict (id) do update set is_platform = true, slug = excluded.slug, name = excluded.name;
 
-insert into public.cms_sites (company_id, published)
-values ('00000000-0000-0000-0000-000000000000', true)
-on conflict (company_id) do update set published = true;
+-- site com tema meada-dark (identidade da marca: near-black + gradiente azul→roxo→rosa)
+insert into public.cms_sites (company_id, published, theme)
+values ('00000000-0000-0000-0000-000000000000', true, '{"preset":"meada-dark"}'::jsonb)
+on conflict (company_id) do update set published = true, theme = excluded.theme;
 
+-- A LANDING institucional do Meada, montada com os blocos meada_* (navbar/hero/services/
+-- portfolio/cta/footer) — conteúdo idêntico ao defaultProps() de lib/cms/cms-block-type.ts
+-- (réplica do meada-page). blocks em formato FLAT (normalizeToTree converte na leitura).
+-- Editável pelo super-admin em /dashboard/cms.
 insert into public.cms_pages (company_id, page_slug, title, blocks, is_home, published)
 values ('00000000-0000-0000-0000-000000000000', 'home', 'Meada',
-  jsonb_build_array(jsonb_build_object(
-    'id', 'hero-1', 'type', 'hero',
-    'props', jsonb_build_object(
-      'title', 'Meada',
-      'subtitle', 'Atendimento com IA por WhatsApp para o seu negócio.'))),
+$json$[
+  {"id":"navbar-1","type":"meada_navbar","props":{"brandName":"Meada","brandSuffix":"Digital","links":[{"label":"Serviços","href":"/servicos"},{"label":"Produtos","href":"/produtos"},{"label":"Sobre","href":"/sobre"},{"label":"Contato","href":"/contato"}],"ctaLabel":"Pedir orçamento","ctaHref":"/contato"}},
+  {"id":"hero-1","type":"meada_hero","props":{"titlePrefix":"Sites e Sistemas","gradientText":"Sob Medida","titleSuffix":"pra Crescer","subtitle":"Desenvolvimento personalizado do site institucional ao sistema completo. Código limpo, prazo claro e foco no que importa pro seu negócio.","primaryLabel":"Comece Agora →","primaryHref":"/contato","secondaryLabel":"Ver Produtos","secondaryHref":"/produtos","stats":[{"value":"50+","label":"Projetos"},{"value":"20+","label":"Tecnologias"},{"value":"5+","label":"Anos no mercado"}],"showcase":"terminal","terminalTitle":"meada — projeto.sh","terminalLines":[{"kind":"cmd","text":"meada start --tipo=ecommerce"},{"kind":"info","text":"Discovery e arquitetura definidos."},{"kind":"check","text":"Frontend Next.js + Tailwind"},{"kind":"check","text":"Backend escalável + API REST"},{"kind":"check","text":"Banco de dados + migrations"},{"kind":"check","text":"Pagamentos integrados"},{"kind":"check","text":"CI/CD + deploy em produção"},{"kind":"check","text":"Painel admin para gestão"},{"kind":"done","text":"Projeto entregue ✦ pronto pra escalar"}],"terminalCaptionLeft":"do briefing ao ar em produção","terminalCaptionRight":"~ 2-6 sem","chatTitle":"Assistente Meada","chatMessage":"Olá! 👋 Sou o assistente da Meada Digital. Como posso te ajudar hoje?"}},
+  {"id":"services-1","type":"meada_services","props":{"eyebrow":"Capacidades","title":"Tudo o Que Você Precisa para Crescer","items":[{"icon":"Code","color":"#60a5fa","title":"Desenvolvimento Personalizado","description":"Sites e sistemas feitos sob medida, do institucional ao mais complexo.","linkLabel":"Saiba mais →","linkHref":"/servicos/desenvolvimento"},{"icon":"Cloud","color":"#a855f7","title":"Infraestrutura em Nuvem","description":"Deploy, CI/CD, monitoramento e escalabilidade sem dores de cabeça.","linkLabel":"Saiba mais →","linkHref":"/servicos/nuvem"},{"icon":"Heart","color":"#ec4899","title":"Manutenção & Suporte","description":"Acompanhamento contínuo, evolução de funcionalidades e correções com prazo previsível.","linkLabel":"Saiba mais →","linkHref":"/contato"},{"icon":"Smartphone","color":"#22d3ee","title":"Design Mobile First","description":"Experiências nativas e fluidas em qualquer dispositivo e tamanho de tela.","linkLabel":"Saiba mais →","linkHref":"/servicos/mobile"},{"icon":"Layers","color":"#34d399","title":"Design & UX","description":"Interfaces bonitas e funcionais. Do wireframe ao Design System completo.","linkLabel":"Saiba mais →","linkHref":"/servicos/design-ux"},{"icon":"BarChart3","color":"#f97316","title":"APIs & Integrações","description":"Pagamentos, CRMs, ERPs e qualquer sistema conectado em uma arquitetura coesa.","linkLabel":"Saiba mais →","linkHref":"/servicos/apis-integracoes"}]}},
+  {"id":"portfolio-1","type":"meada_portfolio","props":{"eyebrow":"Portfolio","title":"Soluções Prontas para Usar","linkLabel":"Ver todos os projetos →","linkHref":"/portfolio","items":[]}},
+  {"id":"cta-1","type":"meada_cta","props":{"titlePrefix":"Pronto para","gradientText":"Transformar seu Negócio?","subtitle":"Do site institucional ao sistema completo. Sem enrolação, com prazo claro e resultado.","primaryLabel":"Agendar Consultoria","primaryHref":"/contato","secondaryLabel":"Ver Produtos","secondaryHref":"/produtos"}},
+  {"id":"footer-1","type":"meada_footer","props":{"brandName":"Meada","brandSuffix":"Digital","tagline":"Agência digital especializada em sites e sistemas sob medida para pequenos e médios negócios.","instagramUrl":"https://instagram.com/meadadigital","whatsappUrl":"https://wa.me/5581992612292","columns":[{"heading":"Serviços","links":[{"label":"Sites Profissionais","href":"/servicos"},{"label":"Sistemas sob Medida","href":"/servicos"},{"label":"Manutenção & Suporte","href":"/contato"}]},{"heading":"Empresa","links":[{"label":"Sobre Nós","href":"/sobre"},{"label":"Produtos","href":"/produtos"},{"label":"Serviços","href":"/servicos"}]},{"heading":"Contato","links":[{"label":"oi@meadadigital.com","href":"mailto:oi@meadadigital.com"},{"label":"(81) 99261-2292","href":"https://wa.me/5581992612292"},{"label":"@meadadigital","href":"https://instagram.com/meadadigital"}]}],"copyright":"© Meada Agência Digital. Todos os direitos reservados."}}
+]$json$::jsonb,
   true, true)
 on conflict do nothing;
