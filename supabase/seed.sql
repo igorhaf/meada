@@ -187,3 +187,76 @@ $json$[
 ]$json$::jsonb,
   true, true)
 on conflict do nothing;
+
+-- ========================================================================
+-- 5) SUBPÁGINAS institucionais do Meada (servicos/sobre/contato/portfolio).
+-- Réplica do meada-page original; blocos meada_* + genéricos. is_home=false.
+-- O dropdown de navegação do CMS lista todas; meadadigital.local/{slug} as serve.
+-- ========================================================================
+-- ============ SERVIÇOS ============
+insert into public.cms_pages (company_id, page_slug, title, blocks, is_home, published) values
+('00000000-0000-0000-0000-000000000000','servicos','Serviços',
+$json$[
+  {"id":"nav","type":"meada_navbar","props":{"brandName":"Meada","brandSuffix":"Digital","links":[{"label":"Serviços","href":"/servicos"},{"label":"Produtos","href":"/produtos"},{"label":"Sobre","href":"/sobre"},{"label":"Contato","href":"/contato"}],"ctaLabel":"Pedir orçamento","ctaHref":"/contato"}},
+  {"id":"hero","type":"meada_hero","props":{"titlePrefix":"Tecnologia que","gradientText":"Escala","titleSuffix":"com seu Negócio","subtitle":"Da ideia ao produto final, construímos com excelência técnica em cada etapa. Escolha as soluções que impulsionam seu crescimento.","primaryLabel":"Falar com especialista","primaryHref":"/contato","secondaryLabel":"","secondaryHref":"","stats":[],"showcase":"chat","chatTitle":"Assistente Meada","chatMessage":"Olá! 👋 Qual solução faz sentido pro seu projeto?","terminalTitle":"","terminalLines":[],"terminalCaptionLeft":"","terminalCaptionRight":""}},
+  {"id":"svc","type":"meada_services","props":{"eyebrow":"Nossas Soluções","title":"Tudo o Que Você Precisa para Crescer","items":[
+    {"icon":"Code","color":"#3b82f6","title":"Desenvolvimento sob Medida","description":"Criamos aplicações web, mobile e APIs altamente performáticas, alinhadas às necessidades do seu negócio. Arquitetura escalável · APIs RESTful & GraphQL · Testes automatizados.","linkLabel":"Saiba mais →","linkHref":"/servicos/desenvolvimento"},
+    {"icon":"Cloud","color":"#a855f7","title":"Cloud & DevOps","description":"Infraestrutura robusta e escalável em AWS, GCP e Azure. Kubernetes & Docker · CI/CD automatizado · Monitoramento 24/7.","linkLabel":"Saiba mais →","linkHref":"/servicos/nuvem"},
+    {"icon":"Heart","color":"#ec4899","title":"Manutenção & Suporte","description":"Acompanhamento contínuo do sistema em produção, com prazo previsível. Evolução contínua · SLA de resposta acordado · Backups e monitoramento.","linkLabel":"Saiba mais →","linkHref":"/contato"},
+    {"icon":"Smartphone","color":"#06b6d4","title":"Apps Mobile","description":"Aplicativos nativos e cross-platform para iOS e Android com React Native. UX/UI nativo · Offline first · Push notifications.","linkLabel":"Saiba mais →","linkHref":"/servicos/mobile"},
+    {"icon":"Layers","color":"#34d399","title":"Design & UX","description":"Interfaces que as pessoas adoram usar, do discovery à entrega. Design System completo · Testes de usabilidade · Prototipagem rápida.","linkLabel":"Saiba mais →","linkHref":"/servicos/design-ux"},
+    {"icon":"BarChart3","color":"#f97316","title":"APIs & Integrações","description":"Conectamos sistemas legados, plataformas externas e microsserviços numa arquitetura coesa. REST, GraphQL & gRPC · Webhooks & eventos · Documentação OpenAPI.","linkLabel":"Saiba mais →","linkHref":"/servicos/apis-integracoes"}]}},
+  {"id":"steps","type":"steps","props":{"eyebrow":"","title":"Como Trabalhamos","items":[
+    {"number":"01","title":"Descoberta","description":"Mergulhamos no seu negócio para entender objetivos, desafios e oportunidades. Workshops colaborativos que alinham visão e estratégia."},
+    {"number":"02","title":"Arquitetura","description":"Desenhamos a solução técnica ideal — stack, infraestrutura e integrações. Documentação clara antes de qualquer linha de código."},
+    {"number":"03","title":"Execução","description":"Desenvolvimento ágil em sprints de duas semanas. Demos regulares, feedback contínuo e adaptação rápida às mudanças."},
+    {"number":"04","title":"Lançamento","description":"Deploy seguro, monitoramento proativo e suporte pós-lançamento. Sua solução vai ao ar com confiança e estabilidade."}]}},
+  {"id":"cta","type":"meada_cta","props":{"titlePrefix":"Qual solução é certa","gradientText":"para você?","subtitle":"Nossa equipe vai analisar seu caso e recomendar a arquitetura ideal para alcançar seus objetivos.","primaryLabel":"Falar com especialista","primaryHref":"/contato","secondaryLabel":"Ver Produtos","secondaryHref":"/produtos"}},
+  {"id":"ft","type":"meada_footer","props":{"brandName":"Meada","brandSuffix":"Digital","tagline":"Agência digital especializada em sites e sistemas sob medida para pequenos e médios negócios.","instagramUrl":"https://instagram.com/meadadigital","whatsappUrl":"https://wa.me/5581992612292","columns":[{"heading":"Serviços","links":[{"label":"Sites Profissionais","href":"/servicos"},{"label":"Sistemas sob Medida","href":"/servicos"},{"label":"Manutenção & Suporte","href":"/contato"}]},{"heading":"Empresa","links":[{"label":"Sobre Nós","href":"/sobre"},{"label":"Produtos","href":"/produtos"},{"label":"Serviços","href":"/servicos"}]},{"heading":"Contato","links":[{"label":"oi@meadadigital.com","href":"mailto:oi@meadadigital.com"},{"label":"(81) 99261-2292","href":"https://wa.me/5581992612292"},{"label":"@meadadigital","href":"https://instagram.com/meadadigital"}]}],"copyright":"© Meada Agência Digital. Todos os direitos reservados."}}
+]$json$::jsonb, false, true),
+
+-- ============ SOBRE ============
+('00000000-0000-0000-0000-000000000000','sobre','Sobre',
+$json$[
+  {"id":"nav","type":"meada_navbar","props":{"brandName":"Meada","brandSuffix":"Digital","links":[{"label":"Serviços","href":"/servicos"},{"label":"Produtos","href":"/produtos"},{"label":"Sobre","href":"/sobre"},{"label":"Contato","href":"/contato"}],"ctaLabel":"Pedir orçamento","ctaHref":"/contato"}},
+  {"id":"hero","type":"meada_hero","props":{"titlePrefix":"Sites e Sistemas com","gradientText":"Cuidado de Verdade","titleSuffix":"","subtitle":"Sou desenvolvedor especializado em criar sites e sistemas sob medida — sempre com foco em qualidade, prazo e resultado real para o cliente.","primaryLabel":"Falar sobre meu projeto","primaryHref":"/contato","secondaryLabel":"","secondaryHref":"","stats":[],"showcase":"chat","chatTitle":"Assistente Meada","chatMessage":"Oi! 👋 Quer conhecer a Meada? Pergunta o que quiser.","terminalTitle":"","terminalLines":[],"terminalCaptionLeft":"","terminalCaptionRight":""}},
+  {"id":"vals","type":"feature_grid","props":{"eyebrow":"","title":"Como Trabalho","items":[
+    {"icon":"Heart","title":"Honestidade Acima de Tudo","description":"Só aceito projetos que consigo entregar bem. Prefiro dizer não do que entregar algo que não representa meu trabalho."},
+    {"icon":"Sparkles","title":"Qualidade Sem Concessões","description":"Código limpo, interface bem pensada e atenção aos detalhes não são diferenciais — são o mínimo aceitável em cada entrega."},
+    {"icon":"Rocket","title":"Tecnologia Que Faz Sentido","description":"Cada projeto recebe a stack que cabe no problema — nada de tecnologia da moda só pra inflar o escopo. Foco no que entrega valor real."},
+    {"icon":"Target","title":"Foco no Resultado","description":"Cada linha de código existe para atingir um objetivo real. Métricas de negócio, não só de desenvolvimento, guiam cada decisão."}]}},
+  {"id":"stats","type":"stats","props":{"items":[{"value":"50+","label":"Projetos entregues"},{"value":"98%","label":"Clientes satisfeitos"},{"value":"5+","label":"Anos de experiência"},{"value":"20+","label":"Tecnologias dominadas"}]}},
+  {"id":"story","type":"steps","props":{"eyebrow":"","title":"A trajetória da Meada","items":[
+    {"number":"2019","title":"Primeiros projetos","description":"Início da carreira desenvolvendo sites e sistemas para pequenas empresas, construindo experiência e portfólio."},
+    {"number":"2021","title":"Sistemas mais complexos","description":"Expansão para projetos de maior porte: sistemas de gestão, APIs, painéis administrativos e integrações entre plataformas."},
+    {"number":"2023","title":"Sistemas em produção","description":"Crescimento da carteira com projetos maiores: e-commerce, plataformas SaaS e sistemas internos em produção robustos."},
+    {"number":"2024","title":"Meada","description":"Formalização da Meada como estúdio especializado em sites e sistemas sob medida, com foco em qualidade, prazo e suporte contínuo."}]}},
+  {"id":"cta","type":"meada_cta","props":{"titlePrefix":"Tem um projeto","gradientText":"em mente?","subtitle":"Me conta o que você precisa. Site, sistema, integração — vamos descobrir juntos a melhor solução.","primaryLabel":"Falar sobre meu projeto","primaryHref":"/contato","secondaryLabel":"Ver Produtos","secondaryHref":"/produtos"}},
+  {"id":"ft","type":"meada_footer","props":{"brandName":"Meada","brandSuffix":"Digital","tagline":"Agência digital especializada em sites e sistemas sob medida para pequenos e médios negócios.","instagramUrl":"https://instagram.com/meadadigital","whatsappUrl":"https://wa.me/5581992612292","columns":[{"heading":"Serviços","links":[{"label":"Sites Profissionais","href":"/servicos"},{"label":"Sistemas sob Medida","href":"/servicos"},{"label":"Manutenção & Suporte","href":"/contato"}]},{"heading":"Empresa","links":[{"label":"Sobre Nós","href":"/sobre"},{"label":"Produtos","href":"/produtos"},{"label":"Serviços","href":"/servicos"}]},{"heading":"Contato","links":[{"label":"oi@meadadigital.com","href":"mailto:oi@meadadigital.com"},{"label":"(81) 99261-2292","href":"https://wa.me/5581992612292"},{"label":"@meadadigital","href":"https://instagram.com/meadadigital"}]}],"copyright":"© Meada Agência Digital. Todos os direitos reservados."}}
+]$json$::jsonb, false, true),
+
+-- ============ CONTATO ============
+('00000000-0000-0000-0000-000000000000','contato','Contato',
+$json$[
+  {"id":"nav","type":"meada_navbar","props":{"brandName":"Meada","brandSuffix":"Digital","links":[{"label":"Serviços","href":"/servicos"},{"label":"Produtos","href":"/produtos"},{"label":"Sobre","href":"/sobre"},{"label":"Contato","href":"/contato"}],"ctaLabel":"Pedir orçamento","ctaHref":"/contato"}},
+  {"id":"hero","type":"meada_hero","props":{"titlePrefix":"Vamos Construir","gradientText":"Algo Incrível","titleSuffix":"","subtitle":"Tem um projeto em mente? Nossa equipe está pronta para transformar sua visão em realidade. Fale conosco.","primaryLabel":"Chamar no WhatsApp","primaryHref":"https://wa.me/5581992612292","secondaryLabel":"","secondaryHref":"","stats":[],"showcase":"chat","chatTitle":"Assistente Meada","chatMessage":"Oi! 👋 Conta seu projeto que a gente te responde rapidinho.","terminalTitle":"","terminalLines":[],"terminalCaptionLeft":"","terminalCaptionRight":""}},
+  {"id":"cards","type":"columns","props":{"eyebrow":"","title":"Outras Formas de Contato","items":[
+    {"icon":"Mail","title":"Email","body":"oi@meadadigital.com"},
+    {"icon":"Phone","title":"WhatsApp","body":"(81) 99261-2292"},
+    {"icon":"Globe","title":"Redes","body":"@meadadigital no Instagram"}]}},
+  {"id":"faq","type":"faq","props":{"title":"Perguntas Frequentes","items":[
+    {"question":"Quanto tempo leva para iniciar um projeto?","answer":"Após o alinhamento inicial, geralmente iniciamos o desenvolvimento em até 5 dias úteis. Para projetos urgentes, o discovery pode começar ainda mais rápido."},
+    {"question":"Vocês atendem empresas de que porte?","answer":"De startups em early stage a empresas estabelecidas. A abordagem e o tamanho do trabalho se adaptam à complexidade e ao porte do projeto."},
+    {"question":"Como funciona o processo de desenvolvimento?","answer":"Metodologia ágil com sprints de 2 semanas. Cada sprint termina com uma demo do que foi desenvolvido, garantindo alinhamento constante."},
+    {"question":"Quais são as formas de pagamento?","answer":"Transferência, PIX e cartão. Para projetos grandes, pagamento por milestone; para serviços contínuos, contratos mensais."}]}},
+  {"id":"ft","type":"meada_footer","props":{"brandName":"Meada","brandSuffix":"Digital","tagline":"Agência digital especializada em sites e sistemas sob medida para pequenos e médios negócios.","instagramUrl":"https://instagram.com/meadadigital","whatsappUrl":"https://wa.me/5581992612292","columns":[{"heading":"Serviços","links":[{"label":"Sites Profissionais","href":"/servicos"},{"label":"Sistemas sob Medida","href":"/servicos"},{"label":"Manutenção & Suporte","href":"/contato"}]},{"heading":"Empresa","links":[{"label":"Sobre Nós","href":"/sobre"},{"label":"Produtos","href":"/produtos"},{"label":"Serviços","href":"/servicos"}]},{"heading":"Contato","links":[{"label":"oi@meadadigital.com","href":"mailto:oi@meadadigital.com"},{"label":"(81) 99261-2292","href":"https://wa.me/5581992612292"},{"label":"@meadadigital","href":"https://instagram.com/meadadigital"}]}],"copyright":"© Meada Agência Digital. Todos os direitos reservados."}}
+]$json$::jsonb, false, true),
+
+-- ============ PORTFÓLIO ============
+('00000000-0000-0000-0000-000000000000','portfolio','Portfólio',
+$json$[
+  {"id":"nav","type":"meada_navbar","props":{"brandName":"Meada","brandSuffix":"Digital","links":[{"label":"Serviços","href":"/servicos"},{"label":"Produtos","href":"/produtos"},{"label":"Sobre","href":"/sobre"},{"label":"Contato","href":"/contato"}],"ctaLabel":"Pedir orçamento","ctaHref":"/contato"}},
+  {"id":"port","type":"meada_portfolio","props":{"eyebrow":"Portfolio","title":"Todos os Projetos","linkLabel":"Ver detalhes →","linkHref":"/portfolio","items":[]}},
+  {"id":"cta","type":"meada_cta","props":{"titlePrefix":"Quer um projeto","gradientText":"como esses?","subtitle":"Do site institucional ao sistema completo. Cada projeto é construído sob medida para o negócio do cliente.","primaryLabel":"Começar meu projeto","primaryHref":"/contato","secondaryLabel":"Ver Serviços","secondaryHref":"/servicos"}},
+  {"id":"ft","type":"meada_footer","props":{"brandName":"Meada","brandSuffix":"Digital","tagline":"Agência digital especializada em sites e sistemas sob medida para pequenos e médios negócios.","instagramUrl":"https://instagram.com/meadadigital","whatsappUrl":"https://wa.me/5581992612292","columns":[{"heading":"Serviços","links":[{"label":"Sites Profissionais","href":"/servicos"},{"label":"Sistemas sob Medida","href":"/servicos"},{"label":"Manutenção & Suporte","href":"/contato"}]},{"heading":"Empresa","links":[{"label":"Sobre Nós","href":"/sobre"},{"label":"Produtos","href":"/produtos"},{"label":"Serviços","href":"/servicos"}]},{"heading":"Contato","links":[{"label":"oi@meadadigital.com","href":"mailto:oi@meadadigital.com"},{"label":"(81) 99261-2292","href":"https://wa.me/5581992612292"},{"label":"@meadadigital","href":"https://instagram.com/meadadigital"}]}],"copyright":"© Meada Agência Digital. Todos os direitos reservados."}}
+]$json$::jsonb, false, true);

@@ -4,14 +4,8 @@ import { redirect } from 'next/navigation'
 
 import { CmsRender } from '@/components/cms/cms-render'
 import { fetchHomeBySlug } from '@/lib/cms/public-fetch'
+import { MEADA_INSTITUTIONAL_SLUG } from '@/lib/cms/meada-institutional'
 import { SUBDOMAIN_HEADER, isUniversalSubdomain } from '@/lib/profiles/subdomain'
-
-/**
- * Slug da COMPANY-ÂNCORA da plataforma (is_platform=true, migration 44) — o "Meada"
- * institucional. A raiz do domínio-base (meadadigital.com) serve o CMS DESTA company,
- * que o SUPER-ADMIN edita direto no painel (/dashboard/cms), sem ser tenant.
- */
-const MEADA_INSTITUTIONAL_SLUG = 'meada'
 
 /**
  * Raiz do host.
