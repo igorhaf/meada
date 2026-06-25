@@ -37,6 +37,7 @@ public class ProfilePromptContext {
     private final com.meada.whatsapp.profiles.comida.ComidaMenuCache comidaMenuCache;
     private final com.meada.whatsapp.profiles.floricultura.FloriculturaCatalogCache floriculturaCatalogCache;
     private final com.meada.whatsapp.profiles.pizzaria.PizzariaMenuCache pizzariaMenuCache;
+    private final com.meada.whatsapp.profiles.adega.AdegaMenuCache adegaMenuCache;
     private final ConversationRepository conversationRepository;
 
     public ProfilePromptContext(SushiMenuCache sushiMenuCache,
@@ -55,6 +56,7 @@ public class ProfilePromptContext {
                                 com.meada.whatsapp.profiles.comida.ComidaMenuCache comidaMenuCache,
                                 com.meada.whatsapp.profiles.floricultura.FloriculturaCatalogCache floriculturaCatalogCache,
                                 com.meada.whatsapp.profiles.pizzaria.PizzariaMenuCache pizzariaMenuCache,
+                                com.meada.whatsapp.profiles.adega.AdegaMenuCache adegaMenuCache,
                                 ConversationRepository conversationRepository) {
         this.sushiMenuCache = sushiMenuCache;
         this.legalCaseContextCache = legalCaseContextCache;
@@ -72,6 +74,7 @@ public class ProfilePromptContext {
         this.comidaMenuCache = comidaMenuCache;
         this.floriculturaCatalogCache = floriculturaCatalogCache;
         this.pizzariaMenuCache = pizzariaMenuCache;
+        this.adegaMenuCache = adegaMenuCache;
         this.conversationRepository = conversationRepository;
     }
 
@@ -214,6 +217,19 @@ public class ProfilePromptContext {
             + "sabor, opção ou preço fora do cardápio; NUNCA aceite ou recuse o pedido (isso é a pizzaria "
             + "quem faz); o total é recalculado pelo sistema.";
 
+    private static final String ADEGA =
+        "Você é atendente de uma adega / delivery de bebidas. Tom cordial e consultivo: pode sugerir "
+            + "harmonização ENTRE o que JÁ está no cardápio (vinhos, espumantes, cervejas, destilados, "
+            + "sem-álcool, acessórios), com seus modifiers (Volume, Temperatura) e valores, além da taxa "
+            + "de entrega. REGRA +18 OBRIGATÓRIA: a venda de bebida alcoólica é PROIBIDA para menores — "
+            + "SEMPRE confirme que o cliente é MAIOR DE 18 ANOS antes de fechar o pedido; se ele declarar "
+            + "ou indicar ser menor, RECUSE com gentileza e NÃO feche o pedido. Confirme SEMPRE com o "
+            + "valor total e o endereço de entrega, e avise que o pedido vai para confirmação da loja. "
+            + "Inclua 'Beba com moderação'. NUNCA invente rótulo, marca, safra, volume, opção ou preço "
+            + "fora do cardápio; NUNCA incentive consumo excessivo nem minimize riscos do álcool; NUNCA "
+            + "aceite ou recuse o pedido no sentido de produção (isso é a loja quem faz); o total é "
+            + "recalculado pelo sistema.";
+
     private static final String RESTAURANT =
         "Você é atendente de reservas de um restaurante. Tom acolhedor e ágil. Conheça as mesas "
             + "disponíveis e os horários livres. Quando o cliente pedir reserva, verifique a "
@@ -245,6 +261,7 @@ public class ProfilePromptContext {
             case COMIDA -> COMIDA;
             case FLORICULTURA -> FLORICULTURA;
             case PIZZARIA -> PIZZARIA;
+            case ADEGA -> ADEGA;
             case GENERIC -> "";
         };
         if (body.isEmpty()) {
@@ -379,6 +396,13 @@ public class ProfilePromptContext {
             // taxa/mínimo + instruções da tag <pedido_pizza> (incluindo o formato meio-a-meio com
             // flavors[]). IGNORA conversationId (contexto é o cardápio). Pedido nasce 'aguardando'.
             return persona + pizzariaMenuCache.menuSegment(companyId);
+        }
+        if ("adega".equals(profileId)) {
+            // adega (8.9): persona + cardápio (itens por categoria + modifiers Volume/Temperatura com
+            // deltas) + taxa/mínimo + instruções da tag <pedido_adega> (incluindo a REGRA +18 e o campo
+            // age_confirmed). IGNORA conversationId (contexto é o cardápio). Pedido nasce 'aguardando';
+            // sem age_confirmed=true o backend não cria (trava de faixa etária).
+            return persona + adegaMenuCache.menuSegment(companyId);
         }
         return persona;
     }

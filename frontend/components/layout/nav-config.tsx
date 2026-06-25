@@ -48,6 +48,7 @@ import {
   Users,
   UserPlus,
   UsersRound,
+  Wine,
   Workflow,
 } from 'lucide-react'
 import type { ComponentType } from 'react'
@@ -208,6 +209,7 @@ function profileGroups(profileId: string | null | undefined): NavGroup[] {
   if (profileId === 'comida') return [COMIDA_GROUP, ...NAV_GROUPS]
   if (profileId === 'floricultura') return [FLORICULTURA_GROUP, ...NAV_GROUPS]
   if (profileId === 'pizzaria') return [PIZZARIA_GROUP, ...NAV_GROUPS]
+  if (profileId === 'adega') return [ADEGA_GROUP, ...NAV_GROUPS]
   return NAV_GROUPS
 }
 
@@ -390,5 +392,16 @@ const PIZZARIA_GROUP: NavGroup = {
     { label: 'Cardápio', href: '/dashboard/pizzaria-menu', icon: Pizza },
     { label: 'Pedidos', href: '/dashboard/pizzaria-orders', icon: ClipboardList },
     { label: 'Configurações', href: '/dashboard/pizzaria-settings', icon: Settings },
+  ],
+}
+
+/** Grupo de navegação exclusivo do perfil adega (delivery de bebidas, camada 8.9). "Adega".
+ * Rotas /dashboard/adega-* — Pedidos mostra o selo +18 (age_confirmed) pra compliance. */
+const ADEGA_GROUP: NavGroup = {
+  heading: 'Adega',
+  items: [
+    { label: 'Catálogo', href: '/dashboard/adega-menu', icon: Wine },
+    { label: 'Pedidos', href: '/dashboard/adega-orders', icon: ClipboardList },
+    { label: 'Configurações', href: '/dashboard/adega-settings', icon: Settings },
   ],
 }

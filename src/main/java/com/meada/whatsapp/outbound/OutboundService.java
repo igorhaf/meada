@@ -119,6 +119,10 @@ public class OutboundService {
     // e remove a tag antes de enviar. Só age para profile_id='pizzaria'. Inclui a ESCAPADA meio-a-meio
     // (frações de sabor, preço pela regra do MAIOR VALOR — recalculado no backend).
     private final com.meada.whatsapp.profiles.pizzaria.orders.PedidoPizzaConfirmHandler pedidoPizzaConfirmHandler;
+    // Camada 8.9 (perfil adega): pós-processa a tag <pedido_adega> — cria o pedido (nasce 'aguardando')
+    // e remove a tag antes de enviar. Só age para profile_id='adega'. Inclui a ESCAPADA +18 (a tag sem
+    // age_confirmed=true não cria pedido — trava de faixa etária na venda de álcool).
+    private final com.meada.whatsapp.profiles.adega.orders.PedidoAdegaConfirmHandler pedidoAdegaConfirmHandler;
 
     private final int maxAttempts;
     private final List<Duration> backoffs;
@@ -174,6 +178,7 @@ public class OutboundService {
                            com.meada.whatsapp.profiles.comida.orders.PedidoComidaConfirmHandler pedidoComidaConfirmHandler,
                            com.meada.whatsapp.profiles.floricultura.orders.PedidoFlorConfirmHandler pedidoFlorConfirmHandler,
                            com.meada.whatsapp.profiles.pizzaria.orders.PedidoPizzaConfirmHandler pedidoPizzaConfirmHandler,
+                           com.meada.whatsapp.profiles.adega.orders.PedidoAdegaConfirmHandler pedidoAdegaConfirmHandler,
                            @org.springframework.beans.factory.annotation.Value("${gemini.model}")
                            String geminiModel) {
         this.conversationRepository = conversationRepository;
@@ -211,6 +216,7 @@ public class OutboundService {
         this.pedidoComidaConfirmHandler = pedidoComidaConfirmHandler;
         this.pedidoFlorConfirmHandler = pedidoFlorConfirmHandler;
         this.pedidoPizzaConfirmHandler = pedidoPizzaConfirmHandler;
+        this.pedidoAdegaConfirmHandler = pedidoAdegaConfirmHandler;
         this.geminiModel = geminiModel;
         this.maxAttempts = retryProps.maxAttempts();
         // converte uma vez (lista YAML de millis → Durations). O RetryRunner valida
@@ -345,6 +351,9 @@ public class OutboundService {
         // Camada 8.6 (perfil pizzaria): <pedido_pizza> cria o pedido (nasce 'aguardando'; aceite/recusa
         // é humano no painel). Inclui a escapada meio-a-meio. Encadeado (perfil é único; só um age).
         toSend = maybeProcessPedidoPizza(event, conversationId, toSend);
+        // Camada 8.9 (perfil adega): <pedido_adega> cria o pedido de bebidas (nasce 'aguardando';
+        // trava +18 — sem age_confirmed=true não cria). Encadeado (perfil é único; só um age).
+        toSend = maybeProcessPedidoAdega(event, conversationId, toSend);
         Optional<OutboundOutcome> sendFailure = sendAndPersist(event, conversationId, toSend);
         if (sendFailure.isPresent()) {
             return sendFailure.get();   // casos 7/8/9 — já logado lá
@@ -952,6 +961,34 @@ public class OutboundService {
                 event.companyId(), conversationId, contactId.get(), reply);
         }
         String stripped = pedidoPizzaConfirmHandler.stripOrderTag(reply);
+        return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
+            aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
+            aiResponse.schedulingIntent(), aiResponse.insights());
+    }
+
+    /**
+     * Pós-processamento do perfil adega (camada 8.9): se o tenant é adega e a resposta da IA contém a
+     * tag {@code <pedido_adega>}, cria o pedido de bebidas (PedidoAdegaConfirmHandler resolve o contato,
+     * recalcula o total descartando o da IA, e snapshota opções/modifiers) e devolve um AiResponse SEM a
+     * tag. Espelho de maybeProcessPedidoComida + a ESCAPADA +18: a tag sem {@code age_confirmed=true} é
+     * abortada SEM criar pedido (trava de faixa etária). Best-effort; tag sempre removida; só age se
+     * profile_id='adega'.
+     */
+    private AiResponse maybeProcessPedidoAdega(MessageInboundProcessedEvent event,
+                                               UUID conversationId, AiResponse aiResponse) {
+        String reply = aiResponse.reply();
+        if (reply == null || !pedidoAdegaConfirmHandler.hasOrderTag(reply)) {
+            return aiResponse;
+        }
+        if (!"adega".equals(companyProfileRepository.findProfileId(event.companyId()))) {
+            return aiResponse;
+        }
+        Optional<UUID> contactId = conversationRepository.findContactIdByConversation(conversationId);
+        if (contactId.isPresent()) {
+            pedidoAdegaConfirmHandler.parseAndCreate(
+                event.companyId(), conversationId, contactId.get(), reply);
+        }
+        String stripped = pedidoAdegaConfirmHandler.stripOrderTag(reply);
         return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
             aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
             aiResponse.schedulingIntent(), aiResponse.insights());

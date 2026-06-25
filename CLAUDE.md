@@ -866,6 +866,57 @@ completo até agora — combina três eixos + uma escapada nova.
   (academia cobre recorrência), comissão de profissional, estoque, multi-unidade. Fases futuras.
 - Guia operacional do tenant: `docs/PERFIL_ESTETICA.md`.
 
+## Perfil Adega (AdegaBot, camada 8.9)
+
+DÉCIMO OITAVO perfil vertical real (19º contando generic). O tenant adega (`profile_id='adega'`) vira
+um produto de ADEGA / DELIVERY DE BEBIDAS (vinhos, espumantes, cervejas, destilados, sem-álcool,
+acessórios): a IA atende clientes via WhatsApp, monta o pedido na conversa (carrinho relido do
+histórico, igual sushi/comida), **confirma a maioridade**, e a loja acompanha num Kanban com gate de
+aceite. (Os perfis comida 8.4, floricultura 8.5 e pizzaria 8.6 estão documentados em
+`docs/PERFIL_*.md` + memória; a fila de nichos vive em `docs/prompts-gordos/README.md`.)
+
+- **CLONA o chassi do COMIDA (camada 8.4):** cardápio + OPÇÕES/modifiers + carrinho-na-conversa + tag
+  de pedido + recálculo de total (descarta o da IA) + snapshot de preço/nome + taxa/mínimo + Kanban +
+  GATE DE ACEITE HUMANO (nasce 'aguardando'; a loja aceita→'em_preparo' ou recusa→'recusado' com
+  rejection_reason; a IA não aceita/recusa; 'aguardando' não notifica).
+- **ESCAPADA — TRAVA DE FAIXA ETÁRIA (+18, o coração da SM):** a venda de álcool exige confirmação de
+  MAIORIDADE. `adega_orders.age_confirmed` é **boolean NOT NULL sem default** — só `true` entra. A IA
+  confirma na conversa e emite a tag com `"age_confirmed":true`; sem o flag (ou false) o
+  `PedidoAdegaConfirmHandler` ABORTA sem criar pedido, e `AdegaOrderService.create` lança
+  `AgeNotConfirmedException` → **422 `age_not_confirmed`** ANTES de qualquer cálculo. **NÃO há pedido
+  "menor de idade" no banco.** Flag DECLARATÓRIO (sem doc/foto nesta SM), persistido pra compliance,
+  visível no painel como selo "+18 confirmado". A trava vale **mesmo pra carrinho 100% sem-álcool**
+  nesta SM (dispensa é fase futura). É a regra que justifica adega ser perfil próprio, não um preset
+  do comida.
+- **Modifiers (Volume, Temperatura):** `adega_menu_item_options` (group_label + price_delta_cents,
+  espelho exato do comida). `unit_price = base + Σ deltas`, × qtd, recalculado no backend. **SEM regra
+  do maior valor** (isso é do pizzaria — adega não tem meio-a-meio).
+- **Categorias hardcoded** (`AdegaCategory` ↔ `adega-categories.ts`, parity): vinhos, espumantes,
+  cervejas, destilados, sem_alcool, acessorios.
+- **Status hardcoded** (`AdegaOrderStatus` ↔ `adega-order-status.ts`, parity): mesma máquina do comida
+  (aguardando→em_preparo/recusado/...); textos de notificação tematizados ("separando suas bebidas
+  🍷", "Beba com moderação"). Os ids são iguais ao comida (1:1 pra não divergir o enum/parity).
+- **Persona ADEGA nova** (`ProfilePromptContext.ADEGA`, tom cordial-consultivo): confirma maioridade
+  ANTES de fechar; NUNCA vende a menor; NUNCA incentiva consumo excessivo; inclui "Beba com
+  moderação"; pode sugerir harmonização entre o que JÁ está no cardápio. Contexto via
+  `AdegaMenuCache` (TTL 60s, invalidado em toda mutação) com a REGRA +18 e o campo `age_confirmed`
+  ensinados na tag. IGNORA conversationId (contexto é o cardápio).
+- **Tag `<pedido_adega>`** (namespace próprio, distinta de `<pedido_comida>`/`<pedido_flor>`/
+  `<pedido_pizza>` e de todas): carrega `age_confirmed` + items + endereco. `OutboundService`
+  ganhou `maybeProcessPedidoAdega` (encadeado após comida/floricultura/pizzaria — perfil é único, só
+  um age); remove a tag antes de enviar.
+- **Guard:** `AdegaProfileGuard` (403 forbidden_wrong_profile). `JwtAuthenticationFilter` autentica
+  `/api/adega/**` (além dos 17 perfis anteriores).
+- **Sidebar:** `getNavForProfile('adega')` injeta "Adega" (Catálogo/Pedidos/Configurações), branch
+  próprio. Telas `/dashboard/adega-{menu,orders,settings}` — a de Pedidos mostra o selo "+18
+  confirmado". Paleta `beringela`.
+- **NÃO TEM:** clube/assinatura de vinho (academia cobre recorrência), curadoria de safra, estoque,
+  cupom/fidelidade, Zé Delivery/iFood, rastreio, validação documental de idade (declaratório nesta
+  SM), dispensa +18 p/ carrinho sem-álcool, pagamento (Stripe #50), foto (bloqueador
+  SERVICE_ROLE_KEY), scheduler de auto-transição.
+- Migration `53_adega.sql` (slot atribuído pelo `docs/prompts-gordos/README.md`; 51/52 reservados a
+  casamento/padaria). Tenant `igorhaf20` (Adega Modelo). Guia: `docs/PERFIL_ADEGA.md`.
+
 ## Camada 9.0 — Feature Flags por Nicho (infra de plataforma)
 
 Infra pro ROOT (super-admin) ligar/desligar features por nicho num lugar só. A 1ª feature é o **CMS**
