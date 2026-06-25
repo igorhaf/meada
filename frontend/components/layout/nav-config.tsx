@@ -28,6 +28,7 @@ import {
   Car,
   ClipboardCheck,
   FileText,
+  Flower2,
   Package,
   Palette,
   PawPrint,
@@ -204,6 +205,7 @@ function profileGroups(profileId: string | null | undefined): NavGroup[] {
   if (profileId === 'eventos') return [EVENTOS_GROUP, ...NAV_GROUPS]
   if (profileId === 'estetica') return [ESTETICA_GROUP, ...NAV_GROUPS]
   if (profileId === 'comida') return [COMIDA_GROUP, ...NAV_GROUPS]
+  if (profileId === 'floricultura') return [FLORICULTURA_GROUP, ...NAV_GROUPS]
   return NAV_GROUPS
 }
 
@@ -365,5 +367,15 @@ const COMIDA_GROUP: NavGroup = {
     { label: 'Cardápio', href: '/dashboard/comida-menu', icon: UtensilsCrossed },
     { label: 'Pedidos', href: '/dashboard/comida-orders', icon: ClipboardList },
     { label: 'Configurações', href: '/dashboard/comida-settings', icon: Settings },
+  ],
+}
+
+/** Grupo de navegação exclusivo do perfil floricultura (loja de flores, camada 8.5). "Floricultura". */
+const FLORICULTURA_GROUP: NavGroup = {
+  heading: 'Floricultura',
+  items: [
+    { label: 'Catálogo', href: '/dashboard/floricultura-catalog', icon: Flower2 },
+    { label: 'Pedidos', href: '/dashboard/floricultura-orders', icon: ClipboardList },
+    { label: 'Configurações', href: '/dashboard/floricultura-settings', icon: Settings },
   ],
 }

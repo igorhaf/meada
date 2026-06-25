@@ -114,6 +114,7 @@ public class OutboundService {
     // e remove a tag antes de enviar ao cliente. Só age para profile_id='comida'. O aceite/recusa é
     // ação HUMANA no painel (não há handler de aceite — é o ponto central da ESCAPADA 1 do delivery).
     private final com.meada.whatsapp.profiles.comida.orders.PedidoComidaConfirmHandler pedidoComidaConfirmHandler;
+    private final com.meada.whatsapp.profiles.floricultura.orders.PedidoFlorConfirmHandler pedidoFlorConfirmHandler;
 
     private final int maxAttempts;
     private final List<Duration> backoffs;
@@ -167,6 +168,7 @@ public class OutboundService {
                            com.meada.whatsapp.profiles.estetica.appointments.AgendamentoEsteticaConfirmHandler agendamentoEsteticaConfirmHandler,
                            com.meada.whatsapp.profiles.estetica.packages.CompraPacoteConfirmHandler compraPacoteConfirmHandler,
                            com.meada.whatsapp.profiles.comida.orders.PedidoComidaConfirmHandler pedidoComidaConfirmHandler,
+                           com.meada.whatsapp.profiles.floricultura.orders.PedidoFlorConfirmHandler pedidoFlorConfirmHandler,
                            @org.springframework.beans.factory.annotation.Value("${gemini.model}")
                            String geminiModel) {
         this.conversationRepository = conversationRepository;
@@ -202,6 +204,7 @@ public class OutboundService {
         this.agendamentoEsteticaConfirmHandler = agendamentoEsteticaConfirmHandler;
         this.compraPacoteConfirmHandler = compraPacoteConfirmHandler;
         this.pedidoComidaConfirmHandler = pedidoComidaConfirmHandler;
+        this.pedidoFlorConfirmHandler = pedidoFlorConfirmHandler;
         this.geminiModel = geminiModel;
         this.maxAttempts = retryProps.maxAttempts();
         // converte uma vez (lista YAML de millis → Durations). O RetryRunner valida
@@ -332,6 +335,7 @@ public class OutboundService {
         // Camada 8.4 (perfil comida): <pedido_comida> cria o pedido de delivery (nasce 'aguardando' —
         // o restaurante aceita/recusa no painel, não a IA). Encadeado (perfil é único; só um age).
         toSend = maybeProcessPedidoComida(event, conversationId, toSend);
+        toSend = maybeProcessPedidoFlor(event, conversationId, toSend);
         Optional<OutboundOutcome> sendFailure = sendAndPersist(event, conversationId, toSend);
         if (sendFailure.isPresent()) {
             return sendFailure.get();   // casos 7/8/9 — já logado lá
@@ -884,6 +888,33 @@ public class OutboundService {
                 event.companyId(), conversationId, contactId.get(), reply);
         }
         String stripped = pedidoComidaConfirmHandler.stripOrderTag(reply);
+        return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
+            aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
+            aiResponse.schedulingIntent(), aiResponse.insights());
+    }
+
+    /**
+     * Pós-processamento do perfil floricultura (camada 8.5): se o tenant é floricultura e a resposta
+     * da IA contém a tag {@code <pedido_flor>}, cria o pedido (PedidoFlorConfirmHandler valida a data
+     * de entrega agendada, o destinatário e o cartão, recalcula o total descartando o da IA, e
+     * snapshota as opções) e devolve um AiResponse SEM a tag. Espelho de maybeProcessPedidoComida.
+     * Best-effort; tag sempre removida; só age se profile_id='floricultura'.
+     */
+    private AiResponse maybeProcessPedidoFlor(MessageInboundProcessedEvent event,
+                                              UUID conversationId, AiResponse aiResponse) {
+        String reply = aiResponse.reply();
+        if (reply == null || !pedidoFlorConfirmHandler.hasOrderTag(reply)) {
+            return aiResponse;
+        }
+        if (!"floricultura".equals(companyProfileRepository.findProfileId(event.companyId()))) {
+            return aiResponse;
+        }
+        Optional<UUID> contactId = conversationRepository.findContactIdByConversation(conversationId);
+        if (contactId.isPresent()) {
+            pedidoFlorConfirmHandler.parseAndCreate(
+                event.companyId(), conversationId, contactId.get(), reply);
+        }
+        String stripped = pedidoFlorConfirmHandler.stripOrderTag(reply);
         return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
             aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
             aiResponse.schedulingIntent(), aiResponse.insights());

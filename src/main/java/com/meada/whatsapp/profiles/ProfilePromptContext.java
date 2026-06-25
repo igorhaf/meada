@@ -35,6 +35,7 @@ public class ProfilePromptContext {
     private final com.meada.whatsapp.profiles.eventos.EventosContextCache eventosContextCache;
     private final com.meada.whatsapp.profiles.estetica.EsteticaContextCache esteticaContextCache;
     private final com.meada.whatsapp.profiles.comida.ComidaMenuCache comidaMenuCache;
+    private final com.meada.whatsapp.profiles.floricultura.FloriculturaCatalogCache floriculturaCatalogCache;
     private final ConversationRepository conversationRepository;
 
     public ProfilePromptContext(SushiMenuCache sushiMenuCache,
@@ -51,6 +52,7 @@ public class ProfilePromptContext {
                                 com.meada.whatsapp.profiles.eventos.EventosContextCache eventosContextCache,
                                 com.meada.whatsapp.profiles.estetica.EsteticaContextCache esteticaContextCache,
                                 com.meada.whatsapp.profiles.comida.ComidaMenuCache comidaMenuCache,
+                                com.meada.whatsapp.profiles.floricultura.FloriculturaCatalogCache floriculturaCatalogCache,
                                 ConversationRepository conversationRepository) {
         this.sushiMenuCache = sushiMenuCache;
         this.legalCaseContextCache = legalCaseContextCache;
@@ -66,6 +68,7 @@ public class ProfilePromptContext {
         this.eventosContextCache = eventosContextCache;
         this.esteticaContextCache = esteticaContextCache;
         this.comidaMenuCache = comidaMenuCache;
+        this.floriculturaCatalogCache = floriculturaCatalogCache;
         this.conversationRepository = conversationRepository;
     }
 
@@ -189,6 +192,15 @@ public class ProfilePromptContext {
             + "preço que não esteja no cardápio; NUNCA aceite ou recuse o pedido (isso é o restaurante "
             + "quem faz); o total é recalculado pelo sistema.";
 
+    private static final String FLORICULTURA =
+        "Você é atendente de uma floricultura. Tom afetivo e sensível à ocasião (flores são presente). "
+            + "Conheça o catálogo (buquês, arranjos, cestas, plantas e suas opções de cor/tamanho com "
+            + "valores) e a taxa de entrega. Flor é presente AGENDADO pra OUTRA pessoa: SEMPRE pergunte "
+            + "a DATA da entrega, o NOME de quem vai RECEBER, o ENDEREÇO, e ofereça incluir um CARTÃO com "
+            + "mensagem. Confirme SEMPRE com o valor total. NUNCA invente item, opção ou preço fora do "
+            + "catálogo; NUNCA aceite ou recuse o pedido (a floricultura confirma a data no painel); o "
+            + "total é recalculado pelo sistema. Avise que o pedido vai para confirmação da floricultura.";
+
     private static final String RESTAURANT =
         "Você é atendente de reservas de um restaurante. Tom acolhedor e ágil. Conheça as mesas "
             + "disponíveis e os horários livres. Quando o cliente pedir reserva, verifique a "
@@ -218,6 +230,7 @@ public class ProfilePromptContext {
             case EVENTOS -> EVENTOS;
             case ESTETICA -> ESTETICA;
             case COMIDA -> COMIDA;
+            case FLORICULTURA -> FLORICULTURA;
             case GENERIC -> "";
         };
         if (body.isEmpty()) {
@@ -340,6 +353,12 @@ public class ProfilePromptContext {
             // instruções da tag <pedido_comida>. IGNORA conversationId (o contexto é o cardápio, igual
             // sushi). O pedido nasce 'aguardando' (gate de aceite humano no painel — ESCAPADA 1).
             return persona + comidaMenuCache.menuSegment(companyId);
+        }
+        if ("floricultura".equals(profileId)) {
+            // floricultura (8.5): persona + catálogo (itens + opções de cor/tamanho) + taxa/mínimo +
+            // instruções da tag <pedido_flor> (com data de entrega + destinatário + cartão). IGNORA
+            // conversationId (contexto é o catálogo). Pedido nasce 'aguardando' (gate de aceite humano).
+            return persona + floriculturaCatalogCache.catalogSegment(companyId);
         }
         return persona;
     }

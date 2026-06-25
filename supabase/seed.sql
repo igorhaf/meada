@@ -130,7 +130,8 @@ begin
       ('nutrevida',    'Nutre Vida',         'nutri',      false),
       ('navalhaouro',  'Navalha de Ouro',    'barbearia',  true),
       ('festamax',     'Festa Max',          'eventos',    false),
-      ('glowestetica', 'Glow Estética',      'estetica',   true)
+      ('glowestetica', 'Glow Estética',      'estetica',   true),
+      ('floresbella',  'Flores Bella',       'floricultura', false)
     ) as v(slug, name, profile_id, with_cms)
   loop
     -- UUIDs DETERMINÍSTICOS derivados do slug (md5→uuid) — reproduzíveis e estáveis,

@@ -113,7 +113,8 @@ public abstract class AbstractIntegrationTest {
         "db/migrations/44_platform_company.sql",
         "db/migrations/45_eventos.sql",
         "db/migrations/46_estetica.sql",
-        "db/migrations/47_comida.sql"
+        "db/migrations/47_comida.sql",
+        "db/migrations/49_floricultura.sql"
     };
 
     /**
@@ -247,6 +248,8 @@ public abstract class AbstractIntegrationTest {
               aesthetic_procedures, aesthetic_professionals, aesthetic_config,
               comida_order_item_options, comida_order_items, comida_orders,
               comida_menu_item_options, comida_menu_items, comida_config,
+              floricultura_order_item_options, floricultura_order_items, floricultura_orders,
+              floricultura_catalog_item_options, floricultura_catalog_items, floricultura_config,
               profile_features, cms_pages, cms_sites
             RESTART IDENTITY CASCADE
             """);
