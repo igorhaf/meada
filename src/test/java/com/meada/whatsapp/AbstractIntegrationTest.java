@@ -114,7 +114,8 @@ public abstract class AbstractIntegrationTest {
         "db/migrations/45_eventos.sql",
         "db/migrations/46_estetica.sql",
         "db/migrations/47_comida.sql",
-        "db/migrations/49_floricultura.sql"
+        "db/migrations/49_floricultura.sql",
+        "db/migrations/50_pizzaria.sql"
     };
 
     /**
@@ -250,6 +251,8 @@ public abstract class AbstractIntegrationTest {
               comida_menu_item_options, comida_menu_items, comida_config,
               floricultura_order_item_options, floricultura_order_items, floricultura_orders,
               floricultura_catalog_item_options, floricultura_catalog_items, floricultura_config,
+              pizzaria_order_item_flavors, pizzaria_order_item_options, pizzaria_order_items,
+              pizzaria_orders, pizzaria_menu_item_options, pizzaria_menu_items, pizzaria_config,
               profile_features, cms_pages, cms_sites
             RESTART IDENTITY CASCADE
             """);

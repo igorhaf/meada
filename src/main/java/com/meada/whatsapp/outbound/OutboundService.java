@@ -115,6 +115,10 @@ public class OutboundService {
     // ação HUMANA no painel (não há handler de aceite — é o ponto central da ESCAPADA 1 do delivery).
     private final com.meada.whatsapp.profiles.comida.orders.PedidoComidaConfirmHandler pedidoComidaConfirmHandler;
     private final com.meada.whatsapp.profiles.floricultura.orders.PedidoFlorConfirmHandler pedidoFlorConfirmHandler;
+    // Camada 8.6 (perfil pizzaria): pós-processa a tag <pedido_pizza> — cria o pedido (nasce 'aguardando')
+    // e remove a tag antes de enviar. Só age para profile_id='pizzaria'. Inclui a ESCAPADA meio-a-meio
+    // (frações de sabor, preço pela regra do MAIOR VALOR — recalculado no backend).
+    private final com.meada.whatsapp.profiles.pizzaria.orders.PedidoPizzaConfirmHandler pedidoPizzaConfirmHandler;
 
     private final int maxAttempts;
     private final List<Duration> backoffs;
@@ -169,6 +173,7 @@ public class OutboundService {
                            com.meada.whatsapp.profiles.estetica.packages.CompraPacoteConfirmHandler compraPacoteConfirmHandler,
                            com.meada.whatsapp.profiles.comida.orders.PedidoComidaConfirmHandler pedidoComidaConfirmHandler,
                            com.meada.whatsapp.profiles.floricultura.orders.PedidoFlorConfirmHandler pedidoFlorConfirmHandler,
+                           com.meada.whatsapp.profiles.pizzaria.orders.PedidoPizzaConfirmHandler pedidoPizzaConfirmHandler,
                            @org.springframework.beans.factory.annotation.Value("${gemini.model}")
                            String geminiModel) {
         this.conversationRepository = conversationRepository;
@@ -205,6 +210,7 @@ public class OutboundService {
         this.compraPacoteConfirmHandler = compraPacoteConfirmHandler;
         this.pedidoComidaConfirmHandler = pedidoComidaConfirmHandler;
         this.pedidoFlorConfirmHandler = pedidoFlorConfirmHandler;
+        this.pedidoPizzaConfirmHandler = pedidoPizzaConfirmHandler;
         this.geminiModel = geminiModel;
         this.maxAttempts = retryProps.maxAttempts();
         // converte uma vez (lista YAML de millis → Durations). O RetryRunner valida
@@ -336,6 +342,9 @@ public class OutboundService {
         // o restaurante aceita/recusa no painel, não a IA). Encadeado (perfil é único; só um age).
         toSend = maybeProcessPedidoComida(event, conversationId, toSend);
         toSend = maybeProcessPedidoFlor(event, conversationId, toSend);
+        // Camada 8.6 (perfil pizzaria): <pedido_pizza> cria o pedido (nasce 'aguardando'; aceite/recusa
+        // é humano no painel). Inclui a escapada meio-a-meio. Encadeado (perfil é único; só um age).
+        toSend = maybeProcessPedidoPizza(event, conversationId, toSend);
         Optional<OutboundOutcome> sendFailure = sendAndPersist(event, conversationId, toSend);
         if (sendFailure.isPresent()) {
             return sendFailure.get();   // casos 7/8/9 — já logado lá
@@ -915,6 +924,34 @@ public class OutboundService {
                 event.companyId(), conversationId, contactId.get(), reply);
         }
         String stripped = pedidoFlorConfirmHandler.stripOrderTag(reply);
+        return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
+            aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
+            aiResponse.schedulingIntent(), aiResponse.insights());
+    }
+
+    /**
+     * Pós-processamento do perfil pizzaria (camada 8.6): se o tenant é pizzaria e a resposta da IA
+     * contém a tag {@code <pedido_pizza>}, cria o pedido (PedidoPizzaConfirmHandler resolve o contato,
+     * recalcula o total descartando o da IA — incluindo a ESCAPADA meio-a-meio: preço da pizza pela
+     * regra do MAIOR VALOR dos sabores das frações + Σ deltas — e snapshota opções e sabores) e
+     * devolve um AiResponse SEM a tag. Espelho de maybeProcessPedidoComida. Best-effort; tag sempre
+     * removida; só age se profile_id='pizzaria'.
+     */
+    private AiResponse maybeProcessPedidoPizza(MessageInboundProcessedEvent event,
+                                               UUID conversationId, AiResponse aiResponse) {
+        String reply = aiResponse.reply();
+        if (reply == null || !pedidoPizzaConfirmHandler.hasOrderTag(reply)) {
+            return aiResponse;
+        }
+        if (!"pizzaria".equals(companyProfileRepository.findProfileId(event.companyId()))) {
+            return aiResponse;
+        }
+        Optional<UUID> contactId = conversationRepository.findContactIdByConversation(conversationId);
+        if (contactId.isPresent()) {
+            pedidoPizzaConfirmHandler.parseAndCreate(
+                event.companyId(), conversationId, contactId.get(), reply);
+        }
+        String stripped = pedidoPizzaConfirmHandler.stripOrderTag(reply);
         return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
             aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
             aiResponse.schedulingIntent(), aiResponse.insights());

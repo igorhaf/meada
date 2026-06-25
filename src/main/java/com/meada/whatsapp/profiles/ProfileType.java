@@ -39,7 +39,8 @@ public enum ProfileType {
     EVENTOS("eventos", "Eventos", "eventos", "ambar"),
     ESTETICA("estetica", "Estética", "estetica", "rosa-po"),
     COMIDA("comida", "Comida", "comida", "terracota"),
-    FLORICULTURA("floricultura", "Floricultura", "floricultura", "rosa-po");
+    FLORICULTURA("floricultura", "Floricultura", "floricultura", "rosa-po"),
+    PIZZARIA("pizzaria", "Pizzaria", "pizzaria", "carmim");
 
     private final String id;
     private final String productName;

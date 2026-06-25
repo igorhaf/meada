@@ -37,6 +37,7 @@ import {
   Scissors,
   ScrollText,
   Settings,
+  Pizza,
   ShieldCheck,
   Sparkles,
   Stethoscope,
@@ -206,6 +207,7 @@ function profileGroups(profileId: string | null | undefined): NavGroup[] {
   if (profileId === 'estetica') return [ESTETICA_GROUP, ...NAV_GROUPS]
   if (profileId === 'comida') return [COMIDA_GROUP, ...NAV_GROUPS]
   if (profileId === 'floricultura') return [FLORICULTURA_GROUP, ...NAV_GROUPS]
+  if (profileId === 'pizzaria') return [PIZZARIA_GROUP, ...NAV_GROUPS]
   return NAV_GROUPS
 }
 
@@ -377,5 +379,16 @@ const FLORICULTURA_GROUP: NavGroup = {
     { label: 'Catálogo', href: '/dashboard/floricultura-catalog', icon: Flower2 },
     { label: 'Pedidos', href: '/dashboard/floricultura-orders', icon: ClipboardList },
     { label: 'Configurações', href: '/dashboard/floricultura-settings', icon: Settings },
+  ],
+}
+
+/** Grupo de navegação exclusivo do perfil pizzaria (pizzaria delivery, camada 8.6). "Pizzaria".
+ * Rotas /dashboard/pizzaria-* — Cardápio inclui a gestão de sabores p/ pizza meio-a-meio. */
+const PIZZARIA_GROUP: NavGroup = {
+  heading: 'Pizzaria',
+  items: [
+    { label: 'Cardápio', href: '/dashboard/pizzaria-menu', icon: Pizza },
+    { label: 'Pedidos', href: '/dashboard/pizzaria-orders', icon: ClipboardList },
+    { label: 'Configurações', href: '/dashboard/pizzaria-settings', icon: Settings },
   ],
 }

@@ -199,6 +199,12 @@ Dois perfis, duas vias:
 - **Adicionar um perfil novo** = editar os 2 arquivos (enum Java + const TS), aplicar uma
   migration de CHECK constraint em `companies.profile_id`, e rodar os testes de paridade.
   NÃO criar tabela de perfis.
+- **NUNCA remover um nicho ao adicionar outro (CRAVADO pelo Igor).** Adicionar um perfil é
+  sempre ACRESCENTAR — o novo id entra na lista do CHECK `companies.profile_id` e no enum
+  PRESERVANDO TODOS os existentes; nenhum nicho anterior pode sumir. Armadilha real: clonar
+  uma migration por `sed s/comida/novo/g` troca `'comida'` por `'novo'` na lista do CHECK
+  (remove comida + os demais), em vez de adicionar. Depois de qualquer clonagem por sed,
+  CONFERIR que o CHECK tem TODOS os perfis (os 16+ atuais + o novo), não só o novo.
 - **Subdomínio → perfil:** o middleware Next (`frontend/middleware.ts`) injeta
   `x-meada-subdomain`; `localhost`/domínio-base = 'meada' (universal, login universal). Dev
   local: ver `docs/MULTI_PROFILE_DEV.md` (entradas de `/etc/hosts`).

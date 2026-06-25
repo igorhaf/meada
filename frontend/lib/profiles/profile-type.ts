@@ -27,6 +27,7 @@ export const PROFILES = [
   { id: 'estetica', productName: 'Estética', subdomain: 'estetica', defaultPaletteId: 'rosa-po' },
   { id: 'comida', productName: 'Comida', subdomain: 'comida', defaultPaletteId: 'terracota' },
   { id: 'floricultura', productName: 'Floricultura', subdomain: 'floricultura', defaultPaletteId: 'rosa-po' },
+  { id: 'pizzaria', productName: 'Pizzaria', subdomain: 'pizzaria', defaultPaletteId: 'carmim' },
 ] as const
 
 export type Profile = (typeof PROFILES)[number]

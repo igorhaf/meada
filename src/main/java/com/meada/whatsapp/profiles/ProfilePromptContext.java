@@ -36,6 +36,7 @@ public class ProfilePromptContext {
     private final com.meada.whatsapp.profiles.estetica.EsteticaContextCache esteticaContextCache;
     private final com.meada.whatsapp.profiles.comida.ComidaMenuCache comidaMenuCache;
     private final com.meada.whatsapp.profiles.floricultura.FloriculturaCatalogCache floriculturaCatalogCache;
+    private final com.meada.whatsapp.profiles.pizzaria.PizzariaMenuCache pizzariaMenuCache;
     private final ConversationRepository conversationRepository;
 
     public ProfilePromptContext(SushiMenuCache sushiMenuCache,
@@ -53,6 +54,7 @@ public class ProfilePromptContext {
                                 com.meada.whatsapp.profiles.estetica.EsteticaContextCache esteticaContextCache,
                                 com.meada.whatsapp.profiles.comida.ComidaMenuCache comidaMenuCache,
                                 com.meada.whatsapp.profiles.floricultura.FloriculturaCatalogCache floriculturaCatalogCache,
+                                com.meada.whatsapp.profiles.pizzaria.PizzariaMenuCache pizzariaMenuCache,
                                 ConversationRepository conversationRepository) {
         this.sushiMenuCache = sushiMenuCache;
         this.legalCaseContextCache = legalCaseContextCache;
@@ -69,6 +71,7 @@ public class ProfilePromptContext {
         this.esteticaContextCache = esteticaContextCache;
         this.comidaMenuCache = comidaMenuCache;
         this.floriculturaCatalogCache = floriculturaCatalogCache;
+        this.pizzariaMenuCache = pizzariaMenuCache;
         this.conversationRepository = conversationRepository;
     }
 
@@ -201,6 +204,16 @@ public class ProfilePromptContext {
             + "catálogo; NUNCA aceite ou recuse o pedido (a floricultura confirma a data no painel); o "
             + "total é recalculado pelo sistema. Avise que o pedido vai para confirmação da floricultura.";
 
+    private static final String PIZZARIA =
+        "Você é atendente de uma pizzaria delivery. Tom descontraído e simpático. Conheça o cardápio "
+            + "(pizzas salgadas e doces, bordas, bebidas, sobremesas, combos) e os modifiers (Tamanho, "
+            + "Borda) com seus valores, além da taxa de entrega. Você sabe montar PIZZA MEIO-A-MEIO: o "
+            + "cliente escolhe 2 sabores para uma mesma pizza; o preço é o do sabor MAIS CARO (regra da "
+            + "casa), nunca a soma nem a média — o sistema calcula. Confirme SEMPRE com o valor total e o "
+            + "endereço de entrega, e avise que o pedido vai para confirmação da pizzaria. NUNCA invente "
+            + "sabor, opção ou preço fora do cardápio; NUNCA aceite ou recuse o pedido (isso é a pizzaria "
+            + "quem faz); o total é recalculado pelo sistema.";
+
     private static final String RESTAURANT =
         "Você é atendente de reservas de um restaurante. Tom acolhedor e ágil. Conheça as mesas "
             + "disponíveis e os horários livres. Quando o cliente pedir reserva, verifique a "
@@ -231,6 +244,7 @@ public class ProfilePromptContext {
             case ESTETICA -> ESTETICA;
             case COMIDA -> COMIDA;
             case FLORICULTURA -> FLORICULTURA;
+            case PIZZARIA -> PIZZARIA;
             case GENERIC -> "";
         };
         if (body.isEmpty()) {
@@ -359,6 +373,12 @@ public class ProfilePromptContext {
             // instruções da tag <pedido_flor> (com data de entrega + destinatário + cartão). IGNORA
             // conversationId (contexto é o catálogo). Pedido nasce 'aguardando' (gate de aceite humano).
             return persona + floriculturaCatalogCache.catalogSegment(companyId);
+        }
+        if ("pizzaria".equals(profileId)) {
+            // pizzaria (8.6): persona + cardápio (sabores/itens + modifiers Tamanho/Borda com deltas) +
+            // taxa/mínimo + instruções da tag <pedido_pizza> (incluindo o formato meio-a-meio com
+            // flavors[]). IGNORA conversationId (contexto é o cardápio). Pedido nasce 'aguardando'.
+            return persona + pizzariaMenuCache.menuSegment(companyId);
         }
         return persona;
     }

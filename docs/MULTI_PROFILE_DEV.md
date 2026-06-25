@@ -23,6 +23,7 @@ perfil tem seu subdomínio; em dev local você simula isso com `/etc/hosts` + su
 | `eventos`  | EventosBot    | `eventos`  | `ambar`        |
 | `estetica` | EsteticaBot   | `estetica` | `rosa-po`      |
 | `comida`   | Comida        | `comida`   | `terracota`    |
+| `pizzaria` | Pizzaria      | `pizzaria` | `carmim`       |
 
 Fonte de verdade: `src/main/java/com/meada/whatsapp/profiles/ProfileType.java` +
 `frontend/lib/profiles/profile-type.ts` (paridade garantida pelo `ProfileTypeParityTest`).
@@ -46,6 +47,7 @@ Fonte de verdade: `src/main/java/com/meada/whatsapp/profiles/ProfileType.java` +
 127.0.0.1 eventos.meadadigital.local
 127.0.0.1 estetica.meadadigital.local
 127.0.0.1 comida.meadadigital.local
+127.0.0.1 pizzaria.meadadigital.local
 127.0.0.1 api.meadadigital.local
 ```
 
@@ -79,6 +81,7 @@ Acesse (sem porta — o Caddy resolve por subdomínio):
 - `http://eventos.meadadigital.local` → **EventosBot** (perfil `eventos`).
 - `http://estetica.meadadigital.local` → **EsteticaBot** (perfil `estetica`).
 - `http://comida.meadadigital.local` → **Comida** (perfil `comida`).
+- `http://pizzaria.meadadigital.local` → **Pizzaria** (perfil `pizzaria`).
 - `http://api.meadadigital.local` → **backend / API**.
 
 O backend é o mesmo para todos os subdomínios — o perfil viaja no header `X-Meada-Subdomain`
@@ -121,8 +124,10 @@ O backend é o mesmo para todos os subdomínios — o perfil viaja no header `X-
 | `igorhaf14@gmail.com`| `bofo-meca-oleo` | Eventos Modelo                | eventos    |
 | `igorhaf15@gmail.com`| `bofo-meca-oleo` | Estética Modelo               | estetica   |
 | `igorhaf16@gmail.com`| `bofo-meca-oleo` | Comida Modelo                 | comida     |
+| `igorhaf17@gmail.com`| _(comunicação direta)_ | Pizzaria Modelo         | pizzaria   |
 
-(Seed em `/tmp/seed-multi-profile.sql` — não versionado; roda via psql.)
+(Seed em `/tmp/seed-multi-profile.sql` — não versionado; roda via psql. O seed do tenant
+`pizzaria` é `/tmp/seed-pizzaria.sql`, também não versionado; senha só em comunicação direta.)
 
 ## Adicionar um perfil novo
 
