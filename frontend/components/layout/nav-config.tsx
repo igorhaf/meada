@@ -10,6 +10,8 @@ import {
   Calendar,
   Camera,
   CalendarCheck,
+  CreditCard,
+  GraduationCap,
   CalendarClock,
   ClipboardList,
   Clock,
@@ -222,6 +224,7 @@ function profileGroups(profileId: string | null | undefined): NavGroup[] {
   if (profileId === 'lavanderia') return [LAVANDERIA_GROUP, ...NAV_GROUPS]
   if (profileId === 'dermatologia') return [DERMATOLOGIA_GROUP, ...NAV_GROUPS]
   if (profileId === 'fotografia') return [FOTOGRAFIA_GROUP, ...NAV_GROUPS]
+  if (profileId === 'cursos') return [CURSOS_GROUP, ...NAV_GROUPS]
   return NAV_GROUPS
 }
 
@@ -495,5 +498,15 @@ const FOTOGRAFIA_GROUP: NavGroup = {
     { label: 'Pacotes', href: '/dashboard/fotografia-packages', icon: Package },
     { label: 'Agenda', href: '/dashboard/fotografia-appointments', icon: Camera },
     { label: 'Configurações', href: '/dashboard/fotografia-settings', icon: Settings },
+  ],
+}
+
+const CURSOS_GROUP: NavGroup = {
+  heading: 'Cursos',
+  items: [
+    { label: 'Cursos', href: '/dashboard/cursos-courses', icon: BookOpen },
+    { label: 'Matrículas', href: '/dashboard/cursos-enrollments', icon: GraduationCap },
+    { label: 'Pagamentos', href: '/dashboard/cursos-payments', icon: CreditCard },
+    { label: 'Configurações', href: '/dashboard/cursos-settings', icon: Settings },
   ],
 }

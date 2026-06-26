@@ -123,7 +123,8 @@ public abstract class AbstractIntegrationTest {
         "db/migrations/61_concessionaria.sql",
         "db/migrations/54_lavanderia.sql",
         "db/migrations/55_dermatologia.sql",
-        "db/migrations/60_fotografia.sql"
+        "db/migrations/60_fotografia.sql",
+        "db/migrations/64_cursos.sql"
     };
 
     /**
@@ -277,6 +278,8 @@ public abstract class AbstractIntegrationTest {
               dermatologia_professionals, dermatologia_config,
               fotografia_session_appointments, fotografia_packages,
               fotografia_professionals, fotografia_config,
+              cursos_payments, cursos_enrollment_progress, cursos_enrollments,
+              cursos_modules, cursos_courses, cursos_config,
               profile_features, cms_pages, cms_sites
             RESTART IDENTITY CASCADE
             """);

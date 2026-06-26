@@ -1206,6 +1206,53 @@ organizado, sem prometer resultado estético.
 - Migration `60_fotografia.sql` (slot README ordem 11; entra por ÚLTIMO no SCRIPTS — sua CHECK tem os 25
   perfis). Tenant `igorhaf27` (Estúdio Modelo). Guia: `docs/PERFIL_FOTOGRAFIA.md`.
 
+## Perfil Cursos (CursosBot, camada 8.20)
+
+VIGÉSIMO SEXTO perfil vertical real (25 + generic). O tenant cursos (`profile_id='cursos'`) vira um
+produto de ESCOLA LIVRE / curso online / formação: gerencia cursos com TRILHA de módulos ordenados,
+matricula alunos (assinatura), registra mensalidade manual, e a IA atende alunos via WhatsApp —
+apresenta cursos, matricula, e ENTREGA o conteúdo do próximo módulo. É o eixo "Academia + Nutri".
+
+- **CLONA o chassi de ASSINATURA do AcademiaBot (camada 7.7):** matrícula = recorrência indefinida
+  (ativa-até-cancelar), anti-dupla, mensalidade MANUAL (`cursos_payments`, UNIQUE por mês → 409
+  duplicate_payment; sem Stripe/inadimplência). Aluno NÃO é entidade (snapshots student/course na
+  matrícula). Status `CursoEnrollmentStatus` ↔ TS (parity): ativa⇄trancada; ambas→concluida/cancelada
+  (terminais, materializam end_date). Notifica ativa/concluida/cancelada; trancada silenciosa.
+  **Anti-dupla = 1 matrícula ATIVA por (aluno, CURSO)** (índice parcial — o mesmo contato pode estar em
+  cursos diferentes, não 2× no mesmo).
+- **ESCAPADA 1 — TRILHA DE MÓDULOS ORDENADOS (`cursos_modules`):** o curso não é "aula semanal"
+  (academia) — é uma sequência ORDENADA de módulos (position 0..N, UNIQUE(course_id, position), com
+  title + content). Substitui academia_classes (sem capacity — curso tem vagas ilimitadas nesta SM). A
+  matrícula é no CURSO inteiro (course_id direto, sem junction). Reorder transacional em 2 fases (offset
+  negativo → posições finais) pra não bater no UNIQUE durante o swap.
+- **ESCAPADA 2 — PROGRESSO INDIVIDUAL + ENTREGA READ-ONLY DO PRÓXIMO MÓDULO
+  (`cursos_enrollment_progress` + `<entrega_modulo>`):** cada matrícula tem seu progresso (quais
+  módulos concluiu). O "próximo módulo" = o 1º por position que NÃO está no progresso. A tag
+  `<entrega_modulo>{enrollment_id}` faz o `EntregaModuloHandler` enviar o `content` desse módulo
+  VERBATIM via notifier (NÃO passa pela IA), com BARREIRA DE CONTATO, e GRAVA o progresso (a próxima
+  entrega avança). Espelho da entrega de plano do nutri / material do fotografia, com avanço de
+  progresso somado.
+- **Duas TAGS namespace próprio** (distintas de `<matricula>` da academia e de TODAS): `<matricula_curso>`
+  (1 modo: course_id, student_name, notes) via `MatriculaCursoConfirmHandler` (DESCARTA preço da IA);
+  `<entrega_modulo>{enrollment_id}` via `EntregaModuloHandler`. `OutboundService` ganhou
+  `maybeProcessMatriculaCurso` + `maybeProcessEntregaModulo` (encadeados após os demais; perfil é único,
+  só um age; removem a tag).
+- **Persona CURSOS** (`ProfilePromptContext.CURSOS`, acolhedora-motivadora): NUNCA inventa curso/módulo/
+  preço/desconto/bolsa, NUNCA pula a ordem dos módulos, NUNCA reescreve o material, NUNCA matricula 2× no
+  mesmo curso, NUNCA promete certificado/aprovação não descritos. Contexto via `CursosContextCache`
+  (TTL 60s, keyed por (companyId, contactId) — cursos com nº de módulos + matrículas do contato com
+  progresso X/N + próximo módulo), invalidado em toda mutação.
+- **Guard:** `CursosProfileGuard` (403 `forbidden_wrong_profile`). `JwtAuthenticationFilter` autentica
+  `/api/cursos/**` (além dos 25 perfis anteriores).
+- **Sidebar:** `getNavForProfile('cursos')` injeta "Cursos" (Cursos/Matrículas/Pagamentos/
+  Configurações), branch próprio. Paleta `oliva`. A tela de Cursos tem o editor da trilha (módulos
+  ordenados com reorder ↑↓).
+- **NÃO TEM:** quiz/avaliação/nota, certificado automático, vídeo hospedado (conteúdo é texto colado),
+  pré-requisito entre cursos, turma com data/coorte, pagamento real (Stripe #50), inadimplência
+  automática, trilha com ramificação (é linear).
+- Migration `64_cursos.sql` (slot README ordem 15; entra por ÚLTIMO no SCRIPTS — sua CHECK tem os 26
+  perfis). Tenant `igorhaf31` (Escola Modelo de Cursos). Guia: `docs/PERFIL_CURSOS.md`.
+
 ## Camada 9.0 — Feature Flags por Nicho (infra de plataforma)
 
 Infra pro ROOT (super-admin) ligar/desligar features por nicho num lugar só. A 1ª feature é o **CMS**

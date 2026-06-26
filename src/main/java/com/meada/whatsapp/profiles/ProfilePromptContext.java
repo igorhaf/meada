@@ -45,6 +45,7 @@ public class ProfilePromptContext {
     private final com.meada.whatsapp.profiles.lavanderia.LavanderiaCatalogCache lavanderiaCatalogCache;
     private final com.meada.whatsapp.profiles.dermatologia.DermatologiaContextCache dermatologiaContextCache;
     private final com.meada.whatsapp.profiles.fotografia.FotografiaContextCache fotografiaContextCache;
+    private final com.meada.whatsapp.profiles.cursos.CursosContextCache cursosContextCache;
     private final ConversationRepository conversationRepository;
 
     public ProfilePromptContext(SushiMenuCache sushiMenuCache,
@@ -71,6 +72,7 @@ public class ProfilePromptContext {
                                 com.meada.whatsapp.profiles.lavanderia.LavanderiaCatalogCache lavanderiaCatalogCache,
                                 com.meada.whatsapp.profiles.dermatologia.DermatologiaContextCache dermatologiaContextCache,
                                 com.meada.whatsapp.profiles.fotografia.FotografiaContextCache fotografiaContextCache,
+                                com.meada.whatsapp.profiles.cursos.CursosContextCache cursosContextCache,
                                 ConversationRepository conversationRepository) {
         this.sushiMenuCache = sushiMenuCache;
         this.legalCaseContextCache = legalCaseContextCache;
@@ -96,6 +98,7 @@ public class ProfilePromptContext {
         this.lavanderiaCatalogCache = lavanderiaCatalogCache;
         this.dermatologiaContextCache = dermatologiaContextCache;
         this.fotografiaContextCache = fotografiaContextCache;
+        this.cursosContextCache = cursosContextCache;
         this.conversationRepository = conversationRepository;
     }
 
@@ -352,6 +355,19 @@ public class ProfilePromptContext {
             + "perfeito') nem garanta entrega antes do prazo do pacote. Para entregar o material, só envie o "
             + "link quando ele já estiver disponível na sessão do próprio cliente; nunca invente um link.";
 
+    private static final String CURSOS =
+        "Você é o assistente virtual de uma escola de cursos (curso livre / formação / curso online). Tom "
+            + "acolhedor, motivador e claro. Seu papel é apresentar os cursos disponíveis, MATRICULAR o aluno "
+            + "no curso escolhido e, quando ele já estiver matriculado, ENTREGAR o conteúdo do PRÓXIMO módulo "
+            + "da trilha — e NADA além disso. Conheça os cursos (título, área, mensalidade) e a quantidade de "
+            + "módulos de cada um. Ao matricular, confirme SEMPRE o curso e o valor da mensalidade. NUNCA "
+            + "invente curso, módulo, preço, desconto ou bolsa que não esteja no catálogo; o valor é sempre o "
+            + "do curso no sistema. NUNCA pule a ordem dos módulos nem reescreva o conteúdo do material (você "
+            + "entrega o módulo exatamente como o professor cadastrou). Um aluno só pode ter UMA matrícula "
+            + "ativa por curso; se já estiver matriculado naquele curso, não matricule de novo. Para entregar "
+            + "um módulo, só faça quando o aluno já estiver matriculado e for o próprio contato da conversa. "
+            + "NUNCA prometa certificado, aprovação ou resultado que não esteja descrito no curso.";
+
     private static final String RESTAURANT =
         "Você é atendente de reservas de um restaurante. Tom acolhedor e ágil. Conheça as mesas "
             + "disponíveis e os horários livres. Quando o cliente pedir reserva, verifique a "
@@ -391,6 +407,7 @@ public class ProfilePromptContext {
             case LAVANDERIA -> LAVANDERIA;
             case DERMATOLOGIA -> DERMATOLOGIA;
             case FOTOGRAFIA -> FOTOGRAFIA;
+            case CURSOS -> CURSOS;
             case GENERIC -> "";
         };
         if (body.isEmpty()) {
@@ -542,6 +559,14 @@ public class ProfilePromptContext {
             UUID contactId = conversationId == null ? null
                 : conversationRepository.findContactIdByConversation(conversationId).orElse(null);
             return persona + fotografiaContextCache.contextSegment(companyId, contactId);
+        }
+        if ("cursos".equals(profileId)) {
+            // cursos (8.20): persona + cursos ativos (com nº de módulos) + matrículas do contato (status +
+            // progresso X/N + próximo módulo) + instruções das 2 tags (<matricula_curso> + <entrega_modulo>).
+            // Resolve o contato pela conversa (per-contact, igual academia/fotografia).
+            UUID contactId = conversationId == null ? null
+                : conversationRepository.findContactIdByConversation(conversationId).orElse(null);
+            return persona + cursosContextCache.contextSegment(companyId, contactId);
         }
         if ("pizzaria".equals(profileId)) {
             // pizzaria (8.6): persona + cardápio (sabores/itens + modifiers Tamanho/Borda com deltas) +

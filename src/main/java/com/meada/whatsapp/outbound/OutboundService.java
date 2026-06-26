@@ -152,6 +152,11 @@ public class OutboundService {
     // READ-ONLY o link do material (barreira de contato). Só agem p/ profile_id='fotografia'.
     private final com.meada.whatsapp.profiles.fotografia.appointments.SessaoFotoConfirmHandler sessaoFotoConfirmHandler;
     private final com.meada.whatsapp.profiles.fotografia.appointments.EntregaMaterialHandler entregaMaterialHandler;
+    // Camada 8.20 (perfil cursos): <matricula_curso> matricula (assinatura, anti-dupla por curso);
+    // <entrega_modulo> entrega READ-ONLY o conteúdo do próximo módulo (barreira de contato + grava
+    // progresso). Só agem p/ profile_id='cursos'.
+    private final com.meada.whatsapp.profiles.cursos.enrollments.MatriculaCursoConfirmHandler matriculaCursoConfirmHandler;
+    private final com.meada.whatsapp.profiles.cursos.enrollments.EntregaModuloHandler entregaModuloHandler;
 
     private final int maxAttempts;
     private final List<Duration> backoffs;
@@ -221,6 +226,8 @@ public class OutboundService {
                            com.meada.whatsapp.profiles.dermatologia.appointments.EntregaPreparoHandler entregaPreparoHandler,
                            com.meada.whatsapp.profiles.fotografia.appointments.SessaoFotoConfirmHandler sessaoFotoConfirmHandler,
                            com.meada.whatsapp.profiles.fotografia.appointments.EntregaMaterialHandler entregaMaterialHandler,
+                           com.meada.whatsapp.profiles.cursos.enrollments.MatriculaCursoConfirmHandler matriculaCursoConfirmHandler,
+                           com.meada.whatsapp.profiles.cursos.enrollments.EntregaModuloHandler entregaModuloHandler,
                            @org.springframework.beans.factory.annotation.Value("${gemini.model}")
                            String geminiModel) {
         this.conversationRepository = conversationRepository;
@@ -272,6 +279,8 @@ public class OutboundService {
         this.entregaPreparoHandler = entregaPreparoHandler;
         this.sessaoFotoConfirmHandler = sessaoFotoConfirmHandler;
         this.entregaMaterialHandler = entregaMaterialHandler;
+        this.matriculaCursoConfirmHandler = matriculaCursoConfirmHandler;
+        this.entregaModuloHandler = entregaModuloHandler;
         this.geminiModel = geminiModel;
         this.maxAttempts = retryProps.maxAttempts();
         // converte uma vez (lista YAML de millis → Durations). O RetryRunner valida
@@ -433,6 +442,9 @@ public class OutboundService {
         // Camada 8.16 (perfil fotografia): <sessao_foto> agenda; <entrega_material> entrega o link.
         toSend = maybeProcessSessaoFoto(event, conversationId, toSend);
         toSend = maybeProcessEntregaMaterial(event, conversationId, toSend);
+        // Camada 8.20 (perfil cursos): <matricula_curso> matricula; <entrega_modulo> entrega o módulo.
+        toSend = maybeProcessMatriculaCurso(event, conversationId, toSend);
+        toSend = maybeProcessEntregaModulo(event, conversationId, toSend);
         Optional<OutboundOutcome> sendFailure = sendAndPersist(event, conversationId, toSend);
         if (sendFailure.isPresent()) {
             return sendFailure.get();   // casos 7/8/9 — já logado lá
@@ -1392,6 +1404,55 @@ public class OutboundService {
             entregaMaterialHandler.parseAndDeliver(event.companyId(), conversationId, contactId.get(), reply);
         }
         String stripped = entregaMaterialHandler.stripTag(reply);
+        return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
+            aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
+            aiResponse.schedulingIntent(), aiResponse.insights());
+    }
+
+    /**
+     * Pós-processamento do perfil cursos (camada 8.20): se o tenant é cursos e a resposta da IA contém
+     * a tag {@code <matricula_curso>}, matricula o aluno no curso (assinatura; anti-dupla por curso) e
+     * devolve um AiResponse SEM a tag. Best-effort; só age se profile_id='cursos'.
+     */
+    private AiResponse maybeProcessMatriculaCurso(MessageInboundProcessedEvent event,
+                                                  UUID conversationId, AiResponse aiResponse) {
+        String reply = aiResponse.reply();
+        if (reply == null || !matriculaCursoConfirmHandler.hasTag(reply)) {
+            return aiResponse;
+        }
+        if (!"cursos".equals(companyProfileRepository.findProfileId(event.companyId()))) {
+            return aiResponse;
+        }
+        Optional<UUID> contactId = conversationRepository.findContactIdByConversation(conversationId);
+        if (contactId.isPresent()) {
+            matriculaCursoConfirmHandler.parseAndCreate(event.companyId(), conversationId, contactId.get(), reply);
+        }
+        String stripped = matriculaCursoConfirmHandler.stripTag(reply);
+        return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
+            aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
+            aiResponse.schedulingIntent(), aiResponse.insights());
+    }
+
+    /**
+     * Pós-processamento do perfil cursos (camada 8.20): se o tenant é cursos e a resposta da IA contém
+     * a tag {@code <entrega_modulo>}, entrega READ-ONLY o conteúdo do próximo módulo da matrícula
+     * (EntregaModuloHandler envia VERBATIM via notifier, com barreira de contato, e grava o progresso)
+     * e devolve um AiResponse SEM a tag. Best-effort; só age se profile_id='cursos'.
+     */
+    private AiResponse maybeProcessEntregaModulo(MessageInboundProcessedEvent event,
+                                                 UUID conversationId, AiResponse aiResponse) {
+        String reply = aiResponse.reply();
+        if (reply == null || !entregaModuloHandler.hasTag(reply)) {
+            return aiResponse;
+        }
+        if (!"cursos".equals(companyProfileRepository.findProfileId(event.companyId()))) {
+            return aiResponse;
+        }
+        Optional<UUID> contactId = conversationRepository.findContactIdByConversation(conversationId);
+        if (contactId.isPresent()) {
+            entregaModuloHandler.parseAndDeliver(event.companyId(), conversationId, contactId.get(), reply);
+        }
+        String stripped = entregaModuloHandler.stripTag(reply);
         return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
             aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
             aiResponse.schedulingIntent(), aiResponse.insights());
