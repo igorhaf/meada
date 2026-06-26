@@ -215,6 +215,7 @@ function profileGroups(profileId: string | null | undefined): NavGroup[] {
   if (profileId === 'escola') return [ESCOLA_GROUP, ...NAV_GROUPS]
   if (profileId === 'atelie') return [ATELIE_GROUP, ...NAV_GROUPS]
   if (profileId === 'casamento') return [CASAMENTO_GROUP, ...NAV_GROUPS]
+  if (profileId === 'concessionaria') return [CONCESSIONARIA_GROUP, ...NAV_GROUPS]
   return NAV_GROUPS
 }
 
@@ -443,5 +444,18 @@ const CASAMENTO_GROUP: NavGroup = {
     { label: 'Assessores', href: '/dashboard/casamento-planners', icon: Gem },
     { label: 'Propostas', href: '/dashboard/casamento-proposals', icon: FileText },
     { label: 'Configurações', href: '/dashboard/casamento-settings', icon: Settings },
+  ],
+}
+
+/** Grupo de navegação exclusivo do perfil concessionaria (loja de carros, camada 8.17). "Concessionária".
+ * Rotas /dashboard/concessionaria-* — híbrido triplo: estoque + test-drive + lead. */
+const CONCESSIONARIA_GROUP: NavGroup = {
+  heading: 'Concessionária',
+  items: [
+    { label: 'Estoque', href: '/dashboard/concessionaria-vehicles', icon: Car },
+    { label: 'Vendedores', href: '/dashboard/concessionaria-salespeople', icon: Users },
+    { label: 'Test-drives', href: '/dashboard/concessionaria-testdrives', icon: CalendarCheck },
+    { label: 'Leads', href: '/dashboard/concessionaria-leads', icon: Megaphone },
+    { label: 'Configurações', href: '/dashboard/concessionaria-settings', icon: Settings },
   ],
 }

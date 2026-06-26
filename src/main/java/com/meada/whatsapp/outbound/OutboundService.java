@@ -135,6 +135,10 @@ public class OutboundService {
     // MUTA o estado (aprovada/recusada, só se 'orcada') — gate de aprovação em 2 fases. Só p/ profile_id='casamento'.
     private final com.meada.whatsapp.profiles.casamento.proposals.PropostaCasamentoConfirmHandler propostaCasamentoConfirmHandler;
     private final com.meada.whatsapp.profiles.casamento.proposals.AprovacaoCasamentoHandler aprovacaoCasamentoHandler;
+    // Camada 8.17 (perfil concessionaria): <testdrive_carro> agenda test-drive (conflito por vendedor);
+    // <lead_carro> registra interesse de compra (funil). Só agem p/ profile_id='concessionaria'.
+    private final com.meada.whatsapp.profiles.concessionaria.testdrives.TestDriveConfirmHandler testDriveConfirmHandler;
+    private final com.meada.whatsapp.profiles.concessionaria.leads.LeadCarroConfirmHandler leadCarroConfirmHandler;
 
     private final int maxAttempts;
     private final List<Duration> backoffs;
@@ -197,6 +201,8 @@ public class OutboundService {
                            com.meada.whatsapp.profiles.atelie.proposals.AprovacaoAtelieHandler aprovacaoAtelieHandler,
                            com.meada.whatsapp.profiles.casamento.proposals.PropostaCasamentoConfirmHandler propostaCasamentoConfirmHandler,
                            com.meada.whatsapp.profiles.casamento.proposals.AprovacaoCasamentoHandler aprovacaoCasamentoHandler,
+                           com.meada.whatsapp.profiles.concessionaria.testdrives.TestDriveConfirmHandler testDriveConfirmHandler,
+                           com.meada.whatsapp.profiles.concessionaria.leads.LeadCarroConfirmHandler leadCarroConfirmHandler,
                            @org.springframework.beans.factory.annotation.Value("${gemini.model}")
                            String geminiModel) {
         this.conversationRepository = conversationRepository;
@@ -241,6 +247,8 @@ public class OutboundService {
         this.aprovacaoAtelieHandler = aprovacaoAtelieHandler;
         this.propostaCasamentoConfirmHandler = propostaCasamentoConfirmHandler;
         this.aprovacaoCasamentoHandler = aprovacaoCasamentoHandler;
+        this.testDriveConfirmHandler = testDriveConfirmHandler;
+        this.leadCarroConfirmHandler = leadCarroConfirmHandler;
         this.geminiModel = geminiModel;
         this.maxAttempts = retryProps.maxAttempts();
         // converte uma vez (lista YAML de millis → Durations). O RetryRunner valida
@@ -390,6 +398,10 @@ public class OutboundService {
         // aprovação/recusa (só 'orcada'). Encadeados após os demais (perfil único; só um age).
         toSend = maybeProcessPropostaCasamento(event, conversationId, toSend);
         toSend = maybeProcessAprovacaoCasamento(event, conversationId, toSend);
+        // Camada 8.17 (perfil concessionaria): <testdrive_carro> agenda; <lead_carro> registra interesse.
+        // Encadeados após os demais (perfil único; só um age). Removem a tag antes de enviar.
+        toSend = maybeProcessTestDrive(event, conversationId, toSend);
+        toSend = maybeProcessLeadCarro(event, conversationId, toSend);
         Optional<OutboundOutcome> sendFailure = sendAndPersist(event, conversationId, toSend);
         if (sendFailure.isPresent()) {
             return sendFailure.get();   // casos 7/8/9 — já logado lá
@@ -1173,6 +1185,56 @@ public class OutboundService {
         }
         aprovacaoCasamentoHandler.parseAndApply(event.companyId(), conversationId, reply);
         String stripped = aprovacaoCasamentoHandler.stripTag(reply);
+        return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
+            aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
+            aiResponse.schedulingIntent(), aiResponse.insights());
+    }
+
+    /**
+     * Pós-processamento do perfil concessionaria (camada 8.17): se o tenant é concessionaria e a
+     * resposta da IA contém a tag {@code <testdrive_carro>}, agenda o test-drive (TestDriveConfirmHandler
+     * resolve o contato, valida veículo disponível, conflito por vendedor, materializa end_at) e devolve
+     * um AiResponse SEM a tag. Best-effort; só age se profile_id='concessionaria'.
+     */
+    private AiResponse maybeProcessTestDrive(MessageInboundProcessedEvent event,
+                                             UUID conversationId, AiResponse aiResponse) {
+        String reply = aiResponse.reply();
+        if (reply == null || !testDriveConfirmHandler.hasTestdriveTag(reply)) {
+            return aiResponse;
+        }
+        if (!"concessionaria".equals(companyProfileRepository.findProfileId(event.companyId()))) {
+            return aiResponse;
+        }
+        Optional<UUID> contactId = conversationRepository.findContactIdByConversation(conversationId);
+        if (contactId.isPresent()) {
+            testDriveConfirmHandler.parseAndCreate(event.companyId(), conversationId, contactId.get(), reply);
+        }
+        String stripped = testDriveConfirmHandler.stripTestdriveTag(reply);
+        return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
+            aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
+            aiResponse.schedulingIntent(), aiResponse.insights());
+    }
+
+    /**
+     * Pós-processamento do perfil concessionaria (camada 8.17): se o tenant é concessionaria e a
+     * resposta da IA contém a tag {@code <lead_carro>}, registra o lead de compra (LeadCarroConfirmHandler
+     * resolve o contato, valida veículo disponível, snapshota o preço do catálogo — NUNCA da tag) e
+     * devolve um AiResponse SEM a tag. Best-effort; só age se profile_id='concessionaria'.
+     */
+    private AiResponse maybeProcessLeadCarro(MessageInboundProcessedEvent event,
+                                             UUID conversationId, AiResponse aiResponse) {
+        String reply = aiResponse.reply();
+        if (reply == null || !leadCarroConfirmHandler.hasLeadTag(reply)) {
+            return aiResponse;
+        }
+        if (!"concessionaria".equals(companyProfileRepository.findProfileId(event.companyId()))) {
+            return aiResponse;
+        }
+        Optional<UUID> contactId = conversationRepository.findContactIdByConversation(conversationId);
+        if (contactId.isPresent()) {
+            leadCarroConfirmHandler.parseAndCreate(event.companyId(), conversationId, contactId.get(), reply);
+        }
+        String stripped = leadCarroConfirmHandler.stripLeadTag(reply);
         return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
             aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
             aiResponse.schedulingIntent(), aiResponse.insights());

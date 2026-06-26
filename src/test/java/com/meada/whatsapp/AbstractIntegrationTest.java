@@ -119,7 +119,8 @@ public abstract class AbstractIntegrationTest {
         "db/migrations/53_adega.sql",
         "db/migrations/63_escola.sql",
         "db/migrations/58_atelie.sql",
-        "db/migrations/51_casamento.sql"
+        "db/migrations/51_casamento.sql",
+        "db/migrations/61_concessionaria.sql"
     };
 
     /**
@@ -265,6 +266,8 @@ public abstract class AbstractIntegrationTest {
               atelie_artisans, atelie_config,
               wedding_proposal_items, wedding_timeline_items, wedding_checklist_tasks, wedding_proposals,
               wedding_planners, wedding_config,
+              concessionaria_test_drives, concessionaria_leads, concessionaria_vehicles,
+              concessionaria_salespeople, concessionaria_config,
               profile_features, cms_pages, cms_sites
             RESTART IDENTITY CASCADE
             """);

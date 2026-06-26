@@ -32,6 +32,7 @@ export const PROFILES = [
   { id: 'escola', productName: 'Escola', subdomain: 'escola', defaultPaletteId: 'mostarda' },
   { id: 'atelie', productName: 'Ateliê', subdomain: 'atelie', defaultPaletteId: 'orquidea' },
   { id: 'casamento', productName: 'Casamento', subdomain: 'casamento', defaultPaletteId: 'trigo' },
+  { id: 'concessionaria', productName: 'Concessionária', subdomain: 'concessionaria', defaultPaletteId: 'meia-noite' },
 ] as const
 
 export type Profile = (typeof PROFILES)[number]

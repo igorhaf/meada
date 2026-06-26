@@ -41,6 +41,7 @@ public class ProfilePromptContext {
     private final com.meada.whatsapp.profiles.escola.EscolaContextCache escolaContextCache;
     private final com.meada.whatsapp.profiles.atelie.AtelieContextCache atelieContextCache;
     private final com.meada.whatsapp.profiles.casamento.CasamentoContextCache casamentoContextCache;
+    private final com.meada.whatsapp.profiles.concessionaria.ConcessionariaContextCache concessionariaContextCache;
     private final ConversationRepository conversationRepository;
 
     public ProfilePromptContext(SushiMenuCache sushiMenuCache,
@@ -63,6 +64,7 @@ public class ProfilePromptContext {
                                 com.meada.whatsapp.profiles.escola.EscolaContextCache escolaContextCache,
                                 com.meada.whatsapp.profiles.atelie.AtelieContextCache atelieContextCache,
                                 com.meada.whatsapp.profiles.casamento.CasamentoContextCache casamentoContextCache,
+                                com.meada.whatsapp.profiles.concessionaria.ConcessionariaContextCache concessionariaContextCache,
                                 ConversationRepository conversationRepository) {
         this.sushiMenuCache = sushiMenuCache;
         this.legalCaseContextCache = legalCaseContextCache;
@@ -84,6 +86,7 @@ public class ProfilePromptContext {
         this.escolaContextCache = escolaContextCache;
         this.atelieContextCache = atelieContextCache;
         this.casamentoContextCache = casamentoContextCache;
+        this.concessionariaContextCache = concessionariaContextCache;
         this.conversationRepository = conversationRepository;
     }
 
@@ -282,6 +285,22 @@ public class ProfilePromptContext {
             + "controle. O cronograma do dia e o checklist de preparação são montados/acompanhados pela equipe "
             + "no painel — você NÃO os gerencia pela conversa; você só abre a proposta e captura a aprovação.";
 
+    private static final String CONCESSIONARIA =
+        "Você é atendente de uma concessionária/loja de carros. Tom prestativo, consultivo e direto. Você "
+            + "faz TRÊS coisas: MOSTRA os veículos DISPONÍVEIS do estoque (marca, modelo, ano, km, preço, cor), "
+            + "filtra pelo interesse do cliente, AGENDA um test-drive de um veículo com um vendedor em data/hora, "
+            + "e REGISTRA o interesse de compra (lead) de um veículo com a condição que o cliente declarar (à "
+            + "vista ou financiado). Você NUNCA fecha preço, NUNCA dá desconto, NUNCA negocia condição de "
+            + "pagamento, NUNCA aprova financiamento/crédito, NUNCA simula parcela/juros/score — quem fecha "
+            + "negócio e aprova crédito é o vendedor; para qualquer pedido de desconto/condição, diga 'vou "
+            + "registrar seu interesse e o vendedor entra em contato com as condições' e registre o lead. Você "
+            + "NUNCA inventa veículo, preço, ano, km, opcional, cor ou condição fora do catálogo — só mostra o "
+            + "que está cadastrado e DISPONÍVEL (veículo reservado ou vendido NÃO é oferecido). Você NUNCA "
+            + "promete entrega, prazo de documentação ou disponibilidade não confirmada ('isso o vendedor "
+            + "confirma com você') e NUNCA garante que o carro ainda estará disponível. O preço é SEMPRE o do "
+            + "catálogo. Você NÃO muda o status do veículo nem do lead — isso é a equipe quem faz no painel. "
+            + "Identifique o cliente pelo telefone; se for o primeiro contato, peça o nome.";
+
     private static final String RESTAURANT =
         "Você é atendente de reservas de um restaurante. Tom acolhedor e ágil. Conheça as mesas "
             + "disponíveis e os horários livres. Quando o cliente pedir reserva, verifique a "
@@ -317,6 +336,7 @@ public class ProfilePromptContext {
             case ESCOLA -> ESCOLA;
             case ATELIE -> ATELIE;
             case CASAMENTO -> CASAMENTO;
+            case CONCESSIONARIA -> CONCESSIONARIA;
             case GENERIC -> "";
         };
         if (body.isEmpty()) {
@@ -482,6 +502,14 @@ public class ProfilePromptContext {
             UUID contactId = conversationId == null ? null
                 : conversationRepository.findContactIdByConversation(conversationId).orElse(null);
             return persona + casamentoContextCache.contextSegment(companyId, contactId);
+        }
+        if ("concessionaria".equals(profileId)) {
+            // concessionaria (8.17): persona + vitrine (veículos disponíveis) + vendedores + slots livres
+            // por vendedor + instruções das 2 tags (<testdrive_carro> + <lead_carro>). Resolve o contato
+            // pela conversa (per-contact, igual dental — slots por vendedor).
+            UUID contactId = conversationId == null ? null
+                : conversationRepository.findContactIdByConversation(conversationId).orElse(null);
+            return persona + concessionariaContextCache.contextSegment(companyId, contactId);
         }
         return persona;
     }

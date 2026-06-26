@@ -44,7 +44,8 @@ public enum ProfileType {
     ADEGA("adega", "Adega", "adega", "beringela"),
     ESCOLA("escola", "Escola", "escola", "mostarda"),
     ATELIE("atelie", "Ateliê", "atelie", "orquidea"),
-    CASAMENTO("casamento", "Casamento", "casamento", "trigo");
+    CASAMENTO("casamento", "Casamento", "casamento", "trigo"),
+    CONCESSIONARIA("concessionaria", "Concessionária", "concessionaria", "meia-noite");
 
     private final String id;
     private final String productName;

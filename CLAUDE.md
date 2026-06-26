@@ -1056,6 +1056,48 @@ briefing, e captura a aprovação/recusa quando a equipe já orçou no painel.
 - Migration `51_casamento.sql` (slot do `docs/prompts-gordos/README.md` ordem 2). Tenant `igorhaf18`
   (Casamento Modelo). Guia: `docs/PERFIL_CASAMENTO.md`.
 
+## Perfil Concessionária (ConcessionariaBot, camada 8.17)
+
+VIGÉSIMO PRIMEIRO perfil vertical real (22º contando generic). Loja de carros: a IA faz AS TRÊS coisas
+de uma concessionária — mostra o ESTOQUE, agenda TEST-DRIVE e registra LEAD de compra. HÍBRIDO TRIPLO
+deliberado; os três coexistem harmonicamente.
+
+- **ESCAPADA — o veículo é ITEM DE ESTOQUE com identidade e status próprios (`concessionaria_vehicles`):**
+  é estoque da LOJA (FK company), NÃO sub-entidade do cliente (≠ `os_vehicles` da oficina, que é do
+  cliente). Primeiro perfil em que o "produto" é um item de estoque com identidade única e ciclo próprio
+  (≠ catálogo reabastecível de comida/floricultura, onde o item é um TIPO). Ciclo `VehicleStatus`
+  (parity): disponivel→reservado→vendido; **vendido SAI da disponibilidade** (não entra na vitrine, não
+  aceita test-drive/lead). Mudança de status é AÇÃO HUMANA (a IA não toca o estoque); a IA opera por TRÊS
+  lentes (vitrine/agenda/lead) sem alterá-lo.
+- **TEST-DRIVE (clona DENTAL):** `concessionaria_test_drives` referencia vehicle_id + salesperson_id;
+  conflito POR `salesperson_id` (não por veículo nem por company — múltiplos vendedores → paralelismo),
+  half-open re-verificado na transação → 409 conflict_slot; MESMO horário com vendedor DIFERENTE = OK.
+  `end_at` materializado no INSERT. SÓ de veículo 'disponivel' → 422 vehicle_not_available. Status
+  `TestDriveStatus` (parity): agendado→confirmado→realizado + cancelado/no_show; notifica confirmado/
+  cancelado.
+- **LEAD (clona OFICINA/EVENTOS, funil SEM itens):** `concessionaria_leads` = INTERESSE em UM veículo
+  (não order-com-itens/total). `LeadStatus` (parity): novo→em_negociacao→fechado/perdido. A IA cria
+  'novo' e NÃO move. **Preço = SNAPSHOT do catálogo** (`vehicle_price_cents`) — a IA NUNCA carrega preço
+  na tag. payment_condition avista|financiado (flag declarativa). SÓ de veículo 'disponivel' → 422.
+- **TRAVA:** a IA NUNCA fecha preço/desconto/financiamento, NUNCA aprova crédito, NUNCA simula parcela/
+  score, NUNCA inventa veículo/preço/condição fora do catálogo, NUNCA promete entrega/disponibilidade,
+  NUNCA muda status de estoque do veículo nem do lead. Preço sempre do catálogo.
+- **DUAS tags namespace próprio** (distintas de TODAS): `<testdrive_carro>` (agenda) via
+  `TestDriveConfirmHandler` (hasTestdriveTag/stripTestdriveTag/parseAndCreate); `<lead_carro>` (interesse,
+  sem preço) via `LeadCarroConfirmHandler` (hasLeadTag/stripLeadTag/parseAndCreate). `OutboundService`
+  ganhou `maybeProcessTestDrive` + `maybeProcessLeadCarro`. Persona `ProfilePromptContext.CONCESSIONARIA`
+  prestativa-consultiva-direta. `ConcessionariaContextCache` TTL 30s (vitrine + vendedores + slots por
+  vendedor; NÃO injeta reservado/vendido).
+- **Guard:** `ConcessionariaProfileGuard` (403 forbidden_wrong_profile). `JwtAuthenticationFilter`
+  autentica `/api/concessionaria/**`. Sidebar: `getNavForProfile('concessionaria')` injeta "Concessionária"
+  (Estoque/Vendedores/Test-drives/Leads/Configurações), branch próprio. Paleta `meia-noite`.
+- **NÃO TEM:** upload de foto (link), financiamento real/simulação/score, FIPE/trade-in, reserva com
+  sinal (Stripe #50), documentação/emplacamento, VIN/chassi formal, notificação de fechamento do lead,
+  multi-loja.
+- Migration `61_concessionaria.sql` (slot do `docs/prompts-gordos/README.md` ordem 12; entra por ÚLTIMO
+  no SCRIPTS de teste — lição atelie/casamento, sua CHECK tem os 22 perfis). Tenant `igorhaf28`
+  (Concessionária Modelo). Guia: `docs/PERFIL_CONCESSIONARIA.md`.
+
 ## Camada 9.0 — Feature Flags por Nicho (infra de plataforma)
 
 Infra pro ROOT (super-admin) ligar/desligar features por nicho num lugar só. A 1ª feature é o **CMS**
