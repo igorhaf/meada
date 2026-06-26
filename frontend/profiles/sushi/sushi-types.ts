@@ -1,24 +1,61 @@
-import type { SushiCategoryId } from './sushi-categories'
+/**
+ * Tipos do perfil sushi (camada 7.1, reworkado). Categorias, status de pedido, cupons e fidelidade
+ * agora são geridos pelo tenant via API (não mais hardcoded). Os tipos abaixo espelham o contrato
+ * REST de /api/sushi/*.
+ */
 
-/** Item de cardápio (espelha SushiMenuItem do backend). */
+/** Categoria de cardápio gerida pelo tenant (espelha SushiCategory do backend). */
+export type Category = {
+  id: string
+  name: string
+  sortOrder: number
+  active: boolean
+}
+
+/** Status de pedido gerido pelo tenant, com a notificação de WhatsApp ao entrar nele. */
+export type OrderStatusDef = {
+  id: string
+  name: string
+  sortOrder: number
+  isInitial: boolean
+  isTerminal: boolean
+  notifyEnabled: boolean
+  notifyText: string | null
+  color: string | null
+}
+
+/** Cupom de desconto gerido pelo tenant. */
+export type Coupon = {
+  id: string
+  code: string
+  kind: 'percent' | 'fixed'
+  value: number
+  minOrderCents: number
+  maxUses: number | null
+  uses: number
+  validUntil: string | null
+  active: boolean
+}
+
+/** Configuração de fidelidade (a cada N pedidos, o próximo ganha um desconto). */
+export type LoyaltyConfig = {
+  enabled: boolean
+  thresholdOrders: number
+  rewardKind: 'percent' | 'fixed'
+  rewardValue: number
+}
+
+/** Item de cardápio (espelha SushiMenuItem do backend). category = uuid da categoria (ou null). */
 export type MenuItem = {
   id: string
   name: string
   description: string | null
   priceCents: number
-  category: SushiCategoryId
+  category: string | null
   available: boolean
   createdAt: string
   updatedAt: string
 }
-
-/** Status de um pedido (espelha SushiOrderStatus). Ordem fixa. */
-export type OrderStatus =
-  | 'recebido'
-  | 'preparo'
-  | 'saiu_pra_entrega'
-  | 'entregue'
-  | 'cancelado'
 
 /** Item de um pedido (snapshot de nome+preço). */
 export type OrderItem = {
@@ -29,46 +66,28 @@ export type OrderItem = {
   unitPriceCents: number
 }
 
-/** Pedido (espelha SushiOrder). */
+/** Pedido (espelha SushiOrder). status = uuid do status; statusName = rótulo resolvido. */
 export type Order = {
   id: string
   conversationId: string
-  status: OrderStatus
+  status: string
+  statusName: string
   subtotalCents: number
   deliveryFeeCents: number
+  discountCents: number
   totalCents: number
-  deliveryAddress: string
+  couponCode: string | null
+  loyaltyApplied: boolean
+  fulfillment: 'entrega' | 'retirada'
+  scheduledDate: string | null
+  scheduledPeriod: string | null
+  deliveryAddress: string | null
   notes: string | null
   createdAt: string
   statusUpdatedAt: string
   contactName: string | null
   contactPhone: string | null
   items: OrderItem[]
-}
-
-/** Colunas do Kanban (status em andamento) na ordem do fluxo. */
-export const KANBAN_COLUMNS: { status: OrderStatus; label: string }[] = [
-  { status: 'recebido', label: 'Recebido' },
-  { status: 'preparo', label: 'Em preparo' },
-  { status: 'saiu_pra_entrega', label: 'Saiu pra entrega' },
-]
-
-/** Próximo status no fluxo (para o botão "Avançar"); null se terminal/entregue. */
-export const NEXT_STATUS: Record<OrderStatus, OrderStatus | null> = {
-  recebido: 'preparo',
-  preparo: 'saiu_pra_entrega',
-  saiu_pra_entrega: 'entregue',
-  entregue: null,
-  cancelado: null,
-}
-
-/** Rótulo pt-BR de um status. */
-export const STATUS_LABEL: Record<OrderStatus, string> = {
-  recebido: 'Recebido',
-  preparo: 'Em preparo',
-  saiu_pra_entrega: 'Saiu pra entrega',
-  entregue: 'Entregue',
-  cancelado: 'Cancelado',
 }
 
 /** Formata centavos em R$ pt-BR. */

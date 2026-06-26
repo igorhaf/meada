@@ -46,6 +46,9 @@ import {
   Settings,
   Shirt,
   ShoppingBag,
+  Award,
+  BellRing,
+  Ticket,
   Baby,
   Pizza,
   School,
@@ -253,7 +256,12 @@ const SUSHI_GROUP: NavGroup = {
   heading: 'Restaurante',
   items: [
     { label: 'Cardápio', href: '/dashboard/sushi-menu', icon: UtensilsCrossed },
+    { label: 'Categorias', href: '/dashboard/sushi-categories', icon: Tag },
     { label: 'Pedidos', href: '/dashboard/sushi-orders', icon: ClipboardList },
+    { label: 'Status & Notificações', href: '/dashboard/sushi-statuses', icon: BellRing },
+    { label: 'Cupons', href: '/dashboard/sushi-coupons', icon: Ticket },
+    { label: 'Fidelidade', href: '/dashboard/sushi-loyalty', icon: Award },
+    { label: 'Configurações', href: '/dashboard/sushi-settings', icon: Settings },
   ],
 }
 

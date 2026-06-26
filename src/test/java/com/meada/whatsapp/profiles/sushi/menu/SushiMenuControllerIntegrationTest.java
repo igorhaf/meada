@@ -14,7 +14,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Testa os endpoints de cardápio (camada 7.1): CRUD + profile guard 403 pra tenant não-sushi.
+ * Testa os endpoints de cardápio (camada 7.1 / sushi funcional): CRUD + profile guard 403 pra tenant
+ * não-sushi. category agora é o UUID de uma linha em sushi_categories (validada na tabela).
  */
 class SushiMenuControllerIntegrationTest extends AbstractAdminIntegrationTest {
 
@@ -27,17 +28,24 @@ class SushiMenuControllerIntegrationTest extends AbstractAdminIntegrationTest {
         return companyId;
     }
 
+    private UUID seedCategory(UUID companyId, String name) {
+        return jdbcTemplate.queryForObject(
+            "insert into sushi_categories (company_id, name) values (?, ?) returning id",
+            UUID.class, companyId, name);
+    }
+
     @Test
     @DisplayName("CRUD: POST cria → GET lista → PATCH edita → toggle → DELETE")
     void crud() throws Exception {
         UUID sub = UUID.randomUUID();
-        seedTenant(sub, "sushi@test.dev", "sushi");
+        UUID companyId = seedTenant(sub, "sushi@test.dev", "sushi");
         String t = mintValidToken("sushi@test.dev", sub);
+        UUID cat = seedCategory(companyId, "Hot rolls");
 
         // POST
         mockMvc.perform(post("/api/sushi/menu").header("Authorization", "Bearer " + t)
                 .contentType(JSON)
-                .content("{\"name\":\"Hot Filadélfia\",\"description\":\"cream+salmão\",\"priceCents\":3200,\"category\":\"hot_rolls\"}"))
+                .content("{\"name\":\"Hot Filadélfia\",\"description\":\"cream+salmão\",\"priceCents\":3200,\"category\":\"" + cat + "\"}"))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.name").value("Hot Filadélfia"))
             .andExpect(jsonPath("$.available").value(true));
@@ -67,13 +75,13 @@ class SushiMenuControllerIntegrationTest extends AbstractAdminIntegrationTest {
     }
 
     @Test
-    @DisplayName("POST com categoria inválida → 400 invalid_category")
+    @DisplayName("POST com categoria inexistente → 400 invalid_category")
     void invalidCategory() throws Exception {
         UUID sub = UUID.randomUUID();
         seedTenant(sub, "sushi@test.dev", "sushi");
         String t = mintValidToken("sushi@test.dev", sub);
         mockMvc.perform(post("/api/sushi/menu").header("Authorization", "Bearer " + t)
-                .contentType(JSON).content("{\"name\":\"X\",\"priceCents\":100,\"category\":\"pizza\"}"))
+                .contentType(JSON).content("{\"name\":\"X\",\"priceCents\":100,\"category\":\"" + UUID.randomUUID() + "\"}"))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.reason").value("invalid_category"));
     }
@@ -84,8 +92,9 @@ class SushiMenuControllerIntegrationTest extends AbstractAdminIntegrationTest {
         UUID sub = UUID.randomUUID();
         UUID companyId = seedTenant(sub, "sushi@test.dev", "sushi");
         String t = mintValidToken("sushi@test.dev", sub);
+        UUID cat = seedCategory(companyId, "Bebidas");
         jdbcTemplate.update("insert into sushi_menu_items (company_id, name, price_cents, category, available) "
-            + "values (?, 'On', 1000, 'bebidas', true), (?, 'Off', 1000, 'bebidas', false)", companyId, companyId);
+            + "values (?, 'On', 1000, ?, true), (?, 'Off', 1000, ?, false)", companyId, cat, companyId, cat);
 
         mockMvc.perform(get("/api/sushi/menu?available=true").header("Authorization", "Bearer " + t))
             .andExpect(status().isOk())
@@ -103,7 +112,7 @@ class SushiMenuControllerIntegrationTest extends AbstractAdminIntegrationTest {
             .andExpect(status().isForbidden())
             .andExpect(jsonPath("$.reason").value("forbidden_wrong_profile"));
         mockMvc.perform(post("/api/sushi/menu").header("Authorization", "Bearer " + t)
-                .contentType(JSON).content("{\"name\":\"X\",\"priceCents\":1,\"category\":\"bebidas\"}"))
+                .contentType(JSON).content("{\"name\":\"X\",\"priceCents\":1}"))
             .andExpect(status().isForbidden());
     }
 

@@ -238,9 +238,48 @@ em linguagem livre via WhatsApp, e os pedidos viram um Kanban.
 - **Guard de perfil:** `SushiProfileGuard.requireSushi` — endpoints `/api/sushi/**` retornam 403
   `forbidden_wrong_profile` para tenant de outro perfil. O `JwtAuthenticationFilter` autentica
   `/api/sushi/**` (tenant), além de `/admin/**`.
-- **Sidebar:** `getNavForProfile('sushi')` injeta o grupo "Restaurante" (Cardápio + Pedidos);
-  outros perfis não veem.
+- **Sidebar:** `getNavForProfile('sushi')` injeta o grupo "Restaurante" (Cardápio + Categorias +
+  Pedidos + Status & Notificações + Cupons + Fidelidade + Configurações).
 - Guia operacional do tenant: `docs/PERFIL_SUSHI.md`.
+
+### Sushi funcionalizado (migration 69 — categorias/status/notificações dinâmicas + cupom/fidelidade/retirada/agendamento)
+
+O que era HARDCODED no perfil sushi virou FEATURE gerenciável pelo tenant (migration `69_sushi_funcional.sql`):
+
+- **Categorias** (`sushi_categories`): tabela por tenant com CRUD (`/api/sushi/categories`), substitui o
+  enum `SushiCategory` (REMOVIDO) + o CHECK fixo. `sushi_menu_items.category` virou FK→`sushi_categories`
+  (nullable; excluir categoria com item → 409 `category_in_use`). Tela "Categorias".
+- **Status do pedido** (`sushi_order_statuses`): tabela por tenant, substitui o enum `SushiOrderStatus`
+  (REMOVIDO) + matriz `allowedNext`. Campos editáveis: name, sort_order, is_initial (1 por company,
+  índice parcial), is_terminal, color. **Transição LIVRE** (espelho legal): qualquer não-terminal → qualquer
+  estado; sair de terminal → 409 `invalid_status_transition`. `sushi_orders.status` virou FK→tabela
+  (NOT NULL); o pedido nasce no estado `is_initial` do tenant (não num literal `recebido`).
+- **Notificações WhatsApp de status** (colunas `notify_enabled` + `notify_text` na `sushi_order_statuses`):
+  o tenant edita o TEXTO e liga/desliga a notificação por status. O `SushiOrderNotifier` (que já enviava
+  via Evolution) lê o texto da tabela. Tela "Status & Notificações".
+- **Cupom de desconto** (`sushi_coupons`): CRUD (`/api/sushi/coupons`); kind percent(1..100)/fixed(centavos),
+  min_order, max_uses, valid_until, active, uses. A IA passa o `cupom` (código) na tag `<pedido>`; o backend
+  VALIDA (active+validade+mínimo+max_uses) e aplica; cupom inválido NÃO aborta (pedido sai sem o desconto);
+  `uses` incrementa na criação. Tela "Cupons".
+- **Fidelidade por contagem** (`sushi_loyalty_config`, 1:1): enabled + threshold_orders + reward (percent/
+  fixed). O backend conta os pedidos ENTREGUES (terminal não-cancelado) do contato ANTES de inserir; quando
+  `count>0 && count%threshold==0` → desconto automático + `loyalty_applied=true`. Tela "Fidelidade".
+- **Desconto no pedido** (`sushi_orders.discount_cents` + `coupon_id`/`coupon_code_snapshot` +
+  `loyalty_applied`): cupom + fidelidade SOMAM, clampados ao subtotal. `total = subtotal − discount +
+  delivery_fee` (entrega) ou `subtotal − discount` (retirada).
+- **Retirada × entrega** (`sushi_orders.fulfillment`): entrega exige `delivery_address` (422
+  `address_required`) + soma taxa; retirada = balcão, sem taxa, endereço opcional. `delivery_address` virou
+  nullable.
+- **Agendamento** (`sushi_restaurant_config.scheduling_enabled` + `sushi_orders.scheduled_date`/
+  `scheduled_period` 'agora'/'manha'/'tarde'/'noite'): se ligado, a IA oferece dia+período e o backend valida
+  `>= hoje` (America/Sao_Paulo, 422 `invalid_schedule_date`); se desligado, o agendamento é ignorado (pedido
+  "para agora"). Toggle em "Configurações".
+- A tag `<pedido>` ganhou os campos OPCIONAIS `fulfillment`/`scheduled_date`/`scheduled_period`/`cupom`
+  (ausentes = entrega/agora/sem-cupom — preserva o comportamento anterior). Persona SUSHI ensina os 3.
+  `OrderConfirmHandler` mantém `hasOrderTag/stripOrderTag/parseAndCreate` (OutboundService inalterado).
+- Kanban do frontend agora é DINÂMICO (colunas = status não-terminais do tenant, ordenados; terminais no
+  Histórico) com SELETOR de status no card (não mais "Avançar" linear); o card exibe fulfillment, desconto/
+  cupom/fidelidade e agendamento. `sushi-categories.ts` e os consts de status hardcoded foram REMOVIDOS.
 
 ## Perfil Legal (ProcessoBot, camada 7.2)
 

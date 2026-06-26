@@ -45,19 +45,26 @@ public class SushiMenuController {
         return ResponseEntity.status(status).body(Map.of("error", error, "reason", reason));
     }
 
-    /** Body de criação. category validada contra o enum no service (400 invalid_category). */
+    /**
+     * Body de criação. category é o UUID de uma categoria do tenant — OPCIONAL agora (item sem
+     * categoria é permitido). Validada contra a tabela sushi_categories no service (400 invalid_category).
+     */
     public record CreateMenuItemRequest(
         @NotBlank @Size(max = 120) String name,
         String description,
         @PositiveOrZero int priceCents,
-        @NotBlank String category) {}
+        String category) {}
 
-    /** Body de edição (PATCH parcial; todos opcionais). */
+    /**
+     * Body de edição (PATCH parcial; todos opcionais). {@code clearCategory=true} limpa a categoria
+     * (item sem categoria). category presente seta; ambos ausentes = não mexe.
+     */
     public record UpdateMenuItemRequest(
         @Size(max = 120) String name,
         String description,
         @PositiveOrZero Integer priceCents,
         String category,
+        Boolean clearCategory,
         Boolean available) {}
 
     public record ToggleRequest(boolean available) {}
@@ -124,9 +131,11 @@ public class SushiMenuController {
         } catch (WrongProfileException e) {
             return error(403, "Forbidden", "forbidden_wrong_profile");
         }
+        boolean categoryProvided = req.category() != null || Boolean.TRUE.equals(req.clearCategory());
+        String category = Boolean.TRUE.equals(req.clearCategory()) ? null : req.category();
         try {
             return ResponseEntity.ok(service.update(companyId, user.userId(), id,
-                req.name(), req.description(), req.priceCents(), req.category(), req.available()));
+                req.name(), req.description(), req.priceCents(), category, categoryProvided, req.available()));
         } catch (InvalidCategoryException e) {
             return error(400, "Bad Request", "invalid_category");
         } catch (MenuItemNotFoundException e) {

@@ -2,12 +2,17 @@ package com.meada.whatsapp.profiles.sushi;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.meada.whatsapp.profiles.sushi.categories.SushiCategoryEntity;
+import com.meada.whatsapp.profiles.sushi.categories.SushiCategoryRepository;
 import com.meada.whatsapp.profiles.sushi.menu.SushiMenuItem;
 import com.meada.whatsapp.profiles.sushi.menu.SushiMenuItemRepository;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -25,12 +30,15 @@ public class SushiMenuCache {
 
     private final SushiMenuItemRepository menuRepository;
     private final SushiRestaurantConfigRepository configRepository;
+    private final SushiCategoryRepository categoryRepository;
     private final Cache<UUID, String> cache;
 
     public SushiMenuCache(SushiMenuItemRepository menuRepository,
-                          SushiRestaurantConfigRepository configRepository) {
+                          SushiRestaurantConfigRepository configRepository,
+                          SushiCategoryRepository categoryRepository) {
         this.menuRepository = menuRepository;
         this.configRepository = configRepository;
+        this.categoryRepository = categoryRepository;
         this.cache = Caffeine.newBuilder()
             .expireAfterWrite(Duration.ofSeconds(60))
             .maximumSize(500)
@@ -50,6 +58,11 @@ public class SushiMenuCache {
     private String buildSegment(UUID companyId) {
         List<SushiMenuItem> items = menuRepository.listByCompany(companyId, null, true);
         SushiRestaurantConfig config = configRepository.findByCompany(companyId);
+        // Resolve o rótulo da categoria a partir da tabela sushi_categories (o enum foi DELETADO).
+        Map<String, String> categoryLabels = new LinkedHashMap<>();
+        for (SushiCategoryEntity c : categoryRepository.listByCompany(companyId, false)) {
+            categoryLabels.put(c.id().toString(), c.name());
+        }
 
         StringBuilder sb = new StringBuilder();
         if (items.isEmpty()) {
@@ -58,11 +71,15 @@ public class SushiMenuCache {
         } else {
             sb.append("CARDÁPIO DISPONÍVEL HOJE:\n");
             String currentCategory = null;
+            boolean first = true;
             for (SushiMenuItem it : items) {
-                if (!it.category().equals(currentCategory)) {
+                if (first || !Objects.equals(it.category(), currentCategory)) {
+                    first = false;
                     currentCategory = it.category();
-                    sb.append("[").append(SushiCategory.fromId(currentCategory)
-                        .map(SushiCategory::label).orElse(currentCategory)).append("]\n");
+                    String label = currentCategory == null
+                        ? "Sem categoria"
+                        : categoryLabels.getOrDefault(currentCategory, currentCategory);
+                    sb.append("[").append(label).append("]\n");
                 }
                 sb.append("- ").append(it.id()).append(" · ").append(it.name())
                     .append(" · R$ ").append(formatBrl(it.priceCents()));

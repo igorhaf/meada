@@ -1,12 +1,12 @@
 import { apiFetch } from '@/lib/api/client'
 import type { MenuItem } from '@/profiles/sushi/sushi-types'
-import type { SushiCategoryId } from '@/profiles/sushi/sushi-categories'
 
 export type CreateMenuItemInput = {
   name: string
   description?: string | null
   priceCents: number
-  category: SushiCategoryId
+  // uuid da categoria, ou null para "sem categoria".
+  category?: string | null
 }
 
 export type UpdateMenuItemInput = Partial<CreateMenuItemInput> & { available?: boolean }

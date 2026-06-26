@@ -1,5 +1,5 @@
 import { apiFetch } from '@/lib/api/client'
-import type { Order, OrderStatus } from '@/profiles/sushi/sushi-types'
+import type { Order } from '@/profiles/sushi/sushi-types'
 
 type OrderPage = { items: Order[]; total: number; page: number; pageSize: number }
 
@@ -18,9 +18,10 @@ export function getOrder(id: string): Promise<Order> {
   return apiFetch<Order>(`/api/sushi/orders/${id}`)
 }
 
-export function updateOrderStatus(id: string, newStatus: OrderStatus): Promise<Order> {
+/** Move o pedido para outro status (statusId = uuid de um status do tenant). */
+export function updateOrderStatus(id: string, statusId: string): Promise<Order> {
   return apiFetch<Order>(`/api/sushi/orders/${id}/status`, {
     method: 'PATCH',
-    body: JSON.stringify({ newStatus }),
+    body: JSON.stringify({ status: statusId }),
   })
 }

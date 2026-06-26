@@ -42,7 +42,7 @@ public class SushiMenuItemRepository {
         List<Object> args = new ArrayList<>();
         args.add(companyId);
         if (category != null && !category.isBlank()) {
-            sql.append(" and category = ?");
+            sql.append(" and category = ?::uuid");
             args.add(category);
         }
         if (onlyAvailable) {
@@ -61,10 +61,12 @@ public class SushiMenuItemRepository {
 
     public SushiMenuItem insert(UUID companyId, String name, String description,
                                 int priceCents, String category) {
+        // category é uuid nullable (FK p/ sushi_categories) — cast explícito (?::uuid aceita null).
         UUID id = jdbcTemplate.queryForObject(
             "insert into sushi_menu_items (company_id, name, description, price_cents, category) "
-                + "values (?, ?, ?, ?, ?) returning id",
-            UUID.class, companyId, name.trim(), description, priceCents, category);
+                + "values (?, ?, ?, ?, ?::uuid) returning id",
+            UUID.class, companyId, name.trim(), description, priceCents,
+            category == null || category.isBlank() ? null : category);
         return findById(companyId, id).orElseThrow();
     }
 
@@ -73,7 +75,8 @@ public class SushiMenuItemRepository {
      * item atualizado, ou empty se não existir/pertencer ao tenant.
      */
     public Optional<SushiMenuItem> update(UUID companyId, UUID id, String name, String description,
-                                          Integer priceCents, String category, Boolean available) {
+                                          Integer priceCents, String category, boolean categoryProvided,
+                                          Boolean available) {
         List<String> sets = new ArrayList<>();
         List<Object> args = new ArrayList<>();
         if (name != null && !name.isBlank()) { sets.add("name = ?"); args.add(name.trim()); }
@@ -81,7 +84,11 @@ public class SushiMenuItemRepository {
         // null = não mexe. Para limpar, o frontend manda string vazia.
         if (description != null) { sets.add("description = ?"); args.add(description); }
         if (priceCents != null) { sets.add("price_cents = ?"); args.add(priceCents); }
-        if (category != null && !category.isBlank()) { sets.add("category = ?"); args.add(category); }
+        // category é uuid nullable (FK). categoryProvided=true permite setar OU limpar (null).
+        if (categoryProvided) {
+            sets.add("category = ?::uuid");
+            args.add(category == null || category.isBlank() ? null : category);
+        }
         if (available != null) { sets.add("available = ?"); args.add(available); }
 
         if (!sets.isEmpty()) {

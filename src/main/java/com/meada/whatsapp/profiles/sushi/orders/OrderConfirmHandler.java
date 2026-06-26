@@ -8,9 +8,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.UUID;
@@ -36,6 +39,8 @@ public class OrderConfirmHandler {
     // <pedido> ... </pedido> — DOTALL para o JSON poder ter quebras de linha.
     private static final Pattern TAG = Pattern.compile("<pedido>\\s*(\\{.*?\\})\\s*</pedido>",
         Pattern.DOTALL);
+
+    private static final Set<String> VALID_PERIODS = Set.of("agora", "manha", "tarde", "noite");
 
     private final ObjectMapper objectMapper;
     private final SushiMenuItemRepository menuRepository;
@@ -84,9 +89,23 @@ public class OrderConfirmHandler {
             return Optional.empty();
         }
 
+        // Campos OPCIONAIS novos (sushi funcional): default preserva o comportamento antigo.
+        String fulfillment = "retirada".equalsIgnoreCase(root.path("fulfillment").asText(""))
+            ? "retirada" : "entrega";
+        String couponCode = root.path("cupom").asText(null);
+        if (couponCode != null && couponCode.isBlank()) {
+            couponCode = null;
+        }
+        LocalDate scheduledDate = parseScheduledDate(root.path("scheduled_date").asText(null), conversationId);
+        String rawPeriod = root.path("scheduled_period").asText(null);
+        String scheduledPeriod = (rawPeriod != null && VALID_PERIODS.contains(rawPeriod.toLowerCase()))
+            ? rawPeriod.toLowerCase() : null;
+
         String endereco = root.path("endereco").asText(null);
-        if (endereco == null || endereco.isBlank()) {
-            log.warn("sushi: tag <pedido> sem endereço p/ conversa {} — pedido não criado", conversationId);
+        // entrega exige endereço; retirada dispensa (o service reforça → 422 address_required).
+        if ("entrega".equals(fulfillment) && (endereco == null || endereco.isBlank())) {
+            log.warn("sushi: tag <pedido> de entrega sem endereço p/ conversa {} — pedido não criado",
+                conversationId);
             return Optional.empty();
         }
 
@@ -125,15 +144,30 @@ public class OrderConfirmHandler {
         }
 
         try {
-            SushiOrder order = orderService.create(companyId, conversationId, contactId,
-                endereco.strip(), lines, null);
-            log.info("sushi: pedido {} criado p/ conversa {} ({} itens, total {} cents)",
-                order.id(), conversationId, lines.size(), order.totalCents());
+            String address = (endereco == null || endereco.isBlank()) ? null : endereco.strip();
+            SushiOrder order = orderService.create(companyId, conversationId, contactId, address, lines,
+                fulfillment, scheduledDate, scheduledPeriod, couponCode, null);
+            log.info("sushi: pedido {} criado p/ conversa {} ({} itens, total {} cents, fulfillment {})",
+                order.id(), conversationId, lines.size(), order.totalCents(), fulfillment);
             return Optional.of(order);
         } catch (RuntimeException e) {
             log.warn("sushi: falha ao criar pedido p/ conversa {} ({}) — mensagem segue sem pedido",
                 conversationId, e.getMessage());
             return Optional.empty();
+        }
+    }
+
+    /** Parse best-effort de "YYYY-MM-DD"; valor ausente/inválido → null (pedido "para agora"). */
+    private LocalDate parseScheduledDate(String raw, UUID conversationId) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        try {
+            return LocalDate.parse(raw.trim());
+        } catch (DateTimeParseException e) {
+            log.warn("sushi: scheduled_date inválido '{}' na tag <pedido> p/ conversa {} — ignorado",
+                raw, conversationId);
+            return null;
         }
     }
 }

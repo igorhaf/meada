@@ -4,8 +4,9 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Item de cardápio do perfil sushi (camada 7.1). DTO de saída. priceCents em centavos;
- * category é o id estável de {@link com.meada.whatsapp.profiles.sushi.SushiCategory}.
+ * Item de cardápio do perfil sushi (camada 7.1 / sushi funcional). DTO de saída. priceCents em
+ * centavos; {@code category} é o UUID (como String) de uma linha em {@code sushi_categories} (FK),
+ * ou null (item sem categoria). O antigo enum SushiCategory foi DELETADO — a categoria agora é dado.
  */
 public record SushiMenuItem(
     UUID id,

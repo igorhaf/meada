@@ -132,7 +132,8 @@ public abstract class AbstractIntegrationTest {
         "db/migrations/56_otica.sql",
         "db/migrations/59_papelaria.sql",
         "db/migrations/62_viagens.sql",
-        "db/migrations/68_suplementos.sql"
+        "db/migrations/68_suplementos.sql",
+        "db/migrations/69_sushi_funcional.sql"
     };
 
     /**
@@ -250,6 +251,7 @@ public abstract class AbstractIntegrationTest {
               webhook_heartbeats, scheduled_job_runs, error_log,
               announcements, announcement_dismissals, plans,
               sushi_order_items, sushi_orders, sushi_menu_items, sushi_restaurant_config,
+              sushi_coupons, sushi_loyalty_config, sushi_order_statuses, sushi_categories,
               legal_case_updates, legal_cases, legal_clients,
               table_reservations, restaurant_reservation_config, restaurant_tables,
               dental_appointments, dental_clinic_config, dental_patients,

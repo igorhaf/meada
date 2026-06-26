@@ -1,13 +1,14 @@
 'use client'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import { PageHeader } from '@/components/layout/page-header'
 import { ApiError } from '@/lib/api/client'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
+import { listCategories } from '@/lib/api/sushi/categories'
 import {
   createMenuItem,
   deleteMenuItem,
@@ -15,21 +16,23 @@ import {
   toggleMenuItem,
   updateMenuItem,
 } from '@/lib/api/sushi/menu'
-import { SUSHI_CATEGORIES, type SushiCategoryId } from '@/profiles/sushi/sushi-categories'
-import { formatBrl, type MenuItem } from '@/profiles/sushi/sushi-types'
+import { formatBrl, type Category, type MenuItem } from '@/profiles/sushi/sushi-types'
 
 type FormState = {
   name: string
   description: string
   price: string // reais
-  category: SushiCategoryId
+  category: string // uuid ou '' (sem categoria)
 }
 
-const EMPTY_FORM: FormState = { name: '', description: '', price: '', category: 'entradas' }
+const EMPTY_FORM: FormState = { name: '', description: '', price: '', category: '' }
+
+const NO_CATEGORY = '__none__'
 
 /**
- * Cardápio do SushiBot (camada 7.1). Itens agrupados por categoria, toggle de disponibilidade
- * inline, criação/edição via Modal, busca por nome. Preço em R$ (salvo em centavos).
+ * Cardápio do SushiBot (reworkado). A categoria agora é uma referência opcional a uma categoria
+ * gerida pelo tenant (select populado pela API de categorias). Itens agrupados pelo NOME da
+ * categoria resolvida; itens sem categoria caem em "Sem categoria".
  */
 export default function MenuPage() {
   const qc = useQueryClient()
@@ -39,10 +42,22 @@ export default function MenuPage() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
   const [formError, setFormError] = useState<string | null>(null)
 
-  const { data, isPending, isError } = useQuery({
+  const menuQuery = useQuery({
     queryKey: ['sushi-menu'],
     queryFn: () => listMenu(),
   })
+
+  const categoriesQuery = useQuery({
+    queryKey: ['sushi-categories'],
+    queryFn: () => listCategories(),
+  })
+
+  const categories = categoriesQuery.data?.items ?? []
+  const categoryById = useMemo(() => {
+    const m = new Map<string, Category>()
+    for (const c of categories) m.set(c.id, c)
+    return m
+  }, [categories])
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -50,7 +65,7 @@ export default function MenuPage() {
         name: form.name,
         description: form.description || null,
         priceCents: Math.round(Number(form.price) * 100),
-        category: form.category,
+        category: form.category ? form.category : null,
       }
       if (editing) return updateMenuItem(editing.id, payload)
       return createMenuItem(payload)
@@ -99,15 +114,34 @@ export default function MenuPage() {
       name: it.name,
       description: it.description ?? '',
       price: String(it.priceCents / 100),
-      category: it.category,
+      category: it.category ?? '',
     })
     setFormError(null)
     setModalOpen(true)
   }
 
-  const items = (data?.items ?? []).filter((it) =>
+  const items = (menuQuery.data?.items ?? []).filter((it) =>
     it.name.toLowerCase().includes(search.trim().toLowerCase()),
   )
+
+  // Grupos: uma seção por categoria ativa (ordenada por sortOrder), + "Sem categoria" no fim
+  // (itens com category null ou apontando para categoria inexistente).
+  const groups = useMemo(() => {
+    const sortedCats = [...categories].sort((a, b) => a.sortOrder - b.sortOrder)
+    const out: { key: string; label: string; items: MenuItem[] }[] = sortedCats.map((c) => ({
+      key: c.id,
+      label: c.name,
+      items: items.filter((it) => it.category === c.id),
+    }))
+    const orphans = items.filter((it) => !it.category || !categoryById.has(it.category))
+    if (orphans.length > 0) {
+      out.push({ key: NO_CATEGORY, label: 'Sem categoria', items: orphans })
+    }
+    return out
+  }, [categories, items, categoryById])
+
+  const loading = menuQuery.isPending || categoriesQuery.isPending
+  const error = menuQuery.isError || categoriesQuery.isError
 
   return (
     <div className="space-y-6">
@@ -124,62 +158,63 @@ export default function MenuPage() {
         className="w-full max-w-sm rounded-md border border-border bg-background px-3 py-2 text-sm"
       />
 
-      {isError ? (
+      {error ? (
         <p className="text-sm text-destructive">Erro ao carregar o cardápio.</p>
-      ) : isPending ? (
+      ) : loading ? (
         <p className="text-sm text-muted-foreground">Carregando…</p>
+      ) : groups.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          Nenhum item ainda. Cadastre categorias e itens para começar.
+        </p>
       ) : (
         <div className="space-y-8">
-          {SUSHI_CATEGORIES.map((cat) => {
-            const catItems = items.filter((it) => it.category === cat.id)
-            return (
-              <section key={cat.id} className="space-y-2">
-                <h2 className="text-sm font-semibold text-muted-foreground">{cat.label}</h2>
-                {catItems.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">Nenhum item nesta categoria ainda.</p>
-                ) : (
-                  <div className="divide-y divide-border rounded-lg border border-border">
-                    {catItems.map((it) => (
-                      <div key={it.id} className="flex items-center justify-between gap-3 px-4 py-3">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{it.name}</span>
-                            {!it.available && <Badge variant="muted">indisponível</Badge>}
-                          </div>
-                          {it.description && (
-                            <p className="truncate text-xs text-muted-foreground">{it.description}</p>
-                          )}
+          {groups.map((g) => (
+            <section key={g.key} className="space-y-2">
+              <h2 className="text-sm font-semibold text-muted-foreground">{g.label}</h2>
+              {g.items.length === 0 ? (
+                <p className="text-xs text-muted-foreground">Nenhum item nesta categoria ainda.</p>
+              ) : (
+                <div className="divide-y divide-border rounded-lg border border-border">
+                  {g.items.map((it) => (
+                    <div key={it.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{it.name}</span>
+                          {!it.available && <Badge variant="muted">indisponível</Badge>}
                         </div>
-                        <div className="flex shrink-0 items-center gap-3">
-                          <span className="tabular-nums">{formatBrl(it.priceCents)}</span>
-                          <label className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <input
-                              type="checkbox"
-                              checked={it.available}
-                              disabled={toggleMutation.isPending}
-                              onChange={() => toggleMutation.mutate(it)}
-                            />
-                            disponível
-                          </label>
-                          <Button variant="outline" className="h-7 px-2 text-xs" onClick={() => openEdit(it)}>
-                            Editar
-                          </Button>
-                          <Button
-                            variant="outline"
-                            className="h-7 px-2 text-xs"
-                            disabled={deleteMutation.isPending}
-                            onClick={() => deleteMutation.mutate(it.id)}
-                          >
-                            Excluir
-                          </Button>
-                        </div>
+                        {it.description && (
+                          <p className="truncate text-xs text-muted-foreground">{it.description}</p>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                )}
-              </section>
-            )
-          })}
+                      <div className="flex shrink-0 items-center gap-3">
+                        <span className="tabular-nums">{formatBrl(it.priceCents)}</span>
+                        <label className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <input
+                            type="checkbox"
+                            checked={it.available}
+                            disabled={toggleMutation.isPending}
+                            onChange={() => toggleMutation.mutate(it)}
+                          />
+                          disponível
+                        </label>
+                        <Button variant="outline" className="h-7 px-2 text-xs" onClick={() => openEdit(it)}>
+                          Editar
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="h-7 px-2 text-xs"
+                          disabled={deleteMutation.isPending}
+                          onClick={() => deleteMutation.mutate(it.id)}
+                        >
+                          Excluir
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          ))}
         </div>
       )}
 
@@ -209,12 +244,13 @@ export default function MenuPage() {
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">Categoria</label>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">Categoria (opcional)</label>
               <select value={form.category}
-                onChange={(e) => setForm((f) => ({ ...f, category: e.target.value as SushiCategoryId }))}
+                onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
-                {SUSHI_CATEGORIES.map((c) => (
-                  <option key={c.id} value={c.id}>{c.label}</option>
+                <option value="">Sem categoria</option>
+                {[...categories].sort((a, b) => a.sortOrder - b.sortOrder).map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
             </div>

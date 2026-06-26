@@ -20,10 +20,11 @@ public class SushiRestaurantConfigRepository {
     /** Config do tenant, ou {@link SushiRestaurantConfig#ZERO} se não houver linha. */
     public SushiRestaurantConfig findByCompany(UUID companyId) {
         return jdbcTemplate.query(
-                "select delivery_fee_cents, min_order_cents from sushi_restaurant_config "
-                    + "where company_id = ?",
+                "select delivery_fee_cents, min_order_cents, scheduling_enabled "
+                    + "from sushi_restaurant_config where company_id = ?",
                 (rs, rn) -> new SushiRestaurantConfig(
-                    rs.getInt("delivery_fee_cents"), rs.getInt("min_order_cents")),
+                    rs.getInt("delivery_fee_cents"), rs.getInt("min_order_cents"),
+                    rs.getBoolean("scheduling_enabled")),
                 companyId)
             .stream().findFirst().orElse(SushiRestaurantConfig.ZERO);
     }
