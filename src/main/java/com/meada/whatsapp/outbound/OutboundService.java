@@ -175,6 +175,11 @@ public class OutboundService {
     // Só agem p/ profile_id='otica'.
     private final com.meada.whatsapp.profiles.otica.appointments.ExameOticaConfirmHandler exameOticaConfirmHandler;
     private final com.meada.whatsapp.profiles.otica.orders.EncomendaOticaConfirmHandler encomendaOticaConfirmHandler;
+    // Camada 8.15 (perfil papelaria): <pedido_papelaria> cria a encomenda gráfica (tiragem +
+    // personalização + lead + gate de aceite); <aprovacao_arte> CAPTURA a aprovação da arte do cliente
+    // (muta o estado de um pedido existente em 'arte_aprovacao'). Só agem p/ profile_id='papelaria'.
+    private final com.meada.whatsapp.profiles.papelaria.orders.PedidoPapelariaConfirmHandler pedidoPapelariaConfirmHandler;
+    private final com.meada.whatsapp.profiles.papelaria.orders.AprovacaoArteHandler aprovacaoArteHandler;
 
     private final int maxAttempts;
     private final List<Duration> backoffs;
@@ -252,6 +257,8 @@ public class OutboundService {
                            com.meada.whatsapp.profiles.padaria.orders.EncomendaPadariaConfirmHandler encomendaPadariaConfirmHandler,
                            com.meada.whatsapp.profiles.otica.appointments.ExameOticaConfirmHandler exameOticaConfirmHandler,
                            com.meada.whatsapp.profiles.otica.orders.EncomendaOticaConfirmHandler encomendaOticaConfirmHandler,
+                           com.meada.whatsapp.profiles.papelaria.orders.PedidoPapelariaConfirmHandler pedidoPapelariaConfirmHandler,
+                           com.meada.whatsapp.profiles.papelaria.orders.AprovacaoArteHandler aprovacaoArteHandler,
                            @org.springframework.beans.factory.annotation.Value("${gemini.model}")
                            String geminiModel) {
         this.conversationRepository = conversationRepository;
@@ -311,6 +318,8 @@ public class OutboundService {
         this.encomendaPadariaConfirmHandler = encomendaPadariaConfirmHandler;
         this.exameOticaConfirmHandler = exameOticaConfirmHandler;
         this.encomendaOticaConfirmHandler = encomendaOticaConfirmHandler;
+        this.pedidoPapelariaConfirmHandler = pedidoPapelariaConfirmHandler;
+        this.aprovacaoArteHandler = aprovacaoArteHandler;
         this.geminiModel = geminiModel;
         this.maxAttempts = retryProps.maxAttempts();
         // converte uma vez (lista YAML de millis → Durations). O RetryRunner valida
@@ -486,6 +495,9 @@ public class OutboundService {
         // Camada 8.12 (perfil otica): <exame_otica> agenda exame; <encomenda_otica> cria a encomenda.
         toSend = maybeProcessExameOtica(event, conversationId, toSend);
         toSend = maybeProcessEncomendaOtica(event, conversationId, toSend);
+        // Camada 8.15 (perfil papelaria): <pedido_papelaria> cria; <aprovacao_arte> aprova a arte.
+        toSend = maybeProcessPedidoPapelaria(event, conversationId, toSend);
+        toSend = maybeProcessAprovacaoArte(event, conversationId, toSend);
         Optional<OutboundOutcome> sendFailure = sendAndPersist(event, conversationId, toSend);
         if (sendFailure.isPresent()) {
             return sendFailure.get();   // casos 7/8/9 — já logado lá
@@ -1651,6 +1663,57 @@ public class OutboundService {
             encomendaOticaConfirmHandler.parseAndCreate(event.companyId(), conversationId, contactId.get(), reply);
         }
         String stripped = encomendaOticaConfirmHandler.stripTag(reply);
+        return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
+            aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
+            aiResponse.schedulingIntent(), aiResponse.insights());
+    }
+
+    /**
+     * Pós-processamento do perfil papelaria (camada 8.15): se o tenant é papelaria e a resposta da IA
+     * contém a tag {@code <pedido_papelaria>}, cria a encomenda gráfica (PedidoPapelariaConfirmHandler
+     * resolve o contato, recalcula o total — tiragem × unit —, snapshota personalização, valida lead time
+     * e fulfillment) e devolve um AiResponse SEM a tag. Best-effort; só age se profile_id='papelaria'.
+     */
+    private AiResponse maybeProcessPedidoPapelaria(MessageInboundProcessedEvent event,
+                                                   UUID conversationId, AiResponse aiResponse) {
+        String reply = aiResponse.reply();
+        if (reply == null || !pedidoPapelariaConfirmHandler.hasOrderTag(reply)) {
+            return aiResponse;
+        }
+        if (!"papelaria".equals(companyProfileRepository.findProfileId(event.companyId()))) {
+            return aiResponse;
+        }
+        Optional<UUID> contactId = conversationRepository.findContactIdByConversation(conversationId);
+        if (contactId.isPresent()) {
+            pedidoPapelariaConfirmHandler.parseAndCreate(event.companyId(), conversationId, contactId.get(), reply);
+        }
+        String stripped = pedidoPapelariaConfirmHandler.stripOrderTag(reply);
+        return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
+            aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
+            aiResponse.schedulingIntent(), aiResponse.insights());
+    }
+
+    /**
+     * Pós-processamento do perfil papelaria (camada 8.15): se o tenant é papelaria e a resposta da IA
+     * contém a tag {@code <aprovacao_arte>}, CAPTURA a aprovação da arte declarada pelo cliente
+     * (AprovacaoArteHandler seta art_approved=true e move arte_aprovacao→em_producao, só se o pedido está
+     * em 'arte_aprovacao'; senão no-op) e devolve um AiResponse SEM a tag. Best-effort; só age se
+     * profile_id='papelaria'. A IA NUNCA aprova a arte pelo cliente — só registra a aprovação declarada.
+     */
+    private AiResponse maybeProcessAprovacaoArte(MessageInboundProcessedEvent event,
+                                                 UUID conversationId, AiResponse aiResponse) {
+        String reply = aiResponse.reply();
+        if (reply == null || !aprovacaoArteHandler.hasTag(reply)) {
+            return aiResponse;
+        }
+        if (!"papelaria".equals(companyProfileRepository.findProfileId(event.companyId()))) {
+            return aiResponse;
+        }
+        Optional<UUID> contactId = conversationRepository.findContactIdByConversation(conversationId);
+        if (contactId.isPresent()) {
+            aprovacaoArteHandler.parseAndApply(event.companyId(), conversationId, contactId.get(), reply);
+        }
+        String stripped = aprovacaoArteHandler.stripTag(reply);
         return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
             aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
             aiResponse.schedulingIntent(), aiResponse.insights());

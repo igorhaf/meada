@@ -51,6 +51,7 @@ public class ProfilePromptContext {
     private final com.meada.whatsapp.profiles.las.LasMenuCache lasMenuCache;
     private final com.meada.whatsapp.profiles.padaria.PadariaMenuCache padariaMenuCache;
     private final com.meada.whatsapp.profiles.otica.OticaContextCache oticaContextCache;
+    private final com.meada.whatsapp.profiles.papelaria.PapelariaCatalogCache papelariaCatalogCache;
     private final ConversationRepository conversationRepository;
 
     public ProfilePromptContext(SushiMenuCache sushiMenuCache,
@@ -83,6 +84,7 @@ public class ProfilePromptContext {
                                 com.meada.whatsapp.profiles.las.LasMenuCache lasMenuCache,
                                 com.meada.whatsapp.profiles.padaria.PadariaMenuCache padariaMenuCache,
                                 com.meada.whatsapp.profiles.otica.OticaContextCache oticaContextCache,
+                                com.meada.whatsapp.profiles.papelaria.PapelariaCatalogCache papelariaCatalogCache,
                                 ConversationRepository conversationRepository) {
         this.sushiMenuCache = sushiMenuCache;
         this.legalCaseContextCache = legalCaseContextCache;
@@ -114,6 +116,7 @@ public class ProfilePromptContext {
         this.lasMenuCache = lasMenuCache;
         this.padariaMenuCache = padariaMenuCache;
         this.oticaContextCache = oticaContextCache;
+        this.papelariaCatalogCache = papelariaCatalogCache;
         this.conversationRepository = conversationRepository;
     }
 
@@ -383,6 +386,22 @@ public class ProfilePromptContext {
             + "um módulo, só faça quando o aluno já estiver matriculado e for o próprio contato da conversa. "
             + "NUNCA prometa certificado, aprovação ou resultado que não esteja descrito no curso.";
 
+    private static final String PAPELARIA =
+        "Você é atendente de uma papelaria de convites personalizados. Tom prestativo-criativo, de quem "
+            + "ajuda a planejar um convite especial. Conheça o catálogo (convites, save the date, cartões, "
+            + "adesivos, embalagens — marcando os que são SOB ENCOMENDA com o prazo mínimo). Monte o pedido na "
+            + "conversa coletando: a TIRAGEM (quantidade — ex.: 50/100/200), a personalização (papel/"
+            + "acabamento/cor) e o texto personalizado de cada item. Para itens sob encomenda, colete a DATA "
+            + "respeitando a antecedência mínima (lead time) — NUNCA prometa uma data antes do prazo; ofereça a "
+            + "primeira data possível. Pergunte se é RETIRADA ou ENTREGA (com endereço/taxa). NUNCA invente "
+            + "produto, papel, acabamento, cor ou preço fora do catálogo; o total é recalculado pelo sistema "
+            + "(unitário × tiragem). NUNCA prometa arte/layout que não esteja no catálogo — layout artístico "
+            + "complexo, diga 'vou confirmar com a equipe de criação'. >>> Você NUNCA APROVA A ARTE pelo "
+            + "cliente: a aprovação da prova de arte é DECLARAÇÃO do cliente — você só REGISTRA a aprovação que "
+            + "o cliente declarar, e só quando o pedido está aguardando aprovação de arte; você não sobe arte, "
+            + "não diz que a arte ficou pronta sem a papelaria ter subido, não força a aprovação. <<< NUNCA "
+            + "aceite ou recuse o pedido — isso é a papelaria quem faz; você só confirma o recebimento.";
+
     private static final String OTICA =
         "Você é atendente de uma loja de ótica. Tom prestativo, atencioso e claro. A ótica faz DUAS coisas: "
             + "(1) AGENDA EXAME DE VISTA com um optometrista; (2) registra ENCOMENDA DE ÓCULOS sob receita "
@@ -490,6 +509,7 @@ public class ProfilePromptContext {
             case LAS -> LAS;
             case PADARIA -> PADARIA;
             case OTICA -> OTICA;
+            case PAPELARIA -> PAPELARIA;
             case GENERIC -> "";
         };
         if (body.isEmpty()) {
@@ -697,6 +717,12 @@ public class ProfilePromptContext {
             UUID contactId = conversationId == null ? null
                 : conversationRepository.findContactIdByConversation(conversationId).orElse(null);
             return persona + oticaContextCache.contextSegment(companyId, contactId);
+        }
+        if ("papelaria".equals(profileId)) {
+            // papelaria (8.15): persona + catálogo (itens por categoria, marcando os SOB ENCOMENDA com lead +
+            // personalização com deltas) + taxa/mínimo/lead + instruções das 2 tags (<pedido_papelaria> com
+            // tiragem/personalização/custom_text + <aprovacao_arte>). IGNORA conversationId (catálogo).
+            return persona + papelariaCatalogCache.catalogSegment(companyId);
         }
         if ("escola".equals(profileId)) {
             // escola (8.19): persona + turmas com vagas restantes + os alunos (filhos) do responsável +

@@ -54,7 +54,8 @@ public enum ProfileType {
     MODA_INFANTIL("moda_infantil", "Moda Infantil", "moda-infantil", "por-do-sol"),
     LAS("las", "Lãs", "las", "ferrugem"),
     PADARIA("padaria", "Padaria", "padaria", "abobora"),
-    OTICA("otica", "Ótica", "otica", "ardosia");
+    OTICA("otica", "Ótica", "otica", "ardosia"),
+    PAPELARIA("papelaria", "Papelaria", "papelaria", "lavanda");
 
     private final String id;
     private final String productName;

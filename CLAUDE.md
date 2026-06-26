@@ -1425,6 +1425,43 @@ coexistem HARMONICAMENTE (regra do projeto: feature de um não quebra o outro).
 - Migration `56_otica.sql` (8 tabelas; slot README ordem 7; entra por ÚLTIMO no SCRIPTS — sua CHECK tem os
   31). Tenant `igorhaf23` (Ótica Modelo). Guia: `docs/PERFIL_OTICA.md`.
 
+## Perfil Papelaria (PapelariaBot, camada 8.15)
+
+TRIGÉSIMO SEGUNDO perfil vertical real (31 + generic). Encomenda GRÁFICA personalizada (convites, save the
+date, cartões, adesivos, embalagens). CLONA o chassi do [[Padaria]] (pedido com lead time + made_to_order
++ gate de aceite + modifiers + fulfillment) e inaugura a PROVA DE ARTE + TIRAGEM.
+
+- **ESCAPADA — PROVA DE ARTE (gate de aprovação do layout pelo cliente DENTRO de um pedido order-based):**
+  o pedido ganha um estado EXTRA no funil — `arte_aprovacao` (entre 'aceito' e 'em_producao'). Campo
+  `art_approved boolean` + `art_url` (link colado, sem upload). Depois do aceite, a papelaria SOBE a arte
+  (seta art_url, ação HUMANA → move aceito→arte_aprovacao). A transição `arte_aprovacao→em_producao` SÓ é
+  permitida com art_approved=true → senão 409 `art_not_approved`. A IA CAPTURA a aprovação via tag
+  `<aprovacao_arte>` (muta o estado de um pedido EXISTENTE — espelho AberturaOs/AprovacaoOs do oficina,
+  mas a aprovação é da ARTE), só quando o pedido está em 'arte_aprovacao' (senão no-op). A IA NUNCA aprova
+  a arte pelo cliente, NUNCA sobe arte. Pedido só pronta-entrega pode pular arte_aprovacao
+  (aceito→em_producao direto). **Primeiro perfil order-based em que a IA APROVA um artefato de um pedido
+  já criado, não só cria.**
+- **TIRAGEM:** `order_item.quantity` é a tiragem (50/100/200); line total = unit_price × quantity (tiragem
+  escala o total). `custom_text` por item (snapshot — texto personalizado). made_to_order + lead time
+  (data condicional → 422 lead_time_violation) + fulfillment retirada/entrega (422 address_required) +
+  modifiers (Papel/Acabamento/Cor/Tamanho via options) HERDADOS do padaria.
+- **Status PapelariaOrderStatus** (10 estados, parity): aguardando→aceito→arte_aprovacao→em_producao→
+  pronto→{retirado | saiu_entrega→entregue} + recusado/cancelado. Gate de aceite humano
+  (aguardando→aceito); aguardando não notifica. Categorias hardcoded (PapelariaCategory parity: convites/
+  save_the_date/cartoes/papelaria/adesivos/embalagens) + PapelariaFulfillment + PapelariaPeriod (parity).
+  Total materializado (descarta o da IA).
+- **2 tags:** `<pedido_papelaria>` (cria; hasOrderTag/stripOrderTag/parseAndCreate, padaria-style) +
+  `<aprovacao_arte>` (muta; hasTag/stripTag/parseAndApply). OutboundService maybeProcessPedidoPapelaria +
+  maybeProcessAprovacaoArte. Cache PapelariaCatalogCache TTL 60s (ignora conversationId). Persona
+  prestativa-criativa: NUNCA aprova a arte pelo cliente, NUNCA inventa item/preço, NUNCA aceita/recusa.
+- **Guard:** `PapelariaProfileGuard`. `JwtAuthenticationFilter` autentica `/api/papelaria/**`. Sidebar:
+  `getNavForProfile('papelaria')` injeta "Papelaria" (Catálogo/Pedidos/Configurações). Paleta `lavanda`.
+- **NÃO TEM:** upload de arte como arquivo/imagem (link colado, bloqueador SERVICE_ROLE_KEY), versões/
+  revisões da prova de arte, convite sob orçamento ad-hoc, e-sign/contrato, assinatura recorrente, combo/
+  cupom, pagamento real (Stripe #50), gráfica externa, estoque.
+- Migration `59_papelaria.sql` (6 tabelas; slot README ordem 10; entra por ÚLTIMO no SCRIPTS — sua CHECK
+  tem os 32). Tenant `igorhaf26` (Papelaria Modelo). Guia: `docs/PERFIL_PAPELARIA.md`.
+
 ## Camada 9.0 — Feature Flags por Nicho (infra de plataforma)
 
 Infra pro ROOT (super-admin) ligar/desligar features por nicho num lugar só. A 1ª feature é o **CMS**

@@ -235,6 +235,7 @@ function profileGroups(profileId: string | null | undefined): NavGroup[] {
   if (profileId === 'las') return [LAS_GROUP, ...NAV_GROUPS]
   if (profileId === 'padaria') return [PADARIA_GROUP, ...NAV_GROUPS]
   if (profileId === 'otica') return [OTICA_GROUP, ...NAV_GROUPS]
+  if (profileId === 'papelaria') return [PAPELARIA_GROUP, ...NAV_GROUPS]
   return NAV_GROUPS
 }
 
@@ -565,5 +566,14 @@ const OTICA_GROUP: NavGroup = {
     { label: 'Catálogo', href: '/dashboard/otica-catalog', icon: Glasses },
     { label: 'Pedidos', href: '/dashboard/otica-orders', icon: ClipboardList },
     { label: 'Configurações', href: '/dashboard/otica-settings', icon: Settings },
+  ],
+}
+
+const PAPELARIA_GROUP: NavGroup = {
+  heading: 'Papelaria',
+  items: [
+    { label: 'Catálogo', href: '/dashboard/papelaria-catalog', icon: Mail },
+    { label: 'Pedidos', href: '/dashboard/papelaria-orders', icon: ClipboardList },
+    { label: 'Configurações', href: '/dashboard/papelaria-settings', icon: Settings },
   ],
 }
