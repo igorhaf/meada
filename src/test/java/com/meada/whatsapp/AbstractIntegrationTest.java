@@ -125,7 +125,8 @@ public abstract class AbstractIntegrationTest {
         "db/migrations/55_dermatologia.sql",
         "db/migrations/60_fotografia.sql",
         "db/migrations/64_cursos.sql",
-        "db/migrations/65_lingerie.sql"
+        "db/migrations/65_lingerie.sql",
+        "db/migrations/66_moda_infantil.sql"
     };
 
     /**
@@ -283,6 +284,8 @@ public abstract class AbstractIntegrationTest {
               cursos_modules, cursos_courses, cursos_config,
               lingerie_order_items, lingerie_orders, lingerie_variants,
               lingerie_products, lingerie_config,
+              moda_infantil_order_items, moda_infantil_orders, moda_infantil_variants,
+              moda_infantil_products, moda_infantil_config,
               profile_features, cms_pages, cms_sites
             RESTART IDENTITY CASCADE
             """);

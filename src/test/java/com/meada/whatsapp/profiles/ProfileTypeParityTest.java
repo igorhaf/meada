@@ -31,7 +31,7 @@ class ProfileTypeParityTest {
         Path.of("frontend", "lib", "profiles", "profile-type.ts");
 
     // Captura o id de cada entrada do array PROFILES: { id: 'xxx', productName: ... }
-    private static final Pattern ID_PATTERN = Pattern.compile("\\{\\s*id:\\s*'([a-z0-9-]+)'");
+    private static final Pattern ID_PATTERN = Pattern.compile("\\{\\s*id:\\s*'([a-z0-9_-]+)'");
 
     @Test
     @DisplayName("o conjunto de ids do enum Java == conjunto de ids do TS")

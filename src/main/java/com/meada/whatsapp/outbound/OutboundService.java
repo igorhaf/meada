@@ -160,6 +160,10 @@ public class OutboundService {
     // Camada 8.21 (perfil lingerie): <pedido_lingerie> cria o pedido de varejo (variante×estoque,
     // decremento transacional → out_of_stock aborta; gate de aceite humano). Só age p/ profile_id='lingerie'.
     private final com.meada.whatsapp.profiles.lingerie.orders.PedidoLingerieConfirmHandler pedidoLingerieConfirmHandler;
+    // Camada 8.22 (perfil moda_infantil): <pedido_moda_infantil> cria o pedido de varejo infantil
+    // (variante faixa-etária×cor + estoque, decremento transacional, restock no cancelamento). Só age
+    // p/ profile_id='moda_infantil'.
+    private final com.meada.whatsapp.profiles.modainfantil.orders.PedidoModaInfantilConfirmHandler pedidoModaInfantilConfirmHandler;
 
     private final int maxAttempts;
     private final List<Duration> backoffs;
@@ -232,6 +236,7 @@ public class OutboundService {
                            com.meada.whatsapp.profiles.cursos.enrollments.MatriculaCursoConfirmHandler matriculaCursoConfirmHandler,
                            com.meada.whatsapp.profiles.cursos.enrollments.EntregaModuloHandler entregaModuloHandler,
                            com.meada.whatsapp.profiles.lingerie.orders.PedidoLingerieConfirmHandler pedidoLingerieConfirmHandler,
+                           com.meada.whatsapp.profiles.modainfantil.orders.PedidoModaInfantilConfirmHandler pedidoModaInfantilConfirmHandler,
                            @org.springframework.beans.factory.annotation.Value("${gemini.model}")
                            String geminiModel) {
         this.conversationRepository = conversationRepository;
@@ -286,6 +291,7 @@ public class OutboundService {
         this.matriculaCursoConfirmHandler = matriculaCursoConfirmHandler;
         this.entregaModuloHandler = entregaModuloHandler;
         this.pedidoLingerieConfirmHandler = pedidoLingerieConfirmHandler;
+        this.pedidoModaInfantilConfirmHandler = pedidoModaInfantilConfirmHandler;
         this.geminiModel = geminiModel;
         this.maxAttempts = retryProps.maxAttempts();
         // converte uma vez (lista YAML de millis → Durations). O RetryRunner valida
@@ -452,6 +458,8 @@ public class OutboundService {
         toSend = maybeProcessEntregaModulo(event, conversationId, toSend);
         // Camada 8.21 (perfil lingerie): <pedido_lingerie> cria o pedido de varejo (variante×estoque).
         toSend = maybeProcessPedidoLingerie(event, conversationId, toSend);
+        // Camada 8.22 (perfil moda_infantil): <pedido_moda_infantil> cria o pedido de varejo infantil.
+        toSend = maybeProcessPedidoModaInfantil(event, conversationId, toSend);
         Optional<OutboundOutcome> sendFailure = sendAndPersist(event, conversationId, toSend);
         if (sendFailure.isPresent()) {
             return sendFailure.get();   // casos 7/8/9 — já logado lá
@@ -1486,6 +1494,33 @@ public class OutboundService {
             pedidoLingerieConfirmHandler.parseAndCreate(event.companyId(), conversationId, contactId.get(), reply);
         }
         String stripped = pedidoLingerieConfirmHandler.stripTag(reply);
+        return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
+            aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
+            aiResponse.schedulingIntent(), aiResponse.insights());
+    }
+
+    /**
+     * Pós-processamento do perfil moda_infantil (camada 8.22): se o tenant é moda_infantil e a resposta
+     * da IA contém a tag {@code <pedido_moda_infantil>}, cria o pedido de varejo infantil
+     * (PedidoModaInfantilConfirmHandler resolve o contato, resolve as variantes faixa-etária×cor,
+     * DECREMENTA o estoque transacionalmente — out_of_stock aborta —, recalcula o total descartando o da
+     * IA, e snapshota produto/variante) e devolve um AiResponse SEM a tag. Best-effort; tag sempre
+     * removida; só age se profile_id='moda_infantil'.
+     */
+    private AiResponse maybeProcessPedidoModaInfantil(MessageInboundProcessedEvent event,
+                                                      UUID conversationId, AiResponse aiResponse) {
+        String reply = aiResponse.reply();
+        if (reply == null || !pedidoModaInfantilConfirmHandler.hasTag(reply)) {
+            return aiResponse;
+        }
+        if (!"moda_infantil".equals(companyProfileRepository.findProfileId(event.companyId()))) {
+            return aiResponse;
+        }
+        Optional<UUID> contactId = conversationRepository.findContactIdByConversation(conversationId);
+        if (contactId.isPresent()) {
+            pedidoModaInfantilConfirmHandler.parseAndCreate(event.companyId(), conversationId, contactId.get(), reply);
+        }
+        String stripped = pedidoModaInfantilConfirmHandler.stripTag(reply);
         return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
             aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
             aiResponse.schedulingIntent(), aiResponse.insights());

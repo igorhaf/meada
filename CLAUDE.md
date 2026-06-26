@@ -1294,6 +1294,39 @@ chassi de varejo com variantes** — reusado por Moda Infantil (8.22) e Lãs (8.
 - Migration `65_lingerie.sql` (slot README ordem 16; entra por ÚLTIMO no SCRIPTS — sua CHECK tem os 27
   perfis). Tenant `igorhaf32` (Lingerie Modelo). Guia: `docs/PERFIL_LINGERIE.md`.
 
+## Perfil Moda Infantil (ModaInfantilBot, camada 8.22)
+
+VIGÉSIMO OITAVO perfil vertical real (27 + generic). CLONE quase exata do [[Lingerie]] (chassi de varejo
+com variantes) com o eixo de tamanho sendo FAIXA ETÁRIA + devolução de estoque ao cancelar.
+
+- **HERDA do Lingerie:** grade de variantes (`moda_infantil_variants` size×color, price nullable→herda
+  base, stock_qty), decremento transacional (UPDATE condicional `stock_qty >= qtd` → 409 out_of_stock,
+  aborta), categorias hardcoded (ModaInfantilCategory parity: bebe/menino/menina/calcados/acessorios/
+  pijamas/kits), status ModaInfantilOrderStatus (parity: aguardando→separando→enviado→entregue + recusado/
+  cancelado, gate humano, aguardando não notifica), total materializado, fulfillment entrega/retirada,
+  cliente=contato, tag `<pedido_moda_infantil>`.
+- **ADAPTAÇÃO 1 — size = FAIXA ETÁRIA:** `KidsSize` ↔ `kids-size.ts` (parity): RN/0-3m/.../12a. O enum tem
+  `suggestForAgeMonths(int)` — a IA sugere o tamanho a partir da idade da criança (confirma com o cliente).
+  color é texto livre.
+- **ADAPTAÇÃO 2 — DEVOLUÇÃO DE ESTOQUE AO CANCELAR (restock):** ao mover pra recusado/cancelado o backend
+  DEVOLVE o estoque (`stock_qty + qtd` por item) e marca `orders.stock_returned=true`, na MESMA transação;
+  IDEMPOTENTE (só devolve se stock_returned=false — duplo-cancelamento não devolve 2×). O Lingerie NÃO
+  devolvia.
+- **Persona MODA_INFANTIL** (acolhedora-gentil): sugere tamanho pela idade, NUNCA oferece variante
+  esgotada, NUNCA inventa produto/tamanho/cor/preço, NUNCA aceita/recusa. Cache `ModaInfantilMenuCache`
+  TTL 60s (IGNORA conversationId). OutboundService `maybeProcessPedidoModaInfantil`.
+- **LIÇÃO DE PARITY CRAVADA:** `moda_infantil` é o PRIMEIRO id de perfil com **underscore**; o regex do
+  `ProfileTypeParityTest` era `\{\s*id:\s*'([a-z0-9-]+)'` (sem underscore) → o id não casava e o teste
+  acusava "ausente no TS" mesmo presente. Fix: ampliar pra `[a-z0-9_-]+`. Qualquer perfil futuro com
+  underscore (suplementos não tem; save_the_date só como categoria) já está coberto.
+- **Guard:** `ModaInfantilProfileGuard`. `JwtAuthenticationFilter` autentica `/api/moda-infantil/**`.
+  Sidebar: `getNavForProfile('moda_infantil')` injeta "Moda Infantil" (Catálogo/Pedidos/Configurações).
+  Paleta `por-do-sol`.
+- **NÃO TEM:** foto, pagamento real (Stripe #50), cupom/promoção, troca com fluxo próprio, frete por CEP,
+  variante 3+ eixos.
+- Migration `66_moda_infantil.sql` (slot README ordem 17; entra por ÚLTIMO no SCRIPTS — sua CHECK tem os
+  28 perfis). Tenant `igorhaf33` (Moda Infantil Modelo). Guia: `docs/PERFIL_MODA_INFANTIL.md`.
+
 ## Camada 9.0 — Feature Flags por Nicho (infra de plataforma)
 
 Infra pro ROOT (super-admin) ligar/desligar features por nicho num lugar só. A 1ª feature é o **CMS**
