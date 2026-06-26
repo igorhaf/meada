@@ -170,6 +170,11 @@ public class OutboundService {
     // Camada 8.8 (perfil padaria): <encomenda_padaria> cria o pedido de padaria/confeitaria (cardápio +
     // personalização + made_to_order/lead time + fulfillment + gate de aceite). Só age p/ profile_id='padaria'.
     private final com.meada.whatsapp.profiles.padaria.orders.EncomendaPadariaConfirmHandler encomendaPadariaConfirmHandler;
+    // Camada 8.12 (perfil otica — HÍBRIDO): <exame_otica> agenda o exame (conflito por profissional);
+    // <encomenda_otica> cria a encomenda de óculos (receita administrativa + lead time + gate de aceite).
+    // Só agem p/ profile_id='otica'.
+    private final com.meada.whatsapp.profiles.otica.appointments.ExameOticaConfirmHandler exameOticaConfirmHandler;
+    private final com.meada.whatsapp.profiles.otica.orders.EncomendaOticaConfirmHandler encomendaOticaConfirmHandler;
 
     private final int maxAttempts;
     private final List<Duration> backoffs;
@@ -245,6 +250,8 @@ public class OutboundService {
                            com.meada.whatsapp.profiles.modainfantil.orders.PedidoModaInfantilConfirmHandler pedidoModaInfantilConfirmHandler,
                            com.meada.whatsapp.profiles.las.orders.PedidoLasConfirmHandler pedidoLasConfirmHandler,
                            com.meada.whatsapp.profiles.padaria.orders.EncomendaPadariaConfirmHandler encomendaPadariaConfirmHandler,
+                           com.meada.whatsapp.profiles.otica.appointments.ExameOticaConfirmHandler exameOticaConfirmHandler,
+                           com.meada.whatsapp.profiles.otica.orders.EncomendaOticaConfirmHandler encomendaOticaConfirmHandler,
                            @org.springframework.beans.factory.annotation.Value("${gemini.model}")
                            String geminiModel) {
         this.conversationRepository = conversationRepository;
@@ -302,6 +309,8 @@ public class OutboundService {
         this.pedidoModaInfantilConfirmHandler = pedidoModaInfantilConfirmHandler;
         this.pedidoLasConfirmHandler = pedidoLasConfirmHandler;
         this.encomendaPadariaConfirmHandler = encomendaPadariaConfirmHandler;
+        this.exameOticaConfirmHandler = exameOticaConfirmHandler;
+        this.encomendaOticaConfirmHandler = encomendaOticaConfirmHandler;
         this.geminiModel = geminiModel;
         this.maxAttempts = retryProps.maxAttempts();
         // converte uma vez (lista YAML de millis → Durations). O RetryRunner valida
@@ -474,6 +483,9 @@ public class OutboundService {
         toSend = maybeProcessPedidoLas(event, conversationId, toSend);
         // Camada 8.8 (perfil padaria): <encomenda_padaria> cria o pedido de padaria.
         toSend = maybeProcessEncomendaPadaria(event, conversationId, toSend);
+        // Camada 8.12 (perfil otica): <exame_otica> agenda exame; <encomenda_otica> cria a encomenda.
+        toSend = maybeProcessExameOtica(event, conversationId, toSend);
+        toSend = maybeProcessEncomendaOtica(event, conversationId, toSend);
         Optional<OutboundOutcome> sendFailure = sendAndPersist(event, conversationId, toSend);
         if (sendFailure.isPresent()) {
             return sendFailure.get();   // casos 7/8/9 — já logado lá
@@ -1588,6 +1600,57 @@ public class OutboundService {
             encomendaPadariaConfirmHandler.parseAndCreate(event.companyId(), conversationId, contactId.get(), reply);
         }
         String stripped = encomendaPadariaConfirmHandler.stripOrderTag(reply);
+        return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
+            aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
+            aiResponse.schedulingIntent(), aiResponse.insights());
+    }
+
+    /**
+     * Pós-processamento do perfil otica (camada 8.12, FLUXO A): se o tenant é otica e a resposta da IA
+     * contém a tag {@code <exame_otica>}, agenda o exame de vista (ExameOticaConfirmHandler resolve o
+     * contato, valida conflito por optometrista, materializa end_at) e devolve um AiResponse SEM a tag.
+     * Best-effort; só age se profile_id='otica'.
+     */
+    private AiResponse maybeProcessExameOtica(MessageInboundProcessedEvent event,
+                                              UUID conversationId, AiResponse aiResponse) {
+        String reply = aiResponse.reply();
+        if (reply == null || !exameOticaConfirmHandler.hasTag(reply)) {
+            return aiResponse;
+        }
+        if (!"otica".equals(companyProfileRepository.findProfileId(event.companyId()))) {
+            return aiResponse;
+        }
+        Optional<UUID> contactId = conversationRepository.findContactIdByConversation(conversationId);
+        if (contactId.isPresent()) {
+            exameOticaConfirmHandler.parseAndCreate(event.companyId(), conversationId, contactId.get(), reply);
+        }
+        String stripped = exameOticaConfirmHandler.stripTag(reply);
+        return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
+            aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
+            aiResponse.schedulingIntent(), aiResponse.insights());
+    }
+
+    /**
+     * Pós-processamento do perfil otica (camada 8.12, FLUXO B): se o tenant é otica e a resposta da IA
+     * contém a tag {@code <encomenda_otica>}, cria a encomenda de óculos (EncomendaOticaConfirmHandler
+     * resolve o contato, recalcula o total, valida o lead time, registra os dados de receita como campos
+     * administrativos SEM interpretar o grau) e devolve um AiResponse SEM a tag. Best-effort; só age se
+     * profile_id='otica'.
+     */
+    private AiResponse maybeProcessEncomendaOtica(MessageInboundProcessedEvent event,
+                                                  UUID conversationId, AiResponse aiResponse) {
+        String reply = aiResponse.reply();
+        if (reply == null || !encomendaOticaConfirmHandler.hasTag(reply)) {
+            return aiResponse;
+        }
+        if (!"otica".equals(companyProfileRepository.findProfileId(event.companyId()))) {
+            return aiResponse;
+        }
+        Optional<UUID> contactId = conversationRepository.findContactIdByConversation(conversationId);
+        if (contactId.isPresent()) {
+            encomendaOticaConfirmHandler.parseAndCreate(event.companyId(), conversationId, contactId.get(), reply);
+        }
+        String stripped = encomendaOticaConfirmHandler.stripTag(reply);
         return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
             aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
             aiResponse.schedulingIntent(), aiResponse.insights());

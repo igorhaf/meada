@@ -128,7 +128,8 @@ public abstract class AbstractIntegrationTest {
         "db/migrations/65_lingerie.sql",
         "db/migrations/66_moda_infantil.sql",
         "db/migrations/67_las.sql",
-        "db/migrations/52_padaria.sql"
+        "db/migrations/52_padaria.sql",
+        "db/migrations/56_otica.sql"
     };
 
     /**
@@ -292,6 +293,9 @@ public abstract class AbstractIntegrationTest {
               las_products, las_config,
               padaria_order_item_options, padaria_order_items, padaria_orders,
               padaria_menu_item_options, padaria_menu_items, padaria_config,
+              otica_order_item_options, otica_order_items, otica_orders,
+              otica_catalog_item_options, otica_catalog_items,
+              otica_exam_appointments, otica_professionals, otica_config,
               profile_features, cms_pages, cms_sites
             RESTART IDENTITY CASCADE
             """);

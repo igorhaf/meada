@@ -10,6 +10,8 @@ import {
   Calendar,
   Camera,
   CalendarCheck,
+  Eye,
+  Glasses,
   CreditCard,
   GraduationCap,
   CalendarClock,
@@ -232,6 +234,7 @@ function profileGroups(profileId: string | null | undefined): NavGroup[] {
   if (profileId === 'moda_infantil') return [MODA_INFANTIL_GROUP, ...NAV_GROUPS]
   if (profileId === 'las') return [LAS_GROUP, ...NAV_GROUPS]
   if (profileId === 'padaria') return [PADARIA_GROUP, ...NAV_GROUPS]
+  if (profileId === 'otica') return [OTICA_GROUP, ...NAV_GROUPS]
   return NAV_GROUPS
 }
 
@@ -551,5 +554,16 @@ const PADARIA_GROUP: NavGroup = {
     { label: 'Cardápio', href: '/dashboard/padaria-menu', icon: Croissant },
     { label: 'Pedidos', href: '/dashboard/padaria-orders', icon: ClipboardList },
     { label: 'Configurações', href: '/dashboard/padaria-settings', icon: Settings },
+  ],
+}
+
+const OTICA_GROUP: NavGroup = {
+  heading: 'Ótica',
+  items: [
+    { label: 'Optometristas', href: '/dashboard/otica-professionals', icon: Stethoscope },
+    { label: 'Exames', href: '/dashboard/otica-exams', icon: Eye },
+    { label: 'Catálogo', href: '/dashboard/otica-catalog', icon: Glasses },
+    { label: 'Pedidos', href: '/dashboard/otica-orders', icon: ClipboardList },
+    { label: 'Configurações', href: '/dashboard/otica-settings', icon: Settings },
   ],
 }

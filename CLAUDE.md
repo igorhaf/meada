@@ -1388,6 +1388,43 @@ TRIGÉSIMO perfil vertical real (29 + generic). CLONA o chassi do [[Floricultura
   por ÚLTIMO no SCRIPTS de teste — lição atelie: a migration que reescreve a CHECK por último precisa ter
   a lista completa). Tenant `igorhaf19` (Padaria Modelo). Guia: `docs/PERFIL_PADARIA.md`.
 
+## Perfil Ótica (OticaBot, camada 8.12) — PRIMEIRO HÍBRIDO
+
+TRIGÉSIMO PRIMEIRO perfil vertical real (30 + generic). **PRIMEIRO HÍBRIDO:** um perfil único que combina
+DOIS chassis no mesmo profile — agenda-clínica (FLUXO A, clona DentalBot) + order-com-receita (FLUXO B,
+clona ComidaBot/FloriculturaBot). Loja de ótica: exame de vista + óculos sob receita. Os dois fluxos
+coexistem HARMONICAMENTE (regra do projeto: feature de um não quebra o outro).
+
+- **TRAVA DE COMPORTAMENTO (coração):** a IA NUNCA prescreve grau, NUNCA diagnostica, NUNCA recomenda lente
+  como conduta de saúde (encaminha ao exame); só REGISTRA os dados de receita que o cliente fornecer (esf/
+  cil/eixo OD e OE + DP) como campos ADMINISTRATIVOS — não calcula/valida/interpreta; sem dados →
+  prescription_pending. NUNCA aceita/recusa encomenda (gate humano), NUNCA inventa item/preço.
+- **FLUXO A — exame (clona DentalBot):** `otica_professionals` (optometristas) + conflito POR
+  `professional_id` (half-open, re-verificado na transação → 409 conflict_slot; paralelismo entre
+  profissionais) + `end_at` MATERIALIZADO no INSERT + duração snapshot do config + janela opens/closes →
+  400 outside_hours. Cliente = contato (snapshot, SEM sub-entidade paciente). Status `OticaExamStatus`
+  (parity): agendado→confirmado→realizado + cancelado/falta. Tag `<exame_otica>`.
+- **FLUXO B — encomenda (clona ComidaBot/FloriculturaBot):** pedido + itens (armação + lentes via modifiers
+  tipo/tratamento) + total recalculado + gate de aceite humano (aguardando→em_montagem/recusado) + LEAD
+  TIME de montagem (item made_to_order → ready_date obrigatória = hoje+MAX(leads); antes → 422
+  lead_time_violation) + RECEITA administrativa (rx_od_*/rx_oe_*/rx_pd + prescription_pending, persistidos
+  VERBATIM, não interpretados). Status `OticaOrderStatus` (parity): aguardando→em_montagem→pronto→retirado
+  + recusado/cancelado. Óculos pronto = RETIRADA (sem taxa nesta SM). Categorias hardcoded (OticaCategory
+  parity: armacoes/lentes/acessorios). Tag `<encomenda_otica>`.
+- **3 parity tests** (OticaExamStatus + OticaOrderStatus + OticaCategory). 2 handlers
+  (ExameOticaConfirmHandler + EncomendaOticaConfirmHandler, ambos hasTag/stripTag/parseAndCreate);
+  OutboundService maybeProcessExameOtica + maybeProcessEncomendaOtica. Persona OTICA com a trava embutida.
+  Contexto via `OticaContextCache` (TTL 30s, per (companyId, contactId) — injeta os DOIS fluxos: slots por
+  profissional + catálogo com lead + opções).
+- **Guard:** `OticaProfileGuard`. `JwtAuthenticationFilter` autentica `/api/otica/**`. Sidebar:
+  `getNavForProfile('otica')` injeta "Ótica" (Optometristas/Exames/Catálogo/Pedidos/Configurações), 5
+  itens. Paleta `ardosia`. Config FUNDIDA (janela/duração do exame + mínimo/lead da encomenda).
+- **NÃO TEM:** laudo/resultado de exame no painel, interpretação/cálculo de grau (PROIBIDO), prontuário
+  oftalmológico (dado sensível), foto da armação, armação sob medida ad-hoc, entrega com taxa (só
+  retirada), convênio, laboratório por API, Stripe.
+- Migration `56_otica.sql` (8 tabelas; slot README ordem 7; entra por ÚLTIMO no SCRIPTS — sua CHECK tem os
+  31). Tenant `igorhaf23` (Ótica Modelo). Guia: `docs/PERFIL_OTICA.md`.
+
 ## Camada 9.0 — Feature Flags por Nicho (infra de plataforma)
 
 Infra pro ROOT (super-admin) ligar/desligar features por nicho num lugar só. A 1ª feature é o **CMS**

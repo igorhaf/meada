@@ -41,6 +41,7 @@ export const PROFILES = [
   { id: 'moda_infantil', productName: 'Moda Infantil', subdomain: 'moda-infantil', defaultPaletteId: 'por-do-sol' },
   { id: 'las', productName: 'Lãs', subdomain: 'las', defaultPaletteId: 'ferrugem' },
   { id: 'padaria', productName: 'Padaria', subdomain: 'padaria', defaultPaletteId: 'abobora' },
+  { id: 'otica', productName: 'Ótica', subdomain: 'otica', defaultPaletteId: 'ardosia' },
 ] as const
 
 export type Profile = (typeof PROFILES)[number]

@@ -50,6 +50,7 @@ public class ProfilePromptContext {
     private final com.meada.whatsapp.profiles.modainfantil.ModaInfantilMenuCache modaInfantilMenuCache;
     private final com.meada.whatsapp.profiles.las.LasMenuCache lasMenuCache;
     private final com.meada.whatsapp.profiles.padaria.PadariaMenuCache padariaMenuCache;
+    private final com.meada.whatsapp.profiles.otica.OticaContextCache oticaContextCache;
     private final ConversationRepository conversationRepository;
 
     public ProfilePromptContext(SushiMenuCache sushiMenuCache,
@@ -81,6 +82,7 @@ public class ProfilePromptContext {
                                 com.meada.whatsapp.profiles.modainfantil.ModaInfantilMenuCache modaInfantilMenuCache,
                                 com.meada.whatsapp.profiles.las.LasMenuCache lasMenuCache,
                                 com.meada.whatsapp.profiles.padaria.PadariaMenuCache padariaMenuCache,
+                                com.meada.whatsapp.profiles.otica.OticaContextCache oticaContextCache,
                                 ConversationRepository conversationRepository) {
         this.sushiMenuCache = sushiMenuCache;
         this.legalCaseContextCache = legalCaseContextCache;
@@ -111,6 +113,7 @@ public class ProfilePromptContext {
         this.modaInfantilMenuCache = modaInfantilMenuCache;
         this.lasMenuCache = lasMenuCache;
         this.padariaMenuCache = padariaMenuCache;
+        this.oticaContextCache = oticaContextCache;
         this.conversationRepository = conversationRepository;
     }
 
@@ -380,6 +383,21 @@ public class ProfilePromptContext {
             + "um módulo, só faça quando o aluno já estiver matriculado e for o próprio contato da conversa. "
             + "NUNCA prometa certificado, aprovação ou resultado que não esteja descrito no curso.";
 
+    private static final String OTICA =
+        "Você é atendente de uma loja de ótica. Tom prestativo, atencioso e claro. A ótica faz DUAS coisas: "
+            + "(1) AGENDA EXAME DE VISTA com um optometrista; (2) registra ENCOMENDA DE ÓCULOS sob receita "
+            + "(armação do catálogo + lentes com tipo escolhido). Você NUNCA prescreve grau, NUNCA diagnostica "
+            + "problema de visão (miopia/astigmatismo/etc.), NUNCA recomenda tipo de lente como conduta de "
+            + "saúde — para qualquer dúvida de visão/grau/sintoma, diga que o exame/optometrista avalia e "
+            + "ofereça AGENDAR o exame. Sobre RECEITA: você só REGISTRA os dados de grau que o cliente "
+            + "fornecer (esférico/cilíndrico/eixo de cada olho + DP), como campos administrativos do pedido — "
+            + "NÃO calcula, NÃO valida, NÃO interpreta o grau. Se o cliente não tem os dados, anote 'trazer "
+            + "receita'. NUNCA invente armação, lente, tratamento ou preço fora do catálogo; o total é "
+            + "recalculado pelo sistema. Tipo de lente (monofocal/multifocal/antirreflexo) é opção do "
+            + "catálogo — você oferece o que existe. NUNCA prometa uma data de entrega antes do prazo de "
+            + "montagem (lead time); se o cliente quiser antes, explique e ofereça a primeira data possível. "
+            + "NUNCA aceite nem recuse a encomenda — isso é a loja quem faz; você só confirma o recebimento.";
+
     private static final String PADARIA =
         "Você é atendente de uma padaria e confeitaria de bairro. Tom caloroso e acolhedor. Conheça o "
             + "cardápio: itens de PRONTA-ENTREGA (pães, salgados, doces de balcão) e itens SOB ENCOMENDA "
@@ -471,6 +489,7 @@ public class ProfilePromptContext {
             case MODA_INFANTIL -> MODA_INFANTIL;
             case LAS -> LAS;
             case PADARIA -> PADARIA;
+            case OTICA -> OTICA;
             case GENERIC -> "";
         };
         if (body.isEmpty()) {
@@ -669,6 +688,15 @@ public class ProfilePromptContext {
             // <encomenda_padaria> (fulfillment + data condicional + personalização + cake_message). IGNORA
             // conversationId (contexto é o cardápio). Pedido nasce 'aguardando' (gate de aceite).
             return persona + padariaMenuCache.menuSegment(companyId);
+        }
+        if ("otica".equals(profileId)) {
+            // otica (8.12, HÍBRIDO): persona + optometristas + slots livres por profissional (FLUXO A) +
+            // catálogo (armações/lentes/acessórios com lead + opções de tipo de lente/tratamento) +
+            // instruções das 2 tags (<exame_otica> + <encomenda_otica>). Per-contact (resolve o contato
+            // pela conversa, igual dental/dermatologia).
+            UUID contactId = conversationId == null ? null
+                : conversationRepository.findContactIdByConversation(conversationId).orElse(null);
+            return persona + oticaContextCache.contextSegment(companyId, contactId);
         }
         if ("escola".equals(profileId)) {
             // escola (8.19): persona + turmas com vagas restantes + os alunos (filhos) do responsável +
