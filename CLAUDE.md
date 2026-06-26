@@ -1098,6 +1098,31 @@ deliberado; os três coexistem harmonicamente.
   no SCRIPTS de teste — lição atelie/casamento, sua CHECK tem os 22 perfis). Tenant `igorhaf28`
   (Concessionária Modelo). Guia: `docs/PERFIL_CONCESSIONARIA.md`.
 
+## Perfil Lavanderia (LavanderiaBot, camada 8.10)
+
+VIGÉSIMO SEGUNDO perfil vertical real (23º contando generic). Lavanderia com coleta e entrega
+agendadas. CLONA o chassi do FLORICULTURA (pedido agendado por dia+período + gate de aceite humano +
+catálogo de serviços + modifiers).
+
+- **ESCAPADA — DUAS DATAS ligadas por TURNAROUND:** o pedido tem `collect_date` (coleta, obrigatória, >=
+  hoje) + `delivery_date` MATERIALIZADA = `collect_date + MAX(turnaround_days entre os itens)`. Cada
+  serviço (`lavanderia_services`) tem `turnaround_days` próprio. **MAX (não soma):** processamento
+  paralelo, vale o serviço mais lento. Se a tag pede entrega < collect + MAX → 422 `turnaround_violation`
+  (resposta traz a primeira data possível). delivery_date materializada no INSERT em Java (date+interval
+  não é IMMUTABLE — lição end_at). SEMPRE coleta+entrega (`delivery_address` NOT NULL; sem balcão).
+- **Status** `LavanderiaOrderStatus` (parity): aguardando→coletado→em_processo→pronto→saiu_entrega→
+  entregue + recusado/cancelado. aceite = aguardando→coletado (gate humano). Notifica coletado/pronto/
+  saiu_entrega/entregue/recusado. **Categorias** (parity): lavar/lavar_passar/lavagem_seco/passar/
+  edredom_pesados. **period** (parity): manha/tarde (da coleta).
+- **Tag `<pedido_lavanderia>`** (namespace próprio): items (qty por serviço) + collect_date + period +
+  delivery_address + delivery_date opcional. `OutboundService.maybeProcessPedidoLavanderia`. Persona
+  `ProfilePromptContext.LAVANDERIA`: NUNCA inventa serviço/preço, NUNCA promete remover mancha/garantir
+  resultado, NUNCA aceita/recusa. `LavanderiaCatalogCache` TTL 60s (ignora conversationId).
+- **Guard:** `LavanderiaProfileGuard`. JwtFilter `/api/lavanderia/**`. Sidebar: branch próprio (Serviços/
+  Pedidos/Configurações). Paleta `oceano`.
+- Migration `54_lavanderia.sql` (slot README ordem 5; entra por ÚLTIMO no SCRIPTS — sua CHECK tem os 23
+  perfis). Tenant `igorhaf21` (Lavanderia Modelo). Guia: `docs/PERFIL_LAVANDERIA.md`.
+
 ## Camada 9.0 — Feature Flags por Nicho (infra de plataforma)
 
 Infra pro ROOT (super-admin) ligar/desligar features por nicho num lugar só. A 1ª feature é o **CMS**

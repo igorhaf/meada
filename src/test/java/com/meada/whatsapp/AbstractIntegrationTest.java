@@ -120,7 +120,8 @@ public abstract class AbstractIntegrationTest {
         "db/migrations/63_escola.sql",
         "db/migrations/58_atelie.sql",
         "db/migrations/51_casamento.sql",
-        "db/migrations/61_concessionaria.sql"
+        "db/migrations/61_concessionaria.sql",
+        "db/migrations/54_lavanderia.sql"
     };
 
     /**
@@ -268,6 +269,8 @@ public abstract class AbstractIntegrationTest {
               wedding_planners, wedding_config,
               concessionaria_test_drives, concessionaria_leads, concessionaria_vehicles,
               concessionaria_salespeople, concessionaria_config,
+              lavanderia_order_item_options, lavanderia_order_items, lavanderia_orders,
+              lavanderia_service_options, lavanderia_services, lavanderia_config,
               profile_features, cms_pages, cms_sites
             RESTART IDENTITY CASCADE
             """);

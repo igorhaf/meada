@@ -139,6 +139,9 @@ public class OutboundService {
     // <lead_carro> registra interesse de compra (funil). Só agem p/ profile_id='concessionaria'.
     private final com.meada.whatsapp.profiles.concessionaria.testdrives.TestDriveConfirmHandler testDriveConfirmHandler;
     private final com.meada.whatsapp.profiles.concessionaria.leads.LeadCarroConfirmHandler leadCarroConfirmHandler;
+    // Camada 8.10 (perfil lavanderia): <pedido_lavanderia> cria o pedido (nasce 'aguardando'; 2 datas
+    // coleta+entrega com turnaround). Só age p/ profile_id='lavanderia'.
+    private final com.meada.whatsapp.profiles.lavanderia.orders.PedidoLavanderiaConfirmHandler pedidoLavanderiaConfirmHandler;
 
     private final int maxAttempts;
     private final List<Duration> backoffs;
@@ -203,6 +206,7 @@ public class OutboundService {
                            com.meada.whatsapp.profiles.casamento.proposals.AprovacaoCasamentoHandler aprovacaoCasamentoHandler,
                            com.meada.whatsapp.profiles.concessionaria.testdrives.TestDriveConfirmHandler testDriveConfirmHandler,
                            com.meada.whatsapp.profiles.concessionaria.leads.LeadCarroConfirmHandler leadCarroConfirmHandler,
+                           com.meada.whatsapp.profiles.lavanderia.orders.PedidoLavanderiaConfirmHandler pedidoLavanderiaConfirmHandler,
                            @org.springframework.beans.factory.annotation.Value("${gemini.model}")
                            String geminiModel) {
         this.conversationRepository = conversationRepository;
@@ -249,6 +253,7 @@ public class OutboundService {
         this.aprovacaoCasamentoHandler = aprovacaoCasamentoHandler;
         this.testDriveConfirmHandler = testDriveConfirmHandler;
         this.leadCarroConfirmHandler = leadCarroConfirmHandler;
+        this.pedidoLavanderiaConfirmHandler = pedidoLavanderiaConfirmHandler;
         this.geminiModel = geminiModel;
         this.maxAttempts = retryProps.maxAttempts();
         // converte uma vez (lista YAML de millis → Durations). O RetryRunner valida
@@ -402,6 +407,8 @@ public class OutboundService {
         // Encadeados após os demais (perfil único; só um age). Removem a tag antes de enviar.
         toSend = maybeProcessTestDrive(event, conversationId, toSend);
         toSend = maybeProcessLeadCarro(event, conversationId, toSend);
+        // Camada 8.10 (perfil lavanderia): <pedido_lavanderia> cria o pedido de lavagem (2 datas).
+        toSend = maybeProcessPedidoLavanderia(event, conversationId, toSend);
         Optional<OutboundOutcome> sendFailure = sendAndPersist(event, conversationId, toSend);
         if (sendFailure.isPresent()) {
             return sendFailure.get();   // casos 7/8/9 — já logado lá
@@ -1235,6 +1242,32 @@ public class OutboundService {
             leadCarroConfirmHandler.parseAndCreate(event.companyId(), conversationId, contactId.get(), reply);
         }
         String stripped = leadCarroConfirmHandler.stripLeadTag(reply);
+        return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
+            aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
+            aiResponse.schedulingIntent(), aiResponse.insights());
+    }
+
+    /**
+     * Pós-processamento do perfil lavanderia (camada 8.10): se o tenant é lavanderia e a resposta da IA
+     * contém a tag {@code <pedido_lavanderia>}, cria o pedido de lavagem (PedidoLavanderiaConfirmHandler
+     * resolve o contato, valida as 2 datas — coleta + entrega = coleta + MAX(turnaround) — e recalcula o
+     * total descartando o da IA) e devolve um AiResponse SEM a tag. Best-effort; só age se
+     * profile_id='lavanderia'.
+     */
+    private AiResponse maybeProcessPedidoLavanderia(MessageInboundProcessedEvent event,
+                                                    UUID conversationId, AiResponse aiResponse) {
+        String reply = aiResponse.reply();
+        if (reply == null || !pedidoLavanderiaConfirmHandler.hasOrderTag(reply)) {
+            return aiResponse;
+        }
+        if (!"lavanderia".equals(companyProfileRepository.findProfileId(event.companyId()))) {
+            return aiResponse;
+        }
+        Optional<UUID> contactId = conversationRepository.findContactIdByConversation(conversationId);
+        if (contactId.isPresent()) {
+            pedidoLavanderiaConfirmHandler.parseAndCreate(event.companyId(), conversationId, contactId.get(), reply);
+        }
+        String stripped = pedidoLavanderiaConfirmHandler.stripOrderTag(reply);
         return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
             aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
             aiResponse.schedulingIntent(), aiResponse.insights());

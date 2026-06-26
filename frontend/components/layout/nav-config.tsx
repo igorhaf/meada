@@ -50,6 +50,7 @@ import {
   Users,
   UserPlus,
   UsersRound,
+  WashingMachine,
   Wine,
   Workflow,
 } from 'lucide-react'
@@ -216,6 +217,7 @@ function profileGroups(profileId: string | null | undefined): NavGroup[] {
   if (profileId === 'atelie') return [ATELIE_GROUP, ...NAV_GROUPS]
   if (profileId === 'casamento') return [CASAMENTO_GROUP, ...NAV_GROUPS]
   if (profileId === 'concessionaria') return [CONCESSIONARIA_GROUP, ...NAV_GROUPS]
+  if (profileId === 'lavanderia') return [LAVANDERIA_GROUP, ...NAV_GROUPS]
   return NAV_GROUPS
 }
 
@@ -457,5 +459,15 @@ const CONCESSIONARIA_GROUP: NavGroup = {
     { label: 'Test-drives', href: '/dashboard/concessionaria-testdrives', icon: CalendarCheck },
     { label: 'Leads', href: '/dashboard/concessionaria-leads', icon: Megaphone },
     { label: 'Configurações', href: '/dashboard/concessionaria-settings', icon: Settings },
+  ],
+}
+
+/** Grupo de navegação exclusivo do perfil lavanderia (lavagem com coleta+entrega, camada 8.10). */
+const LAVANDERIA_GROUP: NavGroup = {
+  heading: 'Lavanderia',
+  items: [
+    { label: 'Serviços', href: '/dashboard/lavanderia-services', icon: WashingMachine },
+    { label: 'Pedidos', href: '/dashboard/lavanderia-orders', icon: ClipboardList },
+    { label: 'Configurações', href: '/dashboard/lavanderia-settings', icon: Settings },
   ],
 }

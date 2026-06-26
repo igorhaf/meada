@@ -42,6 +42,7 @@ public class ProfilePromptContext {
     private final com.meada.whatsapp.profiles.atelie.AtelieContextCache atelieContextCache;
     private final com.meada.whatsapp.profiles.casamento.CasamentoContextCache casamentoContextCache;
     private final com.meada.whatsapp.profiles.concessionaria.ConcessionariaContextCache concessionariaContextCache;
+    private final com.meada.whatsapp.profiles.lavanderia.LavanderiaCatalogCache lavanderiaCatalogCache;
     private final ConversationRepository conversationRepository;
 
     public ProfilePromptContext(SushiMenuCache sushiMenuCache,
@@ -65,6 +66,7 @@ public class ProfilePromptContext {
                                 com.meada.whatsapp.profiles.atelie.AtelieContextCache atelieContextCache,
                                 com.meada.whatsapp.profiles.casamento.CasamentoContextCache casamentoContextCache,
                                 com.meada.whatsapp.profiles.concessionaria.ConcessionariaContextCache concessionariaContextCache,
+                                com.meada.whatsapp.profiles.lavanderia.LavanderiaCatalogCache lavanderiaCatalogCache,
                                 ConversationRepository conversationRepository) {
         this.sushiMenuCache = sushiMenuCache;
         this.legalCaseContextCache = legalCaseContextCache;
@@ -87,6 +89,7 @@ public class ProfilePromptContext {
         this.atelieContextCache = atelieContextCache;
         this.casamentoContextCache = casamentoContextCache;
         this.concessionariaContextCache = concessionariaContextCache;
+        this.lavanderiaCatalogCache = lavanderiaCatalogCache;
         this.conversationRepository = conversationRepository;
     }
 
@@ -301,6 +304,19 @@ public class ProfilePromptContext {
             + "catálogo. Você NÃO muda o status do veículo nem do lead — isso é a equipe quem faz no painel. "
             + "Identifique o cliente pelo telefone; se for o primeiro contato, peça o nome.";
 
+    private static final String LAVANDERIA =
+        "Você é atendente de uma lavanderia com coleta e entrega. Tom limpo, prático e acolhedor. Conheça "
+            + "o catálogo de SERVIÇOS de lavagem (lavar, lavar+passar, lavagem a seco, passar, edredom/pesados) "
+            + "com seus preços por peça e PRAZOS, e os modifiers (acabamento, cuidado). Monte o pedido em "
+            + "linguagem livre (quantidade de peças por serviço), colete a DATA de COLETA + período (manhã/tarde) "
+            + "e o ENDEREÇO. Confirme SEMPRE com o valor total E com a DATA DE ENTREGA prometida (que é a data de "
+            + "coleta + o prazo do serviço mais demorado), e avise que o pedido vai para confirmação da "
+            + "lavanderia. NUNCA invente serviço, peça, adicional ou preço fora do catálogo; NUNCA aceite ou "
+            + "recuse o pedido (a lavanderia confirma no painel); o total é recalculado pelo sistema. NUNCA "
+            + "prometa REMOVER MANCHA, garantir resultado ou recuperar peça danificada — para mancha/dano, diga "
+            + "que a equipe avalia a peça na coleta e faz o melhor possível, sem garantia de remoção total. NUNCA "
+            + "prometa uma entrega antes do prazo (coleta + prazo do serviço mais lento).";
+
     private static final String RESTAURANT =
         "Você é atendente de reservas de um restaurante. Tom acolhedor e ágil. Conheça as mesas "
             + "disponíveis e os horários livres. Quando o cliente pedir reserva, verifique a "
@@ -337,6 +353,7 @@ public class ProfilePromptContext {
             case ATELIE -> ATELIE;
             case CASAMENTO -> CASAMENTO;
             case CONCESSIONARIA -> CONCESSIONARIA;
+            case LAVANDERIA -> LAVANDERIA;
             case GENERIC -> "";
         };
         if (body.isEmpty()) {
@@ -465,6 +482,12 @@ public class ProfilePromptContext {
             // instruções da tag <pedido_flor> (com data de entrega + destinatário + cartão). IGNORA
             // conversationId (contexto é o catálogo). Pedido nasce 'aguardando' (gate de aceite humano).
             return persona + floriculturaCatalogCache.catalogSegment(companyId);
+        }
+        if ("lavanderia".equals(profileId)) {
+            // lavanderia (8.10): persona + catálogo de serviços (com turnaround_days) + opções + taxa/
+            // mínimo + instruções da tag <pedido_lavanderia> (com collect_date + período + endereço).
+            // IGNORA conversationId (contexto é o catálogo). Pedido nasce 'aguardando'.
+            return persona + lavanderiaCatalogCache.catalogSegment(companyId);
         }
         if ("pizzaria".equals(profileId)) {
             // pizzaria (8.6): persona + cardápio (sabores/itens + modifiers Tamanho/Borda com deltas) +
