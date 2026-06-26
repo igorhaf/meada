@@ -40,6 +40,8 @@ import {
   Scissors,
   ScrollText,
   Settings,
+  Shirt,
+  ShoppingBag,
   Baby,
   Pizza,
   School,
@@ -225,6 +227,7 @@ function profileGroups(profileId: string | null | undefined): NavGroup[] {
   if (profileId === 'dermatologia') return [DERMATOLOGIA_GROUP, ...NAV_GROUPS]
   if (profileId === 'fotografia') return [FOTOGRAFIA_GROUP, ...NAV_GROUPS]
   if (profileId === 'cursos') return [CURSOS_GROUP, ...NAV_GROUPS]
+  if (profileId === 'lingerie') return [LINGERIE_GROUP, ...NAV_GROUPS]
   return NAV_GROUPS
 }
 
@@ -508,5 +511,14 @@ const CURSOS_GROUP: NavGroup = {
     { label: 'Matrículas', href: '/dashboard/cursos-enrollments', icon: GraduationCap },
     { label: 'Pagamentos', href: '/dashboard/cursos-payments', icon: CreditCard },
     { label: 'Configurações', href: '/dashboard/cursos-settings', icon: Settings },
+  ],
+}
+
+const LINGERIE_GROUP: NavGroup = {
+  heading: 'Lingerie',
+  items: [
+    { label: 'Catálogo', href: '/dashboard/lingerie-catalog', icon: Shirt },
+    { label: 'Pedidos', href: '/dashboard/lingerie-orders', icon: ShoppingBag },
+    { label: 'Configurações', href: '/dashboard/lingerie-settings', icon: Settings },
   ],
 }

@@ -1253,6 +1253,47 @@ apresenta cursos, matricula, e ENTREGA o conteúdo do próximo módulo. É o eix
 - Migration `64_cursos.sql` (slot README ordem 15; entra por ÚLTIMO no SCRIPTS — sua CHECK tem os 26
   perfis). Tenant `igorhaf31` (Escola Modelo de Cursos). Guia: `docs/PERFIL_CURSOS.md`.
 
+## Perfil Lingerie (LingerieBot, camada 8.21) — ⭐ chassi de varejo com variantes
+
+VIGÉSIMO SÉTIMO perfil vertical real (26 + generic). O tenant lingerie (`profile_id='lingerie'`) vira um
+produto de MODA ÍNTIMA / VAREJO: gerencia produtos com GRADE de variantes (tamanho×cor + estoque), a IA
+monta o pedido pela variante exata, e a loja acompanha num Kanban com gate de aceite. **INAUGURA o
+chassi de varejo com variantes** — reusado por Moda Infantil (8.22) e Lãs (8.23).
+
+- **⭐ ESCAPADA — GRADE DE VARIANTES (`lingerie_variants`) com ESTOQUE + decremento transacional:** um
+  produto (`lingerie_products`: name, category, base_price_cents) tem uma grade de variantes, cada uma
+  combinação (size, color) com SEU price_cents (ou herda o base) e SEU stock_qty. UNIQUE(product_id,
+  size, color). A variante é o SKU real; o pedido referencia a VARIANTE. Ao criar o pedido o backend faz
+  `UPDATE ... SET stock_qty = stock_qty - qtd WHERE id = ? AND stock_qty >= qtd`; 0 linhas afetadas →
+  `OutOfStockException` → **409 out_of_stock** e o pedido inteiro ABORTA (rollback). O `WHERE stock_qty
+  >= qtd` fecha a janela de corrida (dois pedidos pela última unidade → só um vence). size hardcoded com
+  parity (LingerieSize PP/P/M/G/GG/XGG ↔ lingerie-size.ts); color é TEXTO LIVRE.
+- **CLONA o resto do chassi do COMIDA/ADEGA (8.4/8.9):** pedido nasce 'aguardando' (gate de aceite
+  humano: a loja aceita→separando ou recusa→recusado c/ motivo; a IA não aceita/recusa), Kanban, total
+  MATERIALIZADO no backend (descarta o da IA), taxa+mínimo, snapshots de produto/variante/preço no item.
+  fulfillment entrega(c/ endereço)/retirada. Status `LingerieOrderStatus` ↔ TS (parity): aguardando→
+  separando→enviado→entregue + recusado/cancelado. Notifica todos menos aguardando.
+- **Categorias hardcoded** (`LingerieCategory` ↔ `lingerie-categories.ts`, parity): sutias/calcinhas/
+  conjuntos/pijamas/modeladores/meias/acessorios.
+- **Tag `<pedido_lingerie>`** (namespace próprio): items[].variant_id + qtd + fulfillment + endereco;
+  total_cents descartado. `OutboundService` ganhou `maybeProcessPedidoLingerie` (hasTag/stripTag/
+  parseAndCreate; encadeado após os demais; perfil é único, só um age).
+- **Persona LINGERIE** (`ProfilePromptContext.LINGERIE`, acolhedora-discreta-respeitosa): NUNCA oferece
+  variante ESGOTADA, NUNCA inventa produto/tamanho/cor/preço, NUNCA aceita/recusa, NUNCA faz apelo
+  sensual ou comenta o corpo. Contexto via `LingerieMenuCache` (TTL 60s, catálogo com produtos por
+  categoria + variantes tamanho×cor com preço e ESTOQUE + taxa/mínimo + a tag), IGNORA conversationId
+  (contexto é o catálogo). Invalidado em toda mutação.
+- **Guard:** `LingerieProfileGuard` (403 `forbidden_wrong_profile`). `JwtAuthenticationFilter` autentica
+  `/api/lingerie/**` (além dos 26 perfis anteriores).
+- **Sidebar:** `getNavForProfile('lingerie')` injeta "Lingerie" (Catálogo/Pedidos/Configurações), branch
+  próprio. Paleta `ameixa`. A tela de Catálogo tem o editor da grade de variantes (tamanho/cor/preço/
+  estoque); a de Pedidos mostra o gate de aceite e a variante de cada item.
+- **NÃO TEM:** foto de produto (bloqueador SERVICE_ROLE_KEY), pagamento real (Stripe #50), reserva de
+  estoque sem pedido, devolução/troca com reentrada de estoque, cupom/promoção, frete por CEP, variante
+  com 3+ eixos (só size×color), kit/combo, lista de desejos.
+- Migration `65_lingerie.sql` (slot README ordem 16; entra por ÚLTIMO no SCRIPTS — sua CHECK tem os 27
+  perfis). Tenant `igorhaf32` (Lingerie Modelo). Guia: `docs/PERFIL_LINGERIE.md`.
+
 ## Camada 9.0 — Feature Flags por Nicho (infra de plataforma)
 
 Infra pro ROOT (super-admin) ligar/desligar features por nicho num lugar só. A 1ª feature é o **CMS**

@@ -157,6 +157,9 @@ public class OutboundService {
     // progresso). Só agem p/ profile_id='cursos'.
     private final com.meada.whatsapp.profiles.cursos.enrollments.MatriculaCursoConfirmHandler matriculaCursoConfirmHandler;
     private final com.meada.whatsapp.profiles.cursos.enrollments.EntregaModuloHandler entregaModuloHandler;
+    // Camada 8.21 (perfil lingerie): <pedido_lingerie> cria o pedido de varejo (variante×estoque,
+    // decremento transacional → out_of_stock aborta; gate de aceite humano). Só age p/ profile_id='lingerie'.
+    private final com.meada.whatsapp.profiles.lingerie.orders.PedidoLingerieConfirmHandler pedidoLingerieConfirmHandler;
 
     private final int maxAttempts;
     private final List<Duration> backoffs;
@@ -228,6 +231,7 @@ public class OutboundService {
                            com.meada.whatsapp.profiles.fotografia.appointments.EntregaMaterialHandler entregaMaterialHandler,
                            com.meada.whatsapp.profiles.cursos.enrollments.MatriculaCursoConfirmHandler matriculaCursoConfirmHandler,
                            com.meada.whatsapp.profiles.cursos.enrollments.EntregaModuloHandler entregaModuloHandler,
+                           com.meada.whatsapp.profiles.lingerie.orders.PedidoLingerieConfirmHandler pedidoLingerieConfirmHandler,
                            @org.springframework.beans.factory.annotation.Value("${gemini.model}")
                            String geminiModel) {
         this.conversationRepository = conversationRepository;
@@ -281,6 +285,7 @@ public class OutboundService {
         this.entregaMaterialHandler = entregaMaterialHandler;
         this.matriculaCursoConfirmHandler = matriculaCursoConfirmHandler;
         this.entregaModuloHandler = entregaModuloHandler;
+        this.pedidoLingerieConfirmHandler = pedidoLingerieConfirmHandler;
         this.geminiModel = geminiModel;
         this.maxAttempts = retryProps.maxAttempts();
         // converte uma vez (lista YAML de millis → Durations). O RetryRunner valida
@@ -445,6 +450,8 @@ public class OutboundService {
         // Camada 8.20 (perfil cursos): <matricula_curso> matricula; <entrega_modulo> entrega o módulo.
         toSend = maybeProcessMatriculaCurso(event, conversationId, toSend);
         toSend = maybeProcessEntregaModulo(event, conversationId, toSend);
+        // Camada 8.21 (perfil lingerie): <pedido_lingerie> cria o pedido de varejo (variante×estoque).
+        toSend = maybeProcessPedidoLingerie(event, conversationId, toSend);
         Optional<OutboundOutcome> sendFailure = sendAndPersist(event, conversationId, toSend);
         if (sendFailure.isPresent()) {
             return sendFailure.get();   // casos 7/8/9 — já logado lá
@@ -1453,6 +1460,32 @@ public class OutboundService {
             entregaModuloHandler.parseAndDeliver(event.companyId(), conversationId, contactId.get(), reply);
         }
         String stripped = entregaModuloHandler.stripTag(reply);
+        return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
+            aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
+            aiResponse.schedulingIntent(), aiResponse.insights());
+    }
+
+    /**
+     * Pós-processamento do perfil lingerie (camada 8.21): se o tenant é lingerie e a resposta da IA
+     * contém a tag {@code <pedido_lingerie>}, cria o pedido de varejo (PedidoLingerieConfirmHandler
+     * resolve o contato, resolve as variantes, DECREMENTA o estoque transacionalmente — out_of_stock
+     * aborta o pedido —, recalcula o total descartando o da IA, e snapshota produto/variante) e devolve
+     * um AiResponse SEM a tag. Best-effort; tag sempre removida; só age se profile_id='lingerie'.
+     */
+    private AiResponse maybeProcessPedidoLingerie(MessageInboundProcessedEvent event,
+                                                  UUID conversationId, AiResponse aiResponse) {
+        String reply = aiResponse.reply();
+        if (reply == null || !pedidoLingerieConfirmHandler.hasTag(reply)) {
+            return aiResponse;
+        }
+        if (!"lingerie".equals(companyProfileRepository.findProfileId(event.companyId()))) {
+            return aiResponse;
+        }
+        Optional<UUID> contactId = conversationRepository.findContactIdByConversation(conversationId);
+        if (contactId.isPresent()) {
+            pedidoLingerieConfirmHandler.parseAndCreate(event.companyId(), conversationId, contactId.get(), reply);
+        }
+        String stripped = pedidoLingerieConfirmHandler.stripTag(reply);
         return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
             aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
             aiResponse.schedulingIntent(), aiResponse.insights());

@@ -49,7 +49,8 @@ public enum ProfileType {
     LAVANDERIA("lavanderia", "Lavanderia", "lavanderia", "oceano"),
     DERMATOLOGIA("dermatologia", "Dermatologia", "dermatologia", "teal"),
     FOTOGRAFIA("fotografia", "Fotografia", "fotografia", "carvao"),
-    CURSOS("cursos", "Cursos", "cursos", "oliva");
+    CURSOS("cursos", "Cursos", "cursos", "oliva"),
+    LINGERIE("lingerie", "Lingerie", "lingerie", "ameixa");
 
     private final String id;
     private final String productName;

@@ -46,6 +46,7 @@ public class ProfilePromptContext {
     private final com.meada.whatsapp.profiles.dermatologia.DermatologiaContextCache dermatologiaContextCache;
     private final com.meada.whatsapp.profiles.fotografia.FotografiaContextCache fotografiaContextCache;
     private final com.meada.whatsapp.profiles.cursos.CursosContextCache cursosContextCache;
+    private final com.meada.whatsapp.profiles.lingerie.LingerieMenuCache lingerieMenuCache;
     private final ConversationRepository conversationRepository;
 
     public ProfilePromptContext(SushiMenuCache sushiMenuCache,
@@ -73,6 +74,7 @@ public class ProfilePromptContext {
                                 com.meada.whatsapp.profiles.dermatologia.DermatologiaContextCache dermatologiaContextCache,
                                 com.meada.whatsapp.profiles.fotografia.FotografiaContextCache fotografiaContextCache,
                                 com.meada.whatsapp.profiles.cursos.CursosContextCache cursosContextCache,
+                                com.meada.whatsapp.profiles.lingerie.LingerieMenuCache lingerieMenuCache,
                                 ConversationRepository conversationRepository) {
         this.sushiMenuCache = sushiMenuCache;
         this.legalCaseContextCache = legalCaseContextCache;
@@ -99,6 +101,7 @@ public class ProfilePromptContext {
         this.dermatologiaContextCache = dermatologiaContextCache;
         this.fotografiaContextCache = fotografiaContextCache;
         this.cursosContextCache = cursosContextCache;
+        this.lingerieMenuCache = lingerieMenuCache;
         this.conversationRepository = conversationRepository;
     }
 
@@ -368,6 +371,17 @@ public class ProfilePromptContext {
             + "um módulo, só faça quando o aluno já estiver matriculado e for o próprio contato da conversa. "
             + "NUNCA prometa certificado, aprovação ou resultado que não esteja descrito no curso.";
 
+    private static final String LINGERIE =
+        "Você é atendente de uma loja de lingerie / moda íntima. Tom acolhedor, discreto e respeitoso, sem "
+            + "qualquer apelo sensual ou comentário sobre o corpo do cliente. Conheça o catálogo: cada produto "
+            + "tem uma GRADE de variantes (tamanho × cor), cada uma com SEU preço e ESTOQUE. Monte o pedido "
+            + "escolhendo a VARIANTE exata (tamanho e cor); use o variant_id correto do catálogo injetado. "
+            + "NUNCA ofereça uma variante ESGOTADA (estoque 0) — se a desejada não tem estoque, diga isso com "
+            + "delicadeza e ofereça outra cor/tamanho disponível. NUNCA invente produto, tamanho, cor ou preço "
+            + "fora do catálogo; o total é recalculado pelo sistema. Confirme SEMPRE com o valor total e se é "
+            + "entrega (com endereço) ou retirada. Avise que o pedido vai para confirmação da loja. NUNCA aceite "
+            + "ou recuse o pedido (isso é a loja quem faz). Oriente sobre medidas com cuidado, sem constranger.";
+
     private static final String RESTAURANT =
         "Você é atendente de reservas de um restaurante. Tom acolhedor e ágil. Conheça as mesas "
             + "disponíveis e os horários livres. Quando o cliente pedir reserva, verifique a "
@@ -408,6 +422,7 @@ public class ProfilePromptContext {
             case DERMATOLOGIA -> DERMATOLOGIA;
             case FOTOGRAFIA -> FOTOGRAFIA;
             case CURSOS -> CURSOS;
+            case LINGERIE -> LINGERIE;
             case GENERIC -> "";
         };
         if (body.isEmpty()) {
@@ -580,6 +595,12 @@ public class ProfilePromptContext {
             // age_confirmed). IGNORA conversationId (contexto é o cardápio). Pedido nasce 'aguardando';
             // sem age_confirmed=true o backend não cria (trava de faixa etária).
             return persona + adegaMenuCache.menuSegment(companyId);
+        }
+        if ("lingerie".equals(profileId)) {
+            // lingerie (8.21): persona + catálogo (produtos por categoria + variantes tamanho×cor com
+            // preço e ESTOQUE) + taxa/mínimo + instruções da tag <pedido_lingerie>. IGNORA conversationId
+            // (contexto é o catálogo). Pedido nasce 'aguardando' (gate de aceite da loja).
+            return persona + lingerieMenuCache.menuSegment(companyId);
         }
         if ("escola".equals(profileId)) {
             // escola (8.19): persona + turmas com vagas restantes + os alunos (filhos) do responsável +
