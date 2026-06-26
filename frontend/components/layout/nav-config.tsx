@@ -8,6 +8,7 @@ import {
   Briefcase,
   Building2,
   Calendar,
+  Camera,
   CalendarCheck,
   CalendarClock,
   ClipboardList,
@@ -220,6 +221,7 @@ function profileGroups(profileId: string | null | undefined): NavGroup[] {
   if (profileId === 'concessionaria') return [CONCESSIONARIA_GROUP, ...NAV_GROUPS]
   if (profileId === 'lavanderia') return [LAVANDERIA_GROUP, ...NAV_GROUPS]
   if (profileId === 'dermatologia') return [DERMATOLOGIA_GROUP, ...NAV_GROUPS]
+  if (profileId === 'fotografia') return [FOTOGRAFIA_GROUP, ...NAV_GROUPS]
   return NAV_GROUPS
 }
 
@@ -483,5 +485,15 @@ const DERMATOLOGIA_GROUP: NavGroup = {
     { label: 'Tipos de Atendimento', href: '/dashboard/dermatologia-procedures', icon: Syringe },
     { label: 'Agenda', href: '/dashboard/dermatologia-appointments', icon: CalendarCheck },
     { label: 'Configurações', href: '/dashboard/dermatologia-settings', icon: Settings },
+  ],
+}
+
+const FOTOGRAFIA_GROUP: NavGroup = {
+  heading: 'Fotografia',
+  items: [
+    { label: 'Fotógrafos', href: '/dashboard/fotografia-professionals', icon: Users },
+    { label: 'Pacotes', href: '/dashboard/fotografia-packages', icon: Package },
+    { label: 'Agenda', href: '/dashboard/fotografia-appointments', icon: Camera },
+    { label: 'Configurações', href: '/dashboard/fotografia-settings', icon: Settings },
   ],
 }

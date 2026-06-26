@@ -1153,6 +1153,59 @@ parity (FEMININO: agendada/confirmada/realizada/cancelada/falta).
 - Migration `55_dermatologia.sql` (slot README ordem 6; entra por ÚLTIMO no SCRIPTS — sua CHECK tem os 24
   perfis). Tenant `igorhaf22` (Clínica Derma Modelo). Guia: `docs/PERFIL_DERMATOLOGIA.md`.
 
+## Perfil Fotografia (FotografiaBot, camada 8.16)
+
+VIGÉSIMO QUINTO perfil vertical real (24 + generic). O tenant fotografia (`profile_id='fotografia'`) vira
+um produto de ESTÚDIO FOTOGRÁFICO / cinema / audiovisual: gerencia fotógrafos e um catálogo de PACOTES,
+agenda sessões/coberturas e ENTREGA, read-only, o LINK do material. A IA atende com tom criativo-
+organizado, sem prometer resultado estético.
+
+- **CLONA o chassi de agenda do DERMATOLOGIA/DENTAL:** conflito POR `professional_id` (half-open,
+  re-verificado na transação) → 409 `conflict_slot`; `end_at` MATERIALIZADO no INSERT (start_at +
+  duration_minutes, em Java — timestamptz+interval não é IMMUTABLE); paralelismo entre fotógrafos. Janela
+  `opens_at`..`closes_at` → 400 `outside_hours`.
+- **Cliente = CONTATO (sem sub-entidade, espelho salon/estetica):** diferente do dermatologia (que tinha
+  `dermatologia_patients`), aqui o cliente é o próprio contato — a sessão SNAPSHOTA customer_name/phone do
+  contato. Sem tabela de pacientes, sem modo new_patient na tag.
+- **CATÁLOGO DE PACOTES (espelho leve do aesthetic_procedures, SEM saldo):** `fotografia_packages` (nome,
+  categoria texto livre, duration_minutes, price_cents, **delivery_days**, active). A sessão referencia
+  `package_id` e SNAPSHOTA name+price+duration+delivery_days — mudar o pacote depois NÃO altera sessões
+  passadas. A DURAÇÃO da sessão VEM DO PACOTE (snapshot), não de config (config só tem horário+slot).
+  Excluir pacote em uso → 409 `package_in_use`.
+- **ESCAPADA — ENTREGA DE LINK READ-ONLY + PRAZO MATERIALIZADO:** a sessão tem `delivery_due_date` (date,
+  MATERIALIZADA no INSERT = `date(start_at) + delivery_days`, o prazo prometido, exibido na Agenda) e
+  `delivery_link` (text nullable, gravado pelo estúdio DEPOIS da sessão via PATCH `/api/fotografia/
+  sessions/{id}`). A tag `<entrega_material>{session_id}` faz o `EntregaMaterialHandler` enviar o
+  `delivery_link` VERBATIM via `notifier.sendText` (NÃO passa pela IA), com **BARREIRA DE CONTATO** (só se
+  o contato da sessão == contato da conversa — impede vazar link de outro cliente). Sem link / contato
+  diferente / sessão inexistente → não entrega. Espelho EXATO da entrega de plano do nutri / preparo do
+  dermatologia, mas o link mora NA PRÓPRIA SESSÃO (não numa nota de catálogo).
+- **Status hardcoded** (`FotografiaAppointmentStatus` ↔ `fotografia-appointment-status.ts`, parity,
+  FEMININO): `agendada → confirmada → realizada → entregue`; `agendada/confirmada → cancelada`;
+  `confirmada → falta`. A diferença vs dermatologia (que para em `realizada`): há o estado **`entregue`**
+  (o material foi entregue). Notifica **confirmada** (com pacote+fotógrafo+data/hora, defensivo) e
+  **cancelada**; agendada/realizada/entregue/falta silenciosos.
+- **Duas TAGS namespace próprio** (distintas de TODAS): `<sessao_foto>` (1 modo: professional_id,
+  package_id, date, start_time, notes — sem new_patient) via `SessaoFotoConfirmHandler` (resolve o cliente
+  pelo contato, DESCARTA qualquer preço da IA); `<entrega_material>{session_id}` via
+  `EntregaMaterialHandler`. `OutboundService` ganhou `maybeProcessSessaoFoto` + `maybeProcessEntregaMaterial`
+  (encadeados após os demais; perfil é único, só um age; removem a tag).
+- **Persona FOTOGRAFIA** (`ProfilePromptContext.FOTOGRAFIA`, criativa-organizada): NUNCA inventa pacote/
+  valor/prazo/fotógrafo fora do catálogo, NUNCA negocia preço/desconto, NUNCA promete resultado estético,
+  NUNCA garante entrega antes do prazo do pacote, NUNCA inventa link. Contexto via `FotografiaContextCache`
+  (TTL 20s, keyed por (companyId, contactId) — fotógrafos + pacotes + sessões do contato com status de
+  entrega + slots livres por profissional), invalidado em toda mutação.
+- **Guard:** `FotografiaProfileGuard` (403 `forbidden_wrong_profile`). `JwtAuthenticationFilter` autentica
+  `/api/fotografia/**` (além dos 24 perfis anteriores).
+- **Sidebar:** `getNavForProfile('fotografia')` injeta "Fotografia" (Fotógrafos/Pacotes/Agenda/
+  Configurações), branch próprio. Paleta `carvao`. A tela de Agenda tem o editor do link do material +
+  o prazo de entrega por sessão.
+- **NÃO TEM:** upload de foto/material (link colado, bloqueador SERVICE_ROLE_KEY), saldo multi-sessão
+  (estetica cobre), curadoria/seleção de fotos, contrato/assinatura, sinal/pagamento (Stripe #50), equipe
+  por sessão, orçamento ad-hoc com itens (eventos cobre), scheduler de lembrete de prazo.
+- Migration `60_fotografia.sql` (slot README ordem 11; entra por ÚLTIMO no SCRIPTS — sua CHECK tem os 25
+  perfis). Tenant `igorhaf27` (Estúdio Modelo). Guia: `docs/PERFIL_FOTOGRAFIA.md`.
+
 ## Camada 9.0 — Feature Flags por Nicho (infra de plataforma)
 
 Infra pro ROOT (super-admin) ligar/desligar features por nicho num lugar só. A 1ª feature é o **CMS**

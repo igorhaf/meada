@@ -147,6 +147,11 @@ public class OutboundService {
     // de contato). Só agem p/ profile_id='dermatologia'.
     private final com.meada.whatsapp.profiles.dermatologia.appointments.AgendamentoDermaConfirmHandler agendamentoDermaConfirmHandler;
     private final com.meada.whatsapp.profiles.dermatologia.appointments.EntregaPreparoHandler entregaPreparoHandler;
+    // Camada 8.16 (perfil fotografia): <sessao_foto> agenda a sessão (conflito por profissional,
+    // snapshot de pacote, end_at + delivery_due_date materializados); <entrega_material> entrega
+    // READ-ONLY o link do material (barreira de contato). Só agem p/ profile_id='fotografia'.
+    private final com.meada.whatsapp.profiles.fotografia.appointments.SessaoFotoConfirmHandler sessaoFotoConfirmHandler;
+    private final com.meada.whatsapp.profiles.fotografia.appointments.EntregaMaterialHandler entregaMaterialHandler;
 
     private final int maxAttempts;
     private final List<Duration> backoffs;
@@ -214,6 +219,8 @@ public class OutboundService {
                            com.meada.whatsapp.profiles.lavanderia.orders.PedidoLavanderiaConfirmHandler pedidoLavanderiaConfirmHandler,
                            com.meada.whatsapp.profiles.dermatologia.appointments.AgendamentoDermaConfirmHandler agendamentoDermaConfirmHandler,
                            com.meada.whatsapp.profiles.dermatologia.appointments.EntregaPreparoHandler entregaPreparoHandler,
+                           com.meada.whatsapp.profiles.fotografia.appointments.SessaoFotoConfirmHandler sessaoFotoConfirmHandler,
+                           com.meada.whatsapp.profiles.fotografia.appointments.EntregaMaterialHandler entregaMaterialHandler,
                            @org.springframework.beans.factory.annotation.Value("${gemini.model}")
                            String geminiModel) {
         this.conversationRepository = conversationRepository;
@@ -263,6 +270,8 @@ public class OutboundService {
         this.pedidoLavanderiaConfirmHandler = pedidoLavanderiaConfirmHandler;
         this.agendamentoDermaConfirmHandler = agendamentoDermaConfirmHandler;
         this.entregaPreparoHandler = entregaPreparoHandler;
+        this.sessaoFotoConfirmHandler = sessaoFotoConfirmHandler;
+        this.entregaMaterialHandler = entregaMaterialHandler;
         this.geminiModel = geminiModel;
         this.maxAttempts = retryProps.maxAttempts();
         // converte uma vez (lista YAML de millis → Durations). O RetryRunner valida
@@ -421,6 +430,9 @@ public class OutboundService {
         // Camada 8.11 (perfil dermatologia): <consulta_derma> agenda; <entrega_preparo> entrega preparo.
         toSend = maybeProcessConsultaDerma(event, conversationId, toSend);
         toSend = maybeProcessEntregaPreparo(event, conversationId, toSend);
+        // Camada 8.16 (perfil fotografia): <sessao_foto> agenda; <entrega_material> entrega o link.
+        toSend = maybeProcessSessaoFoto(event, conversationId, toSend);
+        toSend = maybeProcessEntregaMaterial(event, conversationId, toSend);
         Optional<OutboundOutcome> sendFailure = sendAndPersist(event, conversationId, toSend);
         if (sendFailure.isPresent()) {
             return sendFailure.get();   // casos 7/8/9 — já logado lá
@@ -1330,6 +1342,56 @@ public class OutboundService {
             entregaPreparoHandler.parseAndDeliver(event.companyId(), conversationId, contactId.get(), reply);
         }
         String stripped = entregaPreparoHandler.stripTag(reply);
+        return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
+            aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
+            aiResponse.schedulingIntent(), aiResponse.insights());
+    }
+
+    /**
+     * Pós-processamento do perfil fotografia (camada 8.16): se o tenant é fotografia e a resposta da
+     * IA contém a tag {@code <sessao_foto>}, agenda a sessão (SessaoFotoConfirmHandler resolve o
+     * contato, valida conflito por profissional, snapshota o pacote, materializa end_at e
+     * delivery_due_date) e devolve um AiResponse SEM a tag. Best-effort; só age se profile_id='fotografia'.
+     */
+    private AiResponse maybeProcessSessaoFoto(MessageInboundProcessedEvent event,
+                                              UUID conversationId, AiResponse aiResponse) {
+        String reply = aiResponse.reply();
+        if (reply == null || !sessaoFotoConfirmHandler.hasTag(reply)) {
+            return aiResponse;
+        }
+        if (!"fotografia".equals(companyProfileRepository.findProfileId(event.companyId()))) {
+            return aiResponse;
+        }
+        Optional<UUID> contactId = conversationRepository.findContactIdByConversation(conversationId);
+        if (contactId.isPresent()) {
+            sessaoFotoConfirmHandler.parseAndCreate(event.companyId(), conversationId, contactId.get(), reply);
+        }
+        String stripped = sessaoFotoConfirmHandler.stripTag(reply);
+        return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
+            aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
+            aiResponse.schedulingIntent(), aiResponse.insights());
+    }
+
+    /**
+     * Pós-processamento do perfil fotografia (camada 8.16): se o tenant é fotografia e a resposta da
+     * IA contém a tag {@code <entrega_material>}, entrega READ-ONLY o link do material gravado na
+     * sessão (EntregaMaterialHandler envia o link VERBATIM via notifier, com barreira de contato) e
+     * devolve um AiResponse SEM a tag. Best-effort; só age se profile_id='fotografia'.
+     */
+    private AiResponse maybeProcessEntregaMaterial(MessageInboundProcessedEvent event,
+                                                   UUID conversationId, AiResponse aiResponse) {
+        String reply = aiResponse.reply();
+        if (reply == null || !entregaMaterialHandler.hasTag(reply)) {
+            return aiResponse;
+        }
+        if (!"fotografia".equals(companyProfileRepository.findProfileId(event.companyId()))) {
+            return aiResponse;
+        }
+        Optional<UUID> contactId = conversationRepository.findContactIdByConversation(conversationId);
+        if (contactId.isPresent()) {
+            entregaMaterialHandler.parseAndDeliver(event.companyId(), conversationId, contactId.get(), reply);
+        }
+        String stripped = entregaMaterialHandler.stripTag(reply);
         return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
             aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
             aiResponse.schedulingIntent(), aiResponse.insights());

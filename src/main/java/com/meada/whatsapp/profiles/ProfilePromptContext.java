@@ -44,6 +44,7 @@ public class ProfilePromptContext {
     private final com.meada.whatsapp.profiles.concessionaria.ConcessionariaContextCache concessionariaContextCache;
     private final com.meada.whatsapp.profiles.lavanderia.LavanderiaCatalogCache lavanderiaCatalogCache;
     private final com.meada.whatsapp.profiles.dermatologia.DermatologiaContextCache dermatologiaContextCache;
+    private final com.meada.whatsapp.profiles.fotografia.FotografiaContextCache fotografiaContextCache;
     private final ConversationRepository conversationRepository;
 
     public ProfilePromptContext(SushiMenuCache sushiMenuCache,
@@ -69,6 +70,7 @@ public class ProfilePromptContext {
                                 com.meada.whatsapp.profiles.concessionaria.ConcessionariaContextCache concessionariaContextCache,
                                 com.meada.whatsapp.profiles.lavanderia.LavanderiaCatalogCache lavanderiaCatalogCache,
                                 com.meada.whatsapp.profiles.dermatologia.DermatologiaContextCache dermatologiaContextCache,
+                                com.meada.whatsapp.profiles.fotografia.FotografiaContextCache fotografiaContextCache,
                                 ConversationRepository conversationRepository) {
         this.sushiMenuCache = sushiMenuCache;
         this.legalCaseContextCache = legalCaseContextCache;
@@ -93,6 +95,7 @@ public class ProfilePromptContext {
         this.concessionariaContextCache = concessionariaContextCache;
         this.lavanderiaCatalogCache = lavanderiaCatalogCache;
         this.dermatologiaContextCache = dermatologiaContextCache;
+        this.fotografiaContextCache = fotografiaContextCache;
         this.conversationRepository = conversationRepository;
     }
 
@@ -336,6 +339,19 @@ public class ProfilePromptContext {
             + "minimizar, nem alarmar). Identifique o paciente pelo telefone; se for o primeiro atendimento, "
             + "peça o nome.";
 
+    private static final String FOTOGRAFIA =
+        "Você é o assistente virtual de um estúdio de fotografia e audiovisual. Tom criativo, atencioso e "
+            + "organizado. Seu papel é AGENDAR sessões/coberturas (ensaios, eventos, vídeo) escolhendo um "
+            + "pacote do catálogo e um fotógrafo, e ENTREGAR o link do material que o estúdio já gravou na "
+            + "sessão — e NADA além disso. Conheça os pacotes (nome, duração, valor e prazo de entrega) e os "
+            + "fotógrafos disponíveis. Ao agendar, confirme SEMPRE o pacote, o fotógrafo, a data/hora e avise o "
+            + "prazo de entrega do material. NUNCA invente pacote, valor, prazo ou fotógrafo que não esteja no "
+            + "catálogo; o valor é sempre o do pacote no sistema (não negocie nem dê desconto). Verifique a "
+            + "disponibilidade do fotógrafo no contexto injetado; se o horário pedido estiver ocupado, ofereça "
+            + "outro horário livre do mesmo profissional. NUNCA prometa um resultado estético ('vai ficar "
+            + "perfeito') nem garanta entrega antes do prazo do pacote. Para entregar o material, só envie o "
+            + "link quando ele já estiver disponível na sessão do próprio cliente; nunca invente um link.";
+
     private static final String RESTAURANT =
         "Você é atendente de reservas de um restaurante. Tom acolhedor e ágil. Conheça as mesas "
             + "disponíveis e os horários livres. Quando o cliente pedir reserva, verifique a "
@@ -374,6 +390,7 @@ public class ProfilePromptContext {
             case CONCESSIONARIA -> CONCESSIONARIA;
             case LAVANDERIA -> LAVANDERIA;
             case DERMATOLOGIA -> DERMATOLOGIA;
+            case FOTOGRAFIA -> FOTOGRAFIA;
             case GENERIC -> "";
         };
         if (body.isEmpty()) {
@@ -517,6 +534,14 @@ public class ProfilePromptContext {
             UUID contactId = conversationId == null ? null
                 : conversationRepository.findContactIdByConversation(conversationId).orElse(null);
             return persona + dermatologiaContextCache.contextSegment(companyId, contactId);
+        }
+        if ("fotografia".equals(profileId)) {
+            // fotografia (8.16): persona + fotógrafos + pacotes (nome+duração+valor+prazo) + sessões do
+            // contato (com status de entrega) + slots livres por profissional + instruções das 2 tags
+            // (<sessao_foto> + <entrega_material>). Resolve o contato pela conversa (per-contact).
+            UUID contactId = conversationId == null ? null
+                : conversationRepository.findContactIdByConversation(conversationId).orElse(null);
+            return persona + fotografiaContextCache.contextSegment(companyId, contactId);
         }
         if ("pizzaria".equals(profileId)) {
             // pizzaria (8.6): persona + cardápio (sabores/itens + modifiers Tamanho/Borda com deltas) +
