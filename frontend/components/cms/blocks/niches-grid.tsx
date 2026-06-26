@@ -17,22 +17,12 @@ function apiBase(): string {
   return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8095'
 }
 
-/** Host base do Meada (pra montar o link do nicho: {subdomain}.<base>). */
-function nicheHref(subdomain: string): string {
-  if (typeof window === 'undefined') return `https://${subdomain}.meadadigital.com`
-  const host = window.location.host // ex.: meadadigital.local ou meadadigital.local:80
-  const parts = host.split(':')[0].split('.')
-  const base = parts.length <= 2 ? parts.join('.') : parts.slice(1).join('.')
-  const proto = window.location.protocol
-  const port = host.split(':')[1]
-  return port && port !== '80' ? `${proto}//${subdomain}.${base}:${port}` : `${proto}//${subdomain}.${base}`
-}
-
 /**
  * Grade de nichos (produtos do Meada) — bloco AUTO-POPULADO. Busca os nichos no backend
  * (/public/niches?featured=...) e monta os cards. mode 'featured' = home (destaques);
  * 'all' = página /produtos (todos, na ordem). Card = nome do nicho + cor da paleta + link
- * pro subdomínio. Client component (faz fetch); SSR renderiza o cabeçalho e hidrata os cards.
+ * pra PÁGINA INSTITUCIONAL do nicho (meadadigital.com/{profileId} — a vitrine do produto, com
+ * hero/features/CTA editável no CMS). Client component (faz fetch); SSR renderiza o cabeçalho.
  */
 export function NichesGrid({ props }: { props: NichesGridProps }) {
   const [cards, setCards] = useState<NicheCard[]>([])
@@ -70,7 +60,7 @@ export function NichesGrid({ props }: { props: NichesGridProps }) {
               return (
                 <a
                   key={c.profileId}
-                  href={nicheHref(c.subdomain)}
+                  href={`/${c.profileId}`}
                   style={{
                     display: 'block', textDecoration: 'none', position: 'relative', overflow: 'hidden',
                     borderRadius: '18px', padding: '2rem', minHeight: '180px',
