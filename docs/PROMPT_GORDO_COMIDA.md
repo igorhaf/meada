@@ -10,7 +10,7 @@ abaixo descreve o REAL (não a intenção), espelhando o estilo de `docs/prompts
 PROMPT_GORDO_PIZZARIA.md` — que, por sua vez, CLONOU justamente o comida.
 
 [CONTEXTO]
-PROJETO MEADA WHATSAPP em /home/igorhaf/meada/projects/whatsapp.
+PROJETO MEADA WHATSAPP em /home/igorhaf/meada.
 Comida é template de nicho pra DELIVERY GENÉRICO DE COMIDA estilo iFood dentro do mesmo dashboard
 Meada. O tenant acessa `comida.meadadigital.local` e vê o produto "Comida". A equipe gerencia o
 cardápio (itens + opções/adicionais), a IA atende clientes via WhatsApp, conhece o cardápio, MONTA o

@@ -1,6 +1,6 @@
 /**
  * Status de um pacote multi-sessão de estética (camada 8.3) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/estetica/AestheticPackageStatus.java.
+ * src/main/java/com/meada/profiles/estetica/AestheticPackageStatus.java.
  *
  * O AestheticPackageStatusParityTest (backend) garante a paridade. Transições MANUAIS (PATCH do
  * tenant): pendente→ativo/cancelado; ativo→expirado/cancelado. 'esgotado' NÃO é destino manual (é

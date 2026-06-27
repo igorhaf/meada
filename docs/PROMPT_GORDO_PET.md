@@ -4,7 +4,7 @@
 [TAREFA — PERFIL PET / PetBot (camada 7.8) — RETROATIVO]
 
 Documentação RETROATIVA, no formato T5, do perfil PET (PetBot) JÁ IMPLEMENTADO e fechado no
-projeto MEADA WHATSAPP (`/home/igorhaf/meada/projects/whatsapp`). Não é uma tarefa a executar —
+projeto MEADA WHATSAPP (`/home/igorhaf/meada`). Não é uma tarefa a executar —
 é o registro fiel do que existe no código, no banco (migration 37_pet.sql) e no guia operacional
 (docs/PERFIL_PET.md). Oitavo perfil vertical real e ÚLTIMO da fila planejada de 8 — fecha o
 catálogo (sushi 7.1 · legal 7.2 · restaurant 7.3 · dental 7.4 · salon 7.5 · pousada 7.6 ·
@@ -109,7 +109,7 @@ Fases futuras.
 - TODAS as tabelas entram na migration 37 ANTES de tocar o banco (lição os_config) e no
   TRUNCATE/SCRIPTS do AbstractIntegrationTest.
 
-[BACKEND] (src/main/java/com/meada/whatsapp/profiles/pet/)
+[BACKEND] (src/main/java/com/meada/profiles/pet/)
 - Profissionais: CRUD (`pet_professionals`) — `PetProfessionalService`/Controller/Repository.
   delete com agendamento → 409 `professional_in_use`; preferir arquivar (`active=false`).
 - Serviços: CRUD com `species_restriction` (`pet_services`) — `PetService`/Controller/Repository.

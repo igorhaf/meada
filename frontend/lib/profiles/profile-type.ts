@@ -1,6 +1,6 @@
 /**
  * Catálogo MATERIALIZADO de perfis verticais (camada 7.0) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/ProfileType.java.
+ * src/main/java/com/meada/profiles/ProfileType.java.
  *
  * Meada é um monolito que se apresenta como N produtos verticais ("perfis"). Cada perfil
  * parece um produto distinto para o cliente final. Os perfis são HARDCODED aqui e no enum

@@ -1,6 +1,6 @@
 /**
  * Categorias de catálogo do perfil floricultura (loja de flores) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/floricultura/FloriculturaCategory.java.
+ * src/main/java/com/meada/profiles/floricultura/FloriculturaCategory.java.
  *
  * O FloriculturaCategoryParityTest (backend) garante que os ids aqui e no enum Java nunca divergem
  * (o teste casa textualmente cada objeto `{ id: '...' }` deste arquivo).

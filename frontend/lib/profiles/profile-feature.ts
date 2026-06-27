@@ -1,6 +1,6 @@
 /**
  * Catálogo HARDCODED de features de plataforma (camada 9.0) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/ProfileFeature.java.
+ * src/main/java/com/meada/profiles/ProfileFeature.java.
  *
  * O ROOT (super-admin) liga/desliga cada feature por nicho. Os perfis são hardcoded em
  * profile-type.ts; as features aqui. O ProfileFeatureParityTest (backend) garante que os keys

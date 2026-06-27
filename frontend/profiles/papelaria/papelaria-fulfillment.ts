@@ -1,6 +1,6 @@
 /**
  * Forma de entrega de um pedido papelaria (camada 8.15) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/papelaria/PapelariaFulfillment.java.
+ * src/main/java/com/meada/profiles/papelaria/PapelariaFulfillment.java.
  *
  * O pedido é RETIRADA (o cliente busca na loja) ou ENTREGA (delivery no endereço). O fluxo do
  * Kanban diverge no fim por causa disso: pronto → retirado (retirada) ou pronto → saiu_entrega →

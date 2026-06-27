@@ -10,10 +10,10 @@ Gerencia mesas e reservas; a IA atende clientes via WhatsApp, verifica disponibi
 reserva. É o 3º perfil vertical real (sushi 7.1 · legal 7.2 · restaurant 7.3) e o 4º no enum
 `ProfileType` (5º contando generic). Este .md descreve o que EXISTE — não inventa nada além do que
 está em CLAUDE.md, na migration 32_restaurant.sql, em docs/PERFIL_MESABOT.md e no código em
-`src/main/java/com/meada/whatsapp/profiles/restaurant/`.
+`src/main/java/com/meada/profiles/restaurant/`.
 
 [CONTEXTO]
-PROJETO MEADA WHATSAPP em /home/igorhaf/meada/projects/whatsapp.
+PROJETO MEADA WHATSAPP em /home/igorhaf/meada.
 Monolito que se apresenta como N produtos verticais ("perfis"). Tenant restaurant acessa o produto
 "Restaurante" (subdomínio `mesa`, paleta `tijolo`) e vê o produto de RESERVAS DE MESA. A IA atende
 clientes em linguagem natural via WhatsApp: conhece as mesas disponíveis e as reservas já marcadas
@@ -117,7 +117,7 @@ buffer configurável de fato (fixo em 0). Sem foto/anexo (bloqueador SERVICE_ROL
 - updated_at mantido pelos repositórios (set updated_at = now() no UPDATE) — sem trigger genérico.
 
 [BACKEND]
-Pacote `src/main/java/com/meada/whatsapp/profiles/restaurant/`.
+Pacote `src/main/java/com/meada/profiles/restaurant/`.
 - `RestaurantProfileGuard` (`requireRestaurant`) → 403 `forbidden_wrong_profile` pra tenant de outro
   perfil. `JwtAuthenticationFilter` autentica `/api/restaurant/**` (além de `/admin/**`, `/api/sushi/**`,
   `/api/legal/**`).

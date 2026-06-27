@@ -5,7 +5,7 @@
 [TAREFA — PERFIL BARBEARIA / BarbeariaBot (camada 8.1) — RETROATIVO]
 
 [CONTEXTO]
-PROJETO MEADA WHATSAPP em /home/igorhaf/meada/projects/whatsapp.
+PROJETO MEADA WHATSAPP em /home/igorhaf/meada.
 Barbearia é o 11º perfil vertical real (sushi 7.1, legal 7.2, restaurant 7.3, dental 7.4, salon 7.5,
 pousada 7.6, academia 7.7, pet 7.8, oficina 7.9, nutri 8.0, barbearia 8.1) — 12º contando generic.
 O tenant barbearia (`profile_id='barbearia'`) vira um produto de BARBEARIA / barber shop dentro do
@@ -109,7 +109,7 @@ cadeiras paralelas (um barbeiro = um atendimento por vez). Fases futuras.
   TRUNCATE/SCRIPTS do AbstractIntegrationTest.
 
 [BACKEND]
-(em src/main/java/com/meada/whatsapp/profiles/barbearia/: barbers/ services/ config/ appointments/
+(em src/main/java/com/meada/profiles/barbearia/: barbers/ services/ config/ appointments/
 queue/ + BarberAppointmentStatus, BarberQueueStatus, BarberContextCache, BarberProfileGuard.)
 - Barbeiros / Serviços / Config: CRUD por entidade (Repository + Service + Controller). Config GET
   com fallback de defaults + PUT. Mutação invalida o BarberContextCache.

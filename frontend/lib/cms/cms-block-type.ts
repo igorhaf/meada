@@ -1,6 +1,6 @@
 /**
  * Catálogo HARDCODED de tipos de bloco do CMS (SM-M, page builder) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/cms/CmsBlockType.java.
+ * src/main/java/com/meada/cms/CmsBlockType.java.
  *
  * O CmsBlockTypeParityTest (backend) garante que os ids aqui e no enum Java nunca divergem.
  * Cada bloco de uma página é { id, type, props }; type é um destes. As props variam por tipo

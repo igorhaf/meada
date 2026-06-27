@@ -1,0 +1,145 @@
+package com.meada.profiles.lingerie;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.meada.profiles.lingerie.catalog.LingerieProduct;
+import com.meada.profiles.lingerie.catalog.LingerieProductRepository;
+import com.meada.profiles.lingerie.catalog.LingerieVariant;
+import org.springframework.stereotype.Component;
+
+import java.time.Duration;
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * Cache do bloco de catálogo+config injetado no prompt do LingerieBot (camada 8.21). Clone de
+ * {@link com.meada.profiles.adega.AdegaMenuCache} (Caffeine TTL 60s) — o
+ * {@link com.meada.profiles.lingerie.catalog.LingerieProductService} chama {@link #invalidate}
+ * ao mutar produto/variante/config, então a IA vê a mudança na hora.
+ *
+ * <p>DIFERENÇA do adega (⭐ chassi de varejo): sob cada PRODUTO, lista as VARIANTES com o variant_id
+ * EXATO + tamanho/cor/preço + ESTOQUE — a IA precisa do variant_id pra emitir a tag
+ * {@code <pedido_lingerie>} e do estoque pra NÃO oferecer variante esgotada. Formato por produto:
+ * <pre>
+ * - &lt;product_id&gt; · &lt;name&gt; · &lt;category&gt;
+ *     &lt;variant_id&gt; [P/Preto] R$ 89,90 (3 em estoque) | &lt;variant_id&gt; [M/Preto] R$ 89,90 (esgotado)
+ * </pre>
+ */
+@Component
+public class LingerieMenuCache {
+
+    private final LingerieProductRepository productRepository;
+    private final LingerieConfigRepository configRepository;
+    private final Cache<UUID, String> cache;
+
+    public LingerieMenuCache(LingerieProductRepository productRepository,
+                             LingerieConfigRepository configRepository) {
+        this.productRepository = productRepository;
+        this.configRepository = configRepository;
+        this.cache = Caffeine.newBuilder()
+            .expireAfterWrite(Duration.ofSeconds(60))
+            .maximumSize(500)
+            .build();
+    }
+
+    /** Bloco de catálogo+config+instruções para o prompt, cacheado por company (TTL 60s). */
+    public String menuSegment(UUID companyId) {
+        return cache.get(companyId, this::buildSegment);
+    }
+
+    /** Invalida o cache de uma empresa (chamado pelo LingerieProductService ao mutar). */
+    public void invalidate(UUID companyId) {
+        cache.invalidate(companyId);
+    }
+
+    private String buildSegment(UUID companyId) {
+        List<LingerieProduct> products = productRepository.listByCompany(companyId, null, true);
+        LingerieConfig config = configRepository.findByCompany(companyId);
+
+        StringBuilder sb = new StringBuilder();
+        if (products.isEmpty()) {
+            sb.append("CATÁLOGO DISPONÍVEL HOJE: (nenhum produto disponível no momento — informe a "
+                + "cliente que o catálogo está indisponível e ofereça avisá-la quando voltar.)\n\n");
+        } else {
+            sb.append("CATÁLOGO DISPONÍVEL HOJE:\n");
+            String currentCategory = null;
+            for (LingerieProduct p : products) {
+                if (!p.category().equals(currentCategory)) {
+                    currentCategory = p.category();
+                    sb.append("[").append(LingerieCategory.fromId(currentCategory)
+                        .map(LingerieCategory::label).orElse(currentCategory)).append("]\n");
+                }
+                sb.append("- ").append(p.id()).append(" · ").append(p.name())
+                    .append(" · ").append(LingerieCategory.fromId(p.category())
+                        .map(LingerieCategory::label).orElse(p.category()));
+                if (p.description() != null && !p.description().isBlank()) {
+                    sb.append(" · ").append(p.description().strip());
+                }
+                sb.append("\n");
+                appendVariants(sb, p);
+            }
+            sb.append("\n");
+        }
+
+        sb.append("INSTRUÇÕES DE PEDIDO:\n")
+            .append("Quando a cliente CONFIRMAR o pedido (frases como \"pode mandar\", \"confirma\", "
+                + "\"fechou\"), informar a forma de recebimento (entrega ou retirada) e — se for "
+                + "ENTREGA — o endereço, sua ÚLTIMA mensagem deve TERMINAR com a tag (em uma linha "
+                + "própria, sem markdown):\n")
+            .append("<pedido_lingerie>{\"items\":[{\"variant_id\":\"UUID_EXATO_DA_VARIANTE\",\"qtd\":N}],"
+                + "\"fulfillment\":\"entrega\",\"endereco\":\"...\",\"total_cents\":NNN}</pedido_lingerie>\n")
+            .append("Cada item referencia o variant_id EXATO de uma VARIANTE (combinação tamanho×cor) "
+                + "do catálogo acima — NUNCA o product_id. Só ofereça variantes COM estoque (as "
+                + "marcadas \"esgotado\" NÃO podem ser pedidas). \"fulfillment\" é \"entrega\" (exige "
+                + "\"endereco\") ou \"retirada\" (sem endereço). NUNCA invente produto/tamanho/cor/"
+                + "preço fora do catálogo. ANTES da tag, escreva a confirmação humana normal "
+                + "(\"Confirmado: 1 Conjunto Renda (P/Preto), total R$ X, entrega na Rua Y 💕\"). NÃO "
+                + "emita a tag enquanto a cliente ainda monta o pedido — só na confirmação final.\n");
+
+        if (config.deliveryFeeCents() > 0) {
+            sb.append("Taxa de entrega: R$ ").append(formatBrl(config.deliveryFeeCents()))
+                .append(" (some ao total apenas em ENTREGA, não em retirada).\n");
+        }
+        if (config.minOrderCents() > 0) {
+            sb.append("Pedido mínimo: R$ ").append(formatBrl(config.minOrderCents()))
+                .append(" (avise a cliente se o pedido ficar abaixo, mas não recuse — apenas oriente).\n");
+        }
+        sb.append("CONFIG: delivery_fee_cents=").append(config.deliveryFeeCents())
+            .append(", min_order_cents=").append(config.minOrderCents()).append("\n");
+        sb.append("Avise a cliente que o pedido ficará AGUARDANDO confirmação da loja.\n\n");
+
+        return sb.toString();
+    }
+
+    /**
+     * Lista as variantes available=true do produto, uma linha com o variant_id + [tamanho/cor] +
+     * preço (variante ou base) + estoque (N em estoque / esgotado): {@code variant_id [size/color]
+     * R$ p (N em estoque) | ...}.
+     */
+    private void appendVariants(StringBuilder sb, LingerieProduct p) {
+        List<LingerieVariant> variants = p.variants();
+        if (variants == null || variants.isEmpty()) {
+            return;
+        }
+        StringBuilder line = new StringBuilder();
+        for (LingerieVariant v : variants) {
+            if (!v.available()) {
+                continue;
+            }
+            if (line.length() > 0) {
+                line.append(" | ");
+            }
+            int price = v.priceCents() != null ? v.priceCents() : p.basePriceCents();
+            String stock = v.stockQty() > 0 ? (v.stockQty() + " em estoque") : "esgotado";
+            line.append(v.id()).append(" [").append(v.size()).append("/").append(v.color()).append("] ")
+                .append("R$ ").append(formatBrl(price)).append(" (").append(stock).append(")");
+        }
+        if (line.length() > 0) {
+            sb.append("    ").append(line).append("\n");
+        }
+    }
+
+    private static String formatBrl(int cents) {
+        return String.format("%d,%02d", cents / 100, cents % 100);
+    }
+}

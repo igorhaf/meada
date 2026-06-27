@@ -1,6 +1,6 @@
 /**
  * Status de um agendamento do perfil salon (camada 7.5) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/salon/SalonAppointmentStatus.java.
+ * src/main/java/com/meada/profiles/salon/SalonAppointmentStatus.java.
  *
  * O SalonAppointmentStatusParityTest (backend) garante que os ids aqui e no enum Java nunca
  * divergem. A CHECK constraint de salon_appointments.status (migration 34) trava os mesmos ids.

@@ -7,7 +7,7 @@
 [TAREFA — SUB-MARATONA: PERFIL FOTOGRAFIA / Fotografia (Fotografia · Cinema · Audiovisual) (camada 8.16)]
 
 [CONTEXTO]
-PROJETO MEADA WHATSAPP em /home/igorhaf/meada/projects/whatsapp.
+PROJETO MEADA WHATSAPP em /home/igorhaf/meada.
 17+ perfis verticais reais hoje (… comida 8.4, floricultura 8.5, pizzaria 8.6, e a fila adega/
 casamento/padaria/lavanderia/dermatologia/ótica/projetos em execução) + generic. Lê CLAUDE.md,
 CONTEXT.md e o filesystem no arranque pra cravar convenções, nº de migration, contagem do Surefire
@@ -182,7 +182,7 @@ DECISÕES CRAVADAS (revisor decidiu pelo Igor):
   AbstractIntegrationTest.
 
 [BACKEND]
-- Estrutura em src/main/java/com/meada/whatsapp/profiles/fotografia/ espelhando profiles/estetica/ +
+- Estrutura em src/main/java/com/meada/profiles/fotografia/ espelhando profiles/estetica/ +
   profiles/nutri/: raiz (FotografiaSessionStatus, FotografiaContextCache, FotografiaProfileGuard) +
   subpastas professionals/, packages/, config/, sessions/.
 - Professionals: CRUD padrão (espelho salon/aesthetic_professionals). delete em uso (sessão com

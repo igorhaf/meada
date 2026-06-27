@@ -6,10 +6,10 @@
 [TAREFA — PERFIL DENTAL / DentalBot (camada 7.4) — RETROATIVO]
 
 Documentar (retroativo) o perfil vertical DENTAL já implementado no projeto MEADA WHATSAPP
-(/home/igorhaf/meada/projects/whatsapp). Quarto perfil vertical real (sushi 7.1, legal 7.2,
+(/home/igorhaf/meada). Quarto perfil vertical real (sushi 7.1, legal 7.2,
 restaurant 7.3, dental 7.4 — 5º contando generic). O tenant dental (`profile_id='dental'`) é um
 produto de CLÍNICA ODONTOLÓGICA dentro do mesmo dashboard Meada. NÃO inventar: tudo abaixo reflete
-o que está em migration 33_dental.sql, src/main/java/com/meada/whatsapp/profiles/dental/,
+o que está em migration 33_dental.sql, src/main/java/com/meada/profiles/dental/,
 frontend/profiles/dental/ + páginas em app/(protected)/dashboard/, e docs/PERFIL_DENTAL.md.
 
 [CONTEXTO]
@@ -100,7 +100,7 @@ app.company_id(); grants authenticated + service_role. Três tabelas exclusivas 
   grants select/update a authenticated + all a service_role.
 
 [BACKEND]
-src/main/java/com/meada/whatsapp/profiles/dental/
+src/main/java/com/meada/profiles/dental/
 
 - Status hardcoded materializado: `AppointmentStatus` (enum Java) ↔ `appointment-status.ts` (const
   TS), `AppointmentStatusParityTest` garante a paridade. Transições cravadas:
@@ -156,7 +156,7 @@ frontend/profiles/dental/ + app/(protected)/dashboard/
   agenda de consultas; como a IA atende; LGPD administrativo-não-clínico; limitações honestas).
 
 [TESTES BACKEND]
-src/test/java/com/meada/whatsapp/profiles/dental/
+src/test/java/com/meada/profiles/dental/
 - `AppointmentStatusParityTest` — paridade do enum AppointmentStatus (Java) ↔ appointment-status.ts.
 - `ProfileTypeParityTest` — ProfileType (Java) ↔ profile-type.ts (inclui 'dental').
 - `appointments/DentalAppointmentServiceTest` — criação, conflito transacional, end_at

@@ -8,7 +8,7 @@
 [TAREFA — SUB-MARATONA: PERFIL SUPLEMENTOS / Suplementos (Loja de saúde) (camada 8.24)]
 
 [CONTEXTO]
-PROJETO MEADA WHATSAPP em /home/igorhaf/meada/projects/whatsapp.
+PROJETO MEADA WHATSAPP em /home/igorhaf/meada.
 Monolito multi-tenant que se apresenta como N produtos verticais ("perfis"). Cada tenant tem
 EXATAMENTE 1 perfil (companies.profile_id, NOT NULL, CHECK). Perfis são HARDCODED em dois arquivos
 espelhados — enum Java `ProfileType.java` + const TS `frontend/lib/profiles/profile-type.ts` — e o
@@ -170,7 +170,7 @@ DECISÕES CRAVADAS (revisor decidiu pelo Igor):
   AbstractIntegrationTest.
 
 [BACKEND]
-Pacote `src/main/java/com/meada/whatsapp/profiles/suplementos/` (config / products / variants /
+Pacote `src/main/java/com/meada/profiles/suplementos/` (config / products / variants /
 orders), espelhando a estrutura de `profiles/comida/`.
 - Catálogo: CRUD de PRODUTOS (`sup_products`: name/brand/category/description/active) + CRUD de
   VARIANTES (`sup_variants`: flavor/size_label/sku/price_cents/stock_quantity/expiry_date/active),

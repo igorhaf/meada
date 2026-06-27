@@ -7,11 +7,11 @@
 Documentação retroativa, no formato T5, do perfil vertical `legal` (ProcessoBot) JÁ implementado no
 projeto Meada WhatsApp. NÃO é um pedido de implementação — o nicho existe, está fechado e validado.
 Este documento descreve o que REALMENTE está no código/banco (migration 31_legal.sql, pacote
-`src/main/java/com/meada/whatsapp/profiles/legal/`, telas em `frontend/app/(protected)/dashboard/`).
+`src/main/java/com/meada/profiles/legal/`, telas em `frontend/app/(protected)/dashboard/`).
 Segundo perfil vertical real do projeto (depois do SushiBot, camada 7.1), no mesmo padrão do sushi.
 
 [CONTEXTO]
-PROJETO MEADA WHATSAPP em /home/igorhaf/meada/projects/whatsapp.
+PROJETO MEADA WHATSAPP em /home/igorhaf/meada.
 O tenant `legal` (`companies.profile_id='legal'`) vira um produto de ESCRITÓRIO DE ADVOCACIA: gerencia
 clientes e processos, registra andamentos manuais, e a IA atende os clientes via WhatsApp consultando
 os processos deles. O tenant acessa pelo subdomínio do perfil e vê o produto "ProcessoBot". A IA
@@ -79,7 +79,7 @@ A CHECK de `legal_cases.status` trava os mesmos 4 ids do enum Java/const TS. Val
 APP-LEVEL (`LegalCnjValidator`), não no banco.
 
 [BACKEND]
-Pacote `src/main/java/com/meada/whatsapp/profiles/legal/` (subpacotes `clients/` e `cases/`).
+Pacote `src/main/java/com/meada/profiles/legal/` (subpacotes `clients/` e `cases/`).
 
 - `LegalCnjValidator` (utilitário estático, mód 97 ISO 7064 base 10000):
   * `normalize(raw)` — remove tudo que não é dígito.
@@ -137,7 +137,7 @@ Pacote `src/main/java/com/meada/whatsapp/profiles/legal/` (subpacotes `clients/`
 - Seção "## Perfil Legal (ProcessoBot, camada 7.2)" no CLAUDE.md.
 
 [TESTES BACKEND]
-Suíte em `src/test/java/com/meada/whatsapp/profiles/legal/`:
+Suíte em `src/test/java/com/meada/profiles/legal/`:
 - `LegalCnjValidatorTest` — validação mód 97 + format + computeCheckDigits.
 - `LegalCaseStatusParityTest` — paridade Java↔TS dos 4 status.
 - `LegalCaseServiceTest` — create (CNJ inválido, cliente inexistente, CNJ duplicado), updateStatus

@@ -6,7 +6,7 @@
 [TAREFA — SUB-MARATONA: PERFIL ATELIE / Ateliê (Costura sob medida · Arte · Design) (camada 8.14)]
 
 [CONTEXTO]
-PROJETO MEADA WHATSAPP em /home/igorhaf/meada/projects/whatsapp.
+PROJETO MEADA WHATSAPP em /home/igorhaf/meada.
 Hoje no enum: … comida 8.4, floricultura 8.5, pizzaria 8.6 (último declarado no disco) + generic; a
 fila do README acrescenta casamento 8.7 … projetos 8.13. ESTE perfil (Ateliê) é o PRÓXIMO da fila,
 camada 8.14 — o 19º perfil vertical real (20º com generic), assumindo que pizzaria…projetos já

@@ -15,11 +15,11 @@
     </parent>
 
     <groupId>com.meada</groupId>
-    <artifactId>whatsapp-backend</artifactId>
+    <artifactId>meada-backend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
-    <name>whatsapp-backend</name>
-    <description>Meada WhatsApp — backend (Spring Boot): webhook Evolution + API painel</description>
+    <name>meada-backend</name>
+    <description>Meada — backend (Spring Boot): atendimento via WhatsApp (Evolution) + API painel</description>
 
     <properties>
         <java.version>17</java.version>

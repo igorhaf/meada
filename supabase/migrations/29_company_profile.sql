@@ -6,7 +6,7 @@
 -- tenant não escolhe.
 --
 -- Valores HARDCODED, em sync com:
---   - src/main/java/com/meada/whatsapp/profiles/ProfileType.java
+--   - src/main/java/com/meada/profiles/ProfileType.java
 --   - frontend/lib/profiles/profile-type.ts
 -- O ProfileTypeParityTest garante a paridade Java↔TS; a CHECK constraint aqui garante
 -- que o banco só aceita os 4 ids vigentes.

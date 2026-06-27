@@ -119,7 +119,7 @@ paralelizar DENTRO da própria rodada, não de abrir sessões extras.
   para o commit que a fecha. Tags não se movem depois de criadas.
 - **Trailer obrigatório** no fim de cada commit:
   `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`
-- **Repo tem remote no GitHub:** `origin` = `https://github.com/igorhaf/whatsapp.git`.
+- **Repo tem remote no GitHub:** `origin` = `https://github.com/igorhaf/meada.git`.
   Push pra `origin/main` + `git push origin --tags` é prática válida (foi feito no
   checkpoint de 2026-06-11). NUNCA `git push --force`. Branch `main`.
 - **Critério de "fechado" de sub-fase que toca backend:** `mvn -B clean test` verde
@@ -185,7 +185,7 @@ Dois perfis, duas vias:
 - **Meada é um monolito que se apresenta como N produtos verticais ("perfis").** Cada perfil
   (generic/Meada, legal/ProcessoBot, dental/DentalBot, sushi/SushiBot) parece um produto
   distinto pro cliente final — subdomínio, nome, tom de IA e (futuramente) features próprias.
-- **Perfis são HARDCODED** em dois arquivos espelhados: `src/main/java/com/meada/whatsapp/
+- **Perfis são HARDCODED** em dois arquivos espelhados: `src/main/java/com/meada/
   profiles/ProfileType.java` (enum) e `frontend/lib/profiles/profile-type.ts` (const). O
   `ProfileTypeParityTest` falha o build se divergirem. NÃO existe tabela de perfis.
 - **Tenant tem EXATAMENTE 1 perfil** (`companies.profile_id`, NOT NULL DEFAULT 'generic',

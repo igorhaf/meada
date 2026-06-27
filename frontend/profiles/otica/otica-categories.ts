@@ -1,6 +1,6 @@
 /**
  * Categorias de catálogo do perfil otica (loja de ótica) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/otica/OticaCategory.java.
+ * src/main/java/com/meada/profiles/otica/OticaCategory.java.
  *
  * O OticaCategoryParityTest (backend) garante que os ids aqui e no enum Java nunca divergem
  * (o teste casa textualmente cada objeto `{ id: '...' }` deste arquivo).

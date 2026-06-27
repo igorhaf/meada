@@ -1,6 +1,6 @@
 /**
  * Status de um exame de vista do perfil otica (camada 8.12) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/otica/OticaExamStatus.java.
+ * src/main/java/com/meada/profiles/otica/OticaExamStatus.java.
  *
  * O OticaExamStatusParityTest (backend) garante que os ids aqui e no enum Java nunca divergem
  * (o teste casa textualmente cada objeto `{ id: '...' }` deste arquivo, igual aos demais perfis).

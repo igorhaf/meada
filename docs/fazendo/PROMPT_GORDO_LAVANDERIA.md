@@ -6,7 +6,7 @@
 [TAREFA — SUB-MARATONA: PERFIL LAVANDERIA / Lavanderia (Lavagem com coleta e entrega agendadas) (camada 8.10)]
 
 [CONTEXTO]
-PROJETO MEADA WHATSAPP em /home/igorhaf/meada/projects/whatsapp.
+PROJETO MEADA WHATSAPP em /home/igorhaf/meada.
 17+ perfis verticais reais hoje (… comida 8.4, floricultura 8.5, padaria/pizzaria — confirmar o
 último fechado no filesystem) + generic. Lê CONTEXT.md e o filesystem no arranque pra cravar
 convenções, nº de migration, contagem do Surefire e numeração de tenant ANTES de escrever qualquer

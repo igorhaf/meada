@@ -1,6 +1,6 @@
 /**
  * Status de uma visita do perfil escola (camada 8.19) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/escola/EscolaVisitStatus.java.
+ * src/main/java/com/meada/profiles/escola/EscolaVisitStatus.java.
  *
  * O EscolaVisitStatusParityTest (backend) garante que os ids nunca divergem. A CHECK
  * constraint de escola_visits.status trava os mesmos ids.

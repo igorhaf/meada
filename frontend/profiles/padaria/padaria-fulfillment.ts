@@ -1,6 +1,6 @@
 /**
  * Forma de entrega de um pedido padaria (camada 8.8, ESCAPADA) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/padaria/PadariaFulfillment.java.
+ * src/main/java/com/meada/profiles/padaria/PadariaFulfillment.java.
  *
  * O pedido é RETIRADA (o cliente busca na loja) ou ENTREGA (delivery no endereço). O fluxo do
  * Kanban diverge no fim por causa disso: pronto → retirado (retirada) ou pronto → saiu_entrega →

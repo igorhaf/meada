@@ -1,6 +1,6 @@
 /**
  * Status de um pedido comida (delivery iFood-style, camada 8.4) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/comida/orders/ComidaOrderStatus.java.
+ * src/main/java/com/meada/profiles/comida/orders/ComidaOrderStatus.java.
  *
  * O ComidaOrderStatusParityTest (backend) garante que os ids aqui e no enum Java nunca divergem
  * (o teste casa textualmente cada objeto `{ id: '...' }` deste arquivo, igual aos demais perfis).

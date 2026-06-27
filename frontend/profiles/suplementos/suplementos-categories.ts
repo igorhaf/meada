@@ -1,7 +1,7 @@
 /**
  * Categorias de produtos do perfil suplementos (loja de saúde / nutrição esportiva / varejo,
  * camada 8.24) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/suplementos/SuplementosCategory.java.
+ * src/main/java/com/meada/profiles/suplementos/SuplementosCategory.java.
  *
  * Clone do lingerie-categories.ts adaptado às categorias de suplementos. O
  * SuplementosCategoryParityTest (backend) garante que os ids aqui e no enum Java nunca divergem

@@ -4,7 +4,7 @@
 [TAREFA — PERFIL ESTETICA / EsteticaBot (camada 8.3) — RETROATIVO]
 
 [CONTEXTO]
-PROJETO MEADA WHATSAPP em /home/igorhaf/meada/projects/whatsapp.
+PROJETO MEADA WHATSAPP em /home/igorhaf/meada.
 Estetica é o 13º perfil vertical real (14º contando o generic) — o mais COMPLETO até a camada 8.3.
 O tenant estetica (`profile_id='estetica'`) vira um produto de CLÍNICA DE ESTÉTICA (facial/
 corporal, drenagem, limpeza de pele, depilação a laser): a equipe gerencia profissionais e

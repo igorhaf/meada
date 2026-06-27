@@ -5,11 +5,11 @@
 
 Este documento RECONSTRÓI, no formato T5, o prompt gordo do perfil SALON tal como ele JÁ EXISTE no
 código. Não é trabalho a executar — é a documentação retroativa do que foi entregue (migration 34,
-backend em src/main/java/com/meada/whatsapp/profiles/salon/, frontend em frontend/profiles/salon/,
+backend em src/main/java/com/meada/profiles/salon/, frontend em frontend/profiles/salon/,
 docs/PERFIL_SALAO.md). Serve de molde/registro para auditoria e para clonagens futuras.
 
 [CONTEXTO]
-PROJETO MEADA WHATSAPP em /home/igorhaf/meada/projects/whatsapp.
+PROJETO MEADA WHATSAPP em /home/igorhaf/meada.
 SALON é o QUINTO perfil vertical real (sushi 7.1, legal 7.2, restaurant 7.3, dental 7.4, salon 7.5)
 — 6º contando generic. O tenant salon (`profile_id='salon'`) vira um produto de SALÃO DE BELEZA:
 gerencia profissionais e serviços, e a IA atende clientes via WhatsApp com tom acolhedor, oferece

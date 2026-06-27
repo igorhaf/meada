@@ -1,6 +1,6 @@
 /**
  * Categorias de cardápio do perfil comida (delivery iFood-style) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/comida/ComidaCategory.java.
+ * src/main/java/com/meada/profiles/comida/ComidaCategory.java.
  *
  * O ComidaCategoryParityTest (backend) garante que os ids aqui e no enum Java nunca divergem
  * (o teste casa textualmente cada objeto `{ id: '...' }` deste arquivo).

@@ -1,6 +1,6 @@
 /**
  * Status de uma sessão de fotografia (camada 8.16) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/fotografia/FotografiaAppointmentStatus.java.
+ * src/main/java/com/meada/profiles/fotografia/FotografiaAppointmentStatus.java.
  *
  * O FotografiaAppointmentStatusParityTest (backend) garante que os ids aqui e no enum Java nunca
  * divergem. A CHECK constraint de fotografia_sessions.status trava os mesmos ids. Status FEMININO.

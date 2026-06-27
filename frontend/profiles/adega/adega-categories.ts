@@ -1,6 +1,6 @@
 /**
  * Categorias de cardápio do perfil adega (delivery de bebidas alcoólicas, camada 8.9) —
- * espelho 1:1 de src/main/java/com/meada/whatsapp/profiles/adega/AdegaCategory.java.
+ * espelho 1:1 de src/main/java/com/meada/profiles/adega/AdegaCategory.java.
  *
  * Clone do comida-categories.ts adaptado às categorias de adega. O AdegaCategoryParityTest
  * (backend) garante que os ids aqui e no enum Java nunca divergem (o teste casa textualmente

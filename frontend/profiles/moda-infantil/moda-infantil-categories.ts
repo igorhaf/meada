@@ -1,6 +1,6 @@
 /**
  * Categorias de produtos do perfil moda_infantil (roupa de criança / varejo, camada 8.22) —
- * espelho 1:1 de src/main/java/com/meada/whatsapp/profiles/modainfantil/ModaInfantilCategory.java.
+ * espelho 1:1 de src/main/java/com/meada/profiles/modainfantil/ModaInfantilCategory.java.
  *
  * Clone do lingerie-categories.ts adaptado às categorias de moda infantil. O
  * ModaInfantilCategoryParityTest (backend) garante que os ids aqui e no enum Java nunca divergem

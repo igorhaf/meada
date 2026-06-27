@@ -1,7 +1,7 @@
 /**
  * Status de um pedido suplementos (loja de saúde / nutrição esportiva / varejo, camada 8.24) —
  * espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/suplementos/orders/SuplementosOrderStatus.java.
+ * src/main/java/com/meada/profiles/suplementos/orders/SuplementosOrderStatus.java.
  *
  * O SuplementosOrderStatusParityTest (backend) garante que os ids aqui e no enum Java nunca
  * divergem (o teste casa textualmente cada objeto `{ id: '...' }` deste arquivo, igual aos demais

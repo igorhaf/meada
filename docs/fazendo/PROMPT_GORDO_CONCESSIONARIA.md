@@ -6,7 +6,7 @@
 [TAREFA — SUB-MARATONA: PERFIL CONCESSIONARIA / Concessionária (Loja de carros) (camada 8.17)]
 
 [CONTEXTO]
-PROJETO MEADA WHATSAPP em /home/igorhaf/meada/projects/whatsapp.
+PROJETO MEADA WHATSAPP em /home/igorhaf/meada.
 Monolito multi-tenant que se apresenta como N produtos verticais ("perfis"). Os perfis são
 HARDCODED em DOIS arquivos espelhados (enum Java `ProfileType` + const TS `profile-type.ts`) com um
 `ProfileTypeParityTest` que falha o build se divergirem — NÃO existe tabela de perfis. Cada tenant

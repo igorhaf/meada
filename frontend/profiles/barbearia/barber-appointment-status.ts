@@ -1,6 +1,6 @@
 /**
  * Status de um agendamento do perfil barbearia (camada 8.1) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/barbearia/BarberAppointmentStatus.java.
+ * src/main/java/com/meada/profiles/barbearia/BarberAppointmentStatus.java.
  *
  * O BarberAppointmentStatusParityTest (backend) garante que os ids aqui e no enum Java nunca
  * divergem. A CHECK constraint de barber_appointments.status (migration 43) trava os mesmos ids.

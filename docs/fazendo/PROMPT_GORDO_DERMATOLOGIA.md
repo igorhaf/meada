@@ -6,7 +6,7 @@
 [TAREFA — SUB-MARATONA: PERFIL DERMATOLOGIA / Dermatologia (camada 8.11)]
 
 [CONTEXTO]
-PROJETO MEADA WHATSAPP em /home/igorhaf/meada/projects/whatsapp.
+PROJETO MEADA WHATSAPP em /home/igorhaf/meada.
 17+ perfis verticais reais hoje (… comida 8.4, floricultura 8.5, pizzaria em draft) + generic.
 Lê CLAUDE.md, CONTEXT.md e o filesystem no arranque pra cravar convenções, nº de migration,
 contagem do Surefire e numeração de tenant ANTES de escrever qualquer código. NÃO hardcodar a
@@ -176,7 +176,7 @@ DECISÕES CRAVADAS (revisor decidiu pelo Igor):
   AbstractIntegrationTest.
 
 [BACKEND]
-- Estrutura em src/main/java/com/meada/whatsapp/profiles/dermatologia/ espelhando profiles/nutri/:
+- Estrutura em src/main/java/com/meada/profiles/dermatologia/ espelhando profiles/nutri/:
   raiz (DermatologiaAppointmentStatus, DermatologiaContextCache, DermatologiaProfileGuard) +
   subpastas professionals/, config/, patients/, proceduretypes/, appointments/.
 - Professionals: CRUD padrão (espelho nutri_professionals). delete em uso (consulta com

@@ -1,6 +1,6 @@
 /**
  * Categorias de cardápio do perfil padaria (padaria & confeitaria) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/padaria/PadariaCategory.java.
+ * src/main/java/com/meada/profiles/padaria/PadariaCategory.java.
  *
  * O PadariaCategoryParityTest (backend) garante que os ids aqui e no enum Java nunca divergem
  * (o teste casa textualmente cada objeto `{ id: '...' }` deste arquivo).

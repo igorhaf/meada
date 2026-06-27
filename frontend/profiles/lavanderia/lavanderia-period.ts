@@ -1,6 +1,6 @@
 /**
  * Período de COLETA do perfil lavanderia (camada 8.10) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/lavanderia/LavanderiaPeriod.java.
+ * src/main/java/com/meada/profiles/lavanderia/LavanderiaPeriod.java.
  *
  * O pedido carrega o dia da coleta (collectDate) + a FAIXA do dia (este enum). O
  * LavanderiaPeriodParityTest (backend) garante que os ids aqui e no enum Java nunca divergem. A CHECK

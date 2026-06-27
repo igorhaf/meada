@@ -1,6 +1,6 @@
 /**
  * Tamanhos da grade de variantes do perfil lingerie (moda íntima / varejo, camada 8.21) —
- * espelho 1:1 de src/main/java/com/meada/whatsapp/profiles/lingerie/LingerieSize.java.
+ * espelho 1:1 de src/main/java/com/meada/profiles/lingerie/LingerieSize.java.
  *
  * A grade de variantes (tamanho × cor) inaugurada nesta camada usa estes tamanhos. O
  * LingerieSizeParityTest (backend) garante que os ids aqui e no enum Java nunca divergem

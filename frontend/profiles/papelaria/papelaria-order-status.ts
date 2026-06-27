@@ -1,6 +1,6 @@
 /**
  * Status de um pedido papelaria (convites/impressos sob encomenda, camada 8.15) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/papelaria/orders/PapelariaOrderStatus.java.
+ * src/main/java/com/meada/profiles/papelaria/orders/PapelariaOrderStatus.java.
  *
  * O PapelariaOrderStatusParityTest (backend) garante que os ids aqui e no enum Java nunca divergem
  * (o teste casa textualmente cada objeto `{ id: '...' }` deste arquivo, igual aos demais perfis).

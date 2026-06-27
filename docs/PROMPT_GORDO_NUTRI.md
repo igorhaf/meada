@@ -8,10 +8,10 @@ formato T5 ("prompt gordo"), o que de fato foi construído — não é um plano 
 vertical real e PRIMEIRA sub-maratona da camada 8.x. Migration `39_nutri.sql`. Tenant de referência
 `igorhaf` (consultório de nutrição). Fonte de verdade: a seção "## Perfil Nutri (NutriBot, camada
 8.0)" do CLAUDE.md, a migration 39, o guia `docs/PERFIL_NUTRI.md` e o código em
-`src/main/java/com/meada/whatsapp/profiles/nutri/`.
+`src/main/java/com/meada/profiles/nutri/`.
 
 [CONTEXTO]
-PROJETO MEADA WHATSAPP em /home/igorhaf/meada/projects/whatsapp.
+PROJETO MEADA WHATSAPP em /home/igorhaf/meada.
 O tenant nutri (`profile_id='nutri'`) vira um produto de CONSULTÓRIO DE NUTRIÇÃO: gerencia
 nutricionistas, pacientes e os planos alimentares, e a IA atende pacientes via WhatsApp com tom
 acolhedor e profissional — AGENDA consultas e ENTREGA o plano alimentar que o nutricionista gravou.
@@ -118,7 +118,7 @@ DECISÕES CRAVADAS (reais, refletidas no código):
   não toca dev/prod.
 
 [BACKEND]
-Código em `src/main/java/com/meada/whatsapp/profiles/nutri/` (subpacotes professionals/config/
+Código em `src/main/java/com/meada/profiles/nutri/` (subpacotes professionals/config/
 patients/plans/appointments).
 - CRUD de profissionais, config (GET com fallback defaults + PUT), pacientes e planos — espelho dos
   outros perfis. `NutriPatientService`: excluir paciente com consulta/plano → 409. `NutriPlanService`:
@@ -182,7 +182,7 @@ patients/plans/appointments).
 - NÃO mexer em system-template.txt nem em outros perfis.
 
 [TESTES BACKEND]
-Em `src/test/java/com/meada/whatsapp/profiles/nutri/`:
+Em `src/test/java/com/meada/profiles/nutri/`:
 - `NutriAppointmentStatusParityTest` + `ProfileTypeParityTest` (paridade Java↔TS).
 - `NutriProfessionalServiceTest` / `NutriProfessionalControllerIntegrationTest`.
 - `NutriPatientServiceTest` / `NutriPatientControllerIntegrationTest` (excluir-em-uso → 409).

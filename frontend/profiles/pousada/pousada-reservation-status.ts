@@ -1,6 +1,6 @@
 /**
  * Status de uma reserva do perfil pousada (camada 7.6) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/pousada/PousadaReservationStatus.java.
+ * src/main/java/com/meada/profiles/pousada/PousadaReservationStatus.java.
  *
  * O PousadaReservationStatusParityTest (backend) garante que os ids nunca divergem. A CHECK
  * constraint de pousada_reservations.status (migration 35) trava os mesmos ids.

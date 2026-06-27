@@ -1,6 +1,6 @@
 /**
  * Categorias de produtos do perfil las (loja de lãs / novelos / tricô-crochê — varejo, camada
- * 8.23) — espelho 1:1 de src/main/java/com/meada/whatsapp/profiles/las/LasCategory.java.
+ * 8.23) — espelho 1:1 de src/main/java/com/meada/profiles/las/LasCategory.java.
  *
  * Clone do lingerie-categories.ts adaptado às categorias de uma loja de lãs. O LasCategoryParityTest
  * (backend) garante que os ids aqui e no enum Java nunca divergem (o teste casa textualmente cada

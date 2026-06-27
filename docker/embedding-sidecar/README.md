@@ -12,7 +12,7 @@ no host). O backend, que roda no host, fala com ele via `localhost:7080`.
 
 ## Subir
 
-Do diretório raiz do projeto (`meada/projects/whatsapp`):
+Do diretório raiz do projeto (`meada/meada`):
 
 ```bash
 docker compose up -d --build embedding-sidecar

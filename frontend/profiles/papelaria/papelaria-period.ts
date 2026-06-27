@@ -1,6 +1,6 @@
 /**
  * Período de retirada/entrega do perfil papelaria (camada 8.15) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/papelaria/PapelariaPeriod.java.
+ * src/main/java/com/meada/profiles/papelaria/PapelariaPeriod.java.
  *
  * Pedido sob encomenda carrega o dia (pickup_or_delivery_date) + a FAIXA do dia (este enum).
  * O PapelariaPeriodParityTest (backend) garante que os ids aqui e no enum Java nunca divergem.

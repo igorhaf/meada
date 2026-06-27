@@ -1,6 +1,6 @@
 /**
  * Status de um pedido moda_infantil (roupa de criança / varejo, camada 8.22) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/modainfantil/orders/ModaInfantilOrderStatus.java.
+ * src/main/java/com/meada/profiles/modainfantil/orders/ModaInfantilOrderStatus.java.
  *
  * O ModaInfantilOrderStatusParityTest (backend) garante que os ids aqui e no enum Java nunca divergem
  * (o teste casa textualmente cada objeto `{ id: '...' }` deste arquivo, igual aos demais perfis).

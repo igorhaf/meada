@@ -1,6 +1,6 @@
 /**
  * Categorias de serviço do perfil lavanderia — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/lavanderia/LavanderiaServiceCategory.java.
+ * src/main/java/com/meada/profiles/lavanderia/LavanderiaServiceCategory.java.
  *
  * O LavanderiaServiceCategoryParityTest (backend) garante que os ids aqui e no enum Java nunca
  * divergem (o teste casa textualmente cada objeto `{ id: '...' }` deste arquivo). A CHECK constraint de

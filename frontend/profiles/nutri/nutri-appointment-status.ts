@@ -1,6 +1,6 @@
 /**
  * Status de uma consulta de nutrição (camada 8.0) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/nutri/NutriAppointmentStatus.java.
+ * src/main/java/com/meada/profiles/nutri/NutriAppointmentStatus.java.
  *
  * O NutriAppointmentStatusParityTest (backend) garante que os ids aqui e no enum Java nunca
  * divergem. A CHECK constraint de nutri_appointments.status (migration 39) trava os mesmos ids.

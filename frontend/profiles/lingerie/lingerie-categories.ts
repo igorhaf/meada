@@ -1,6 +1,6 @@
 /**
  * Categorias de produtos do perfil lingerie (moda íntima / varejo, camada 8.21) —
- * espelho 1:1 de src/main/java/com/meada/whatsapp/profiles/lingerie/LingerieCategory.java.
+ * espelho 1:1 de src/main/java/com/meada/profiles/lingerie/LingerieCategory.java.
  *
  * Clone do adega-categories.ts adaptado às categorias de lingerie. O LingerieCategoryParityTest
  * (backend) garante que os ids aqui e no enum Java nunca divergem (o teste casa textualmente

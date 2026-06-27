@@ -11,7 +11,7 @@ que JÁ existe no código, no banco e no frontend, do jeito real. É o 12º perf
 contando generic.
 
 [CONTEXTO]
-PROJETO MEADA WHATSAPP em /home/igorhaf/meada/projects/whatsapp. O tenant eventos
+PROJETO MEADA WHATSAPP em /home/igorhaf/meada. O tenant eventos
 (`profile_id='eventos'`) vira um produto de CASA DE FESTAS / BUFFET / CERIMONIAL / ESPAÇO DE
 EVENTOS dentro do mesmo dashboard Meada. O tenant acessa eventos.meadadigital.local e vê o produto
 "Eventos". A IA atende clientes via WhatsApp com tom prestativo-consultivo de organizador de festa:
@@ -117,7 +117,7 @@ convidados/RSVP/mesa. Fases futuras.
   AbstractIntegrationTest.
 
 [BACKEND]
-Código em src/main/java/com/meada/whatsapp/profiles/eventos/.
+Código em src/main/java/com/meada/profiles/eventos/.
 - Planners: EventPlanner + Controller/Repository/Service — CRUD de cerimonialistas (catálogo
   simples).
 - Config: EventConfig + Controller/Repository/Service — GET (fallback defaults vazios) + PUT.
@@ -173,7 +173,7 @@ frontend/lib/api/eventos/; tipos em frontend/profiles/eventos/.
 - NÃO mexer em system-template.txt nem em outros perfis.
 
 [TESTES BACKEND]
-Suíte real em src/test/java/com/meada/whatsapp/profiles/eventos/ (+ outbound):
+Suíte real em src/test/java/com/meada/profiles/eventos/ (+ outbound):
 - EventProposalStatusParityTest (paridade Java↔TS do enum de status) + ProfileTypeParityTest.
 - EventPlannerServiceTest + EventPlannerControllerIntegrationTest (CRUD; wrongProfile 403).
 - EventProposalServiceTest + EventProposalControllerIntegrationTest (criação/itens de orçamento com

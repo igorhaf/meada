@@ -1,6 +1,6 @@
 /**
  * Tipos de projeto do perfil atelie (camada 8.14) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/atelie/AtelieProjectType.java.
+ * src/main/java/com/meada/profiles/atelie/AtelieProjectType.java.
  *
  * O AtelieProjectTypeParityTest (backend) garante que os ids aqui e no enum Java nunca divergem
  * (o teste casa textualmente cada objeto `{ id: '...' }` deste arquivo).

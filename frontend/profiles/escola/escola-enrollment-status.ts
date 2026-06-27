@@ -1,6 +1,6 @@
 /**
  * Status de uma matrícula do perfil escola (camada 8.19) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/escola/EscolaEnrollmentStatus.java.
+ * src/main/java/com/meada/profiles/escola/EscolaEnrollmentStatus.java.
  *
  * O EscolaEnrollmentStatusParityTest (backend) garante que os ids nunca divergem. A CHECK
  * constraint de escola_enrollments.status trava os mesmos ids.

@@ -1,6 +1,6 @@
 /**
  * Categorias de cardápio do perfil pizzaria (delivery iFood-style + meio-a-meio) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/pizzaria/PizzariaCategory.java.
+ * src/main/java/com/meada/profiles/pizzaria/PizzariaCategory.java.
  *
  * O PizzariaCategoryParityTest (backend) garante que os ids aqui e no enum Java nunca divergem
  * (o teste casa textualmente cada objeto `{ id: '...' }` deste arquivo).

@@ -1,6 +1,6 @@
 /**
  * Status de um lead do perfil concessionaria (camada 8.17) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/concessionaria/ConcessionariaLeadStatus.java.
+ * src/main/java/com/meada/profiles/concessionaria/ConcessionariaLeadStatus.java.
  *
  * O ConcessionariaLeadStatusParityTest (backend) garante que os ids aqui e no enum Java nunca
  * divergem. A CHECK constraint de concessionaria_leads.status (migration) trava os mesmos ids.

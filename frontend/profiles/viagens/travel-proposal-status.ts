@@ -1,6 +1,6 @@
 /**
  * Status de uma proposta de viagem do perfil viagens (camada 8.18) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/viagens/TravelProposalStatus.java.
+ * src/main/java/com/meada/profiles/viagens/TravelProposalStatus.java.
  *
  * O TravelProposalStatusParityTest (backend) garante que os ids aqui e no enum Java nunca divergem.
  * A CHECK constraint de viagens_proposals.status (migration 62) trava os mesmos ids.

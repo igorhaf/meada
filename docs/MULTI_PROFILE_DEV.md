@@ -25,7 +25,7 @@ perfil tem seu subdomínio; em dev local você simula isso com `/etc/hosts` + su
 | `comida`   | Comida        | `comida`   | `terracota`    |
 | `pizzaria` | Pizzaria      | `pizzaria` | `carmim`       |
 
-Fonte de verdade: `src/main/java/com/meada/whatsapp/profiles/ProfileType.java` +
+Fonte de verdade: `src/main/java/com/meada/profiles/ProfileType.java` +
 `frontend/lib/profiles/profile-type.ts` (paridade garantida pelo `ProfileTypeParityTest`).
 
 ## `/etc/hosts` (uma vez)

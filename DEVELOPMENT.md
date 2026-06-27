@@ -205,7 +205,7 @@ compartilhado) para JWT Signing Keys **assimétricas (ECC P-256 / ES256)** em 20
 `ECC (P-256)`, e não há reversão prática para HS256 pelo painel — o Supabase empurra
 assimétrico).
 
-Por isso o `JwtAuthenticationFilter` (em `com.meada.whatsapp.admin.security`) foi migrado
+Por isso o `JwtAuthenticationFilter` (em `com.meada.admin.security`) foi migrado
 de `MACVerifier`/HS256 para um `DefaultJWTProcessor` + `JWSVerificationKeySelector(ES256)`
 sobre um `JWKSource` (ver `JwksConfig`). O `JWKSource` de prod é um `RemoteJWKSet` da
 `SUPABASE_JWKS_URL` (`https://<ref>.supabase.co/auth/v1/.well-known/jwks.json`), que busca

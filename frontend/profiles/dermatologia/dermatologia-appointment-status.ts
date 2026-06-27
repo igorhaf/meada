@@ -1,6 +1,6 @@
 /**
  * Status de uma consulta de dermatologia (camada 8.11) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/dermatologia/DermatologiaAppointmentStatus.java.
+ * src/main/java/com/meada/profiles/dermatologia/DermatologiaAppointmentStatus.java.
  *
  * O DermatologiaAppointmentStatusParityTest (backend) garante que os ids aqui e no enum Java nunca
  * divergem. A CHECK constraint de dermatologia_appointments.status (migration 55) trava os mesmos

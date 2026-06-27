@@ -5,9 +5,9 @@
 [TAREFA — SUB-MARATONA: PERFIL LAS / Lãs (Loja de lãs · Tricô · Crochê) (camada 8.23)]
 
 [CONTEXTO]
-PROJETO MEADA WHATSAPP em /home/igorhaf/meada/projects/whatsapp.
+PROJETO MEADA WHATSAPP em /home/igorhaf/meada.
 Monolito multi-tenant que se apresenta como N produtos verticais ("perfis"). Perfis são HARDCODED em
-dois arquivos espelhados — enum Java `ProfileType` (src/main/java/com/meada/whatsapp/profiles/
+dois arquivos espelhados — enum Java `ProfileType` (src/main/java/com/meada/profiles/
 ProfileType.java) + const TS `profile-type.ts` (frontend/lib/profiles/profile-type.ts) — e o
 `ProfileTypeParityTest` falha o build se divergirem. NÃO existe tabela de perfis; cada tenant tem
 EXATAMENTE 1 perfil (`companies.profile_id`, CHECK constraint). Backend Spring Boot 3.3.13 + Java 17 +

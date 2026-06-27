@@ -5,7 +5,7 @@
 [TAREFA — SUB-MARATONA: PERFIL MODA_INFANTIL / Moda Infantil (camada 8.22)]
 
 [CONTEXTO]
-PROJETO MEADA WHATSAPP em /home/igorhaf/meada/projects/whatsapp.
+PROJETO MEADA WHATSAPP em /home/igorhaf/meada.
 Monolito multi-tenant que se apresenta como N produtos verticais ("perfis"). Cada perfil parece um
 produto distinto pro cliente final (subdomínio, nome, tom de IA, features). Perfis são HARDCODED em
 dois arquivos espelhados — enum Java `ProfileType.java` + const TS `profile-type.ts` —, validados pelo
@@ -165,7 +165,7 @@ DECISÕES CRAVADAS (revisor decidiu pelo Igor):
   TRUNCATE/SCRIPTS do AbstractIntegrationTest.
 
 [BACKEND]
-Estrutura em `src/main/java/com/meada/whatsapp/profiles/modainfantil/` (espelho de `comida/`):
+Estrutura em `src/main/java/com/meada/profiles/modainfantil/` (espelho de `comida/`):
 - `ModaInfantilProfileGuard.requireModaInfantil` → 403 `forbidden_wrong_profile` p/ tenant de outro
   perfil. `JwtAuthenticationFilter` autentica `/api/moda-infantil/**` (além dos perfis anteriores).
 - Catálogo: CRUD de `kids_products` (com category/gender_hint/brand) + CRUD de `kids_variants`

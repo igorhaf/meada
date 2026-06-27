@@ -8,9 +8,9 @@
 [TAREFA — SUB-MARATONA: PERFIL PAPELARIA / Papelaria (Papelaria · Convites personalizados) (camada 8.15)]
 
 [CONTEXTO]
-PROJETO MEADA WHATSAPP em /home/igorhaf/meada/projects/whatsapp.
+PROJETO MEADA WHATSAPP em /home/igorhaf/meada.
 Monolito multi-tenant que se apresenta como N produtos verticais ("perfis"). Perfis são HARDCODED em
-dois arquivos espelhados — enum Java `ProfileType` (`src/main/java/com/meada/whatsapp/profiles/
+dois arquivos espelhados — enum Java `ProfileType` (`src/main/java/com/meada/profiles/
 ProfileType.java`) + const TS (`frontend/lib/profiles/profile-type.ts`) — com `ProfileTypeParityTest`
 falhando o build se divergirem. NÃO há tabela de perfis. Backend Spring Boot 3 + JdbcTemplate (sem JPA,
 sem Lombok); frontend Next 16 (app router) + React 19 + Tailwind 4 + shadcn/ui. Migration própria em

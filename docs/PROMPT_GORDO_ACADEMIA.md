@@ -8,10 +8,10 @@ Documentação retroativa, no formato T5, do perfil vertical ACADEMIA já implem
 (camada 7.7, sétimo perfil real). Este arquivo descreve o que EXISTE no código, na migration e nos
 testes — não é um pedido de implementação. Reconstruído a partir das fontes reais (CLAUDE.md seção
 "Perfil Academia", migration 36_academia.sql, docs/PERFIL_ACADEMIA.md, código em
-src/main/java/com/meada/whatsapp/profiles/academia/).
+src/main/java/com/meada/profiles/academia/).
 
 [CONTEXTO]
-PROJETO MEADA WHATSAPP em /home/igorhaf/meada/projects/whatsapp.
+PROJETO MEADA WHATSAPP em /home/igorhaf/meada.
 O tenant academia (`profile_id='academia'`) vira um produto de ACADEMIA / STUDIO de fitness dentro
 do mesmo dashboard Meada. O tenant gerencia planos mensais e aulas semanais recorrentes, matricula
 alunos (assinatura), registra pagamentos manuais; a IA atende clientes via WhatsApp oferecendo

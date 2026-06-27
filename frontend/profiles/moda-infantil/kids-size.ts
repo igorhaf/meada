@@ -1,6 +1,6 @@
 /**
  * Tamanhos da grade de variantes do perfil moda_infantil (roupa de criança / varejo, camada 8.22) —
- * espelho 1:1 de src/main/java/com/meada/whatsapp/profiles/modainfantil/KidsSize.java.
+ * espelho 1:1 de src/main/java/com/meada/profiles/modainfantil/KidsSize.java.
  *
  * ESCAPADA da camada (vs lingerie): o eixo de tamanho aqui são FAIXAS ETÁRIAS (age bands), não as
  * letras PP..XGG da lingerie. O KidsSizeParityTest (backend) garante que os ids aqui e no enum Java

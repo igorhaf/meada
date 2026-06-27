@@ -1,6 +1,6 @@
 /**
  * Status de um processo (camada 7.2) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/legal/LegalCaseStatus.java.
+ * src/main/java/com/meada/profiles/legal/LegalCaseStatus.java.
  *
  * O LegalCaseStatusParityTest (backend) garante que os ids aqui e no enum Java nunca divergem.
  * A CHECK constraint de legal_cases.status (migration 31) trava os mesmos ids no banco.

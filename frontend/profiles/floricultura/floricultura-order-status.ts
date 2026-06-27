@@ -1,6 +1,6 @@
 /**
  * Status de um pedido floricultura (delivery iFood-style, camada 8.4) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/floricultura/orders/FloriculturaOrderStatus.java.
+ * src/main/java/com/meada/profiles/floricultura/orders/FloriculturaOrderStatus.java.
  *
  * O FloriculturaOrderStatusParityTest (backend) garante que os ids aqui e no enum Java nunca divergem
  * (o teste casa textualmente cada objeto `{ id: '...' }` deste arquivo, igual aos demais perfis).

@@ -1,6 +1,6 @@
 /**
  * Status de uma proposta de ateliê do perfil atelie (camada 8.14) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/atelie/AtelieProposalStatus.java.
+ * src/main/java/com/meada/profiles/atelie/AtelieProposalStatus.java.
  *
  * O AtelieProposalStatusParityTest (backend) garante que os ids aqui e no enum Java nunca divergem.
  * A CHECK constraint de atelie_proposals.status trava os mesmos ids.

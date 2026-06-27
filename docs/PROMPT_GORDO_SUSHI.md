@@ -5,7 +5,7 @@
 [TAREFA — PERFIL SUSHI / SushiBot (camada 7.1) — RETROATIVO]
 
 [CONTEXTO]
-PROJETO MEADA WHATSAPP em /home/igorhaf/meada/projects/whatsapp.
+PROJETO MEADA WHATSAPP em /home/igorhaf/meada.
 SushiBot é o PRIMEIRO perfil vertical real do projeto, logo depois da fundação multi-perfil
 (SM-A). É o ALICERCE que todos os perfis order-based posteriores (comida, floricultura, pizzaria…)
 clonaram. Migration 30_sushi.sql; perfil `profile_id='sushi'`; quarto id do enum (5º contando
@@ -91,7 +91,7 @@ de status, personalização dos textos de notificação (fixos), pagamento real 
     pedido. Tenant SELECT só via join no order da própria empresa; INSERT só service_role.
 
 [BACKEND]
-Pacote: src/main/java/com/meada/whatsapp/profiles/sushi/.
+Pacote: src/main/java/com/meada/profiles/sushi/.
 - Menu (cardápio): SushiMenuService + SushiMenuController + SushiMenuItem(Repository). CRUD de itens.
   Cada gravação/edição/exclusão chama SushiMenuCache.invalidate(companyId). delete de item com
   pedido apontando (FK restrict no sushi_order_items) → 409 menu_item_in_use. Audita

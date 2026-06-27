@@ -1,6 +1,6 @@
 /**
  * Status de uma proposta de evento do perfil eventos (camada 8.2) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/eventos/EventProposalStatus.java.
+ * src/main/java/com/meada/profiles/eventos/EventProposalStatus.java.
  *
  * O EventProposalStatusParityTest (backend) garante que os ids aqui e no enum Java nunca divergem.
  * A CHECK constraint de event_proposals.status (migration 45) trava os mesmos ids.

@@ -1,0 +1,76 @@
+package com.meada.profiles.modainfantil.orders;
+
+import com.meada.messaging.ContactRepository;
+import com.meada.messaging.ConversationRepository;
+import com.meada.messaging.EvolutionCredentials;
+import com.meada.messaging.MessageDirection;
+import com.meada.messaging.MessageRepository;
+import com.meada.messaging.MessageSender;
+import com.meada.messaging.WhatsappInstanceRepository;
+import com.meada.outbound.EvolutionSender;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+import java.util.Optional;
+import java.util.UUID;
+
+/**
+ * Dispara a notificação outbound à cliente quando o pedido moda_infantil muda de status (camada 8.22).
+ * Clone literal de {@link com.meada.profiles.lingerie.orders.LingerieOrderNotifier} (só o
+ * prefixo de log muda). Reusa o caminho de envio do core (resolve telefone + credenciais via a
+ * conversa, EvolutionSender). EVOLUTION_DRY_RUN (dev) é honrado pela implementação do EvolutionSender.
+ *
+ * <p>Best-effort por contrato: falha de envio NUNCA reverte a transição de status (já persistida) —
+ * loga warn e segue. A mensagem enviada também é persistida em {@code messages} (outbound/human — é a
+ * loja avisando, não a IA), best-effort.
+ */
+@Component
+public class ModaInfantilOrderNotifier {
+
+    private static final Logger log = LoggerFactory.getLogger(ModaInfantilOrderNotifier.class);
+
+    private final ConversationRepository conversationRepository;
+    private final ContactRepository contactRepository;
+    private final WhatsappInstanceRepository whatsappInstanceRepository;
+    private final MessageRepository messageRepository;
+    private final EvolutionSender evolutionSender;
+
+    public ModaInfantilOrderNotifier(ConversationRepository conversationRepository,
+                                     ContactRepository contactRepository,
+                                     WhatsappInstanceRepository whatsappInstanceRepository,
+                                     MessageRepository messageRepository,
+                                     EvolutionSender evolutionSender) {
+        this.conversationRepository = conversationRepository;
+        this.contactRepository = contactRepository;
+        this.whatsappInstanceRepository = whatsappInstanceRepository;
+        this.messageRepository = messageRepository;
+        this.evolutionSender = evolutionSender;
+    }
+
+    /** Envia o texto fixo do status à cliente da conversa. Best-effort (nunca lança). */
+    public void notifyStatus(UUID companyId, UUID conversationId, String text) {
+        if (text == null) {
+            return;   // status 'aguardando' não notifica.
+        }
+        try {
+            Optional<String> phone = contactRepository.findPhoneByConversationId(conversationId);
+            Optional<UUID> instanceId = conversationRepository.findInstanceIdByConversation(conversationId);
+            Optional<EvolutionCredentials> creds = instanceId
+                .flatMap(whatsappInstanceRepository::findEvolutionCredentials);
+            if (phone.isEmpty() || phone.get().isBlank() || creds.isEmpty()) {
+                log.warn("moda_infantil: pedido sem canal resolúvel (phone/creds) p/ conversa {} — notificação não enviada",
+                    conversationId);
+                return;
+            }
+            String keyId = evolutionSender.sendText(
+                creds.get().instanceName(), creds.get().token(), phone.get(), text);
+            // Persiste a notificação como mensagem outbound (sender=human: é a loja, não a IA).
+            messageRepository.insertIfNew(companyId, conversationId,
+                MessageDirection.OUTBOUND, MessageSender.HUMAN, text, keyId);
+        } catch (RuntimeException e) {
+            log.warn("moda_infantil: falha ao notificar status p/ conversa {} ({}) — pedido segue mesmo assim",
+                conversationId, e.getMessage());
+        }
+    }
+}

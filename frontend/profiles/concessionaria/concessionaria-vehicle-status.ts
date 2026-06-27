@@ -1,6 +1,6 @@
 /**
  * Status de um veículo do estoque do perfil concessionaria (camada 8.17) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/concessionaria/ConcessionariaVehicleStatus.java.
+ * src/main/java/com/meada/profiles/concessionaria/ConcessionariaVehicleStatus.java.
  *
  * O ConcessionariaVehicleStatusParityTest (backend) garante que os ids aqui e no enum Java nunca
  * divergem. A CHECK constraint de concessionaria_vehicles.status (migration) trava os mesmos ids.

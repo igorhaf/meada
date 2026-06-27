@@ -1,6 +1,6 @@
 /**
  * Status de um pedido de óculos do perfil otica (camada 8.12) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/otica/orders/OticaOrderStatus.java.
+ * src/main/java/com/meada/profiles/otica/orders/OticaOrderStatus.java.
  *
  * O OticaOrderStatusParityTest (backend) garante que os ids aqui e no enum Java nunca divergem
  * (o teste casa textualmente cada objeto `{ id: '...' }` deste arquivo, igual aos demais perfis).

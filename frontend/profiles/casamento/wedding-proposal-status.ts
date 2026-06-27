@@ -1,6 +1,6 @@
 /**
  * Status de uma proposta de casamento do perfil casamento (camada 8.7) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/casamento/WeddingProposalStatus.java.
+ * src/main/java/com/meada/profiles/casamento/WeddingProposalStatus.java.
  *
  * O WeddingProposalStatusParityTest (backend) garante que os ids aqui e no enum Java nunca divergem.
  * A CHECK constraint de wedding_proposals.status trava os mesmos ids.

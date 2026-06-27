@@ -7,9 +7,9 @@
 [TAREFA — SUB-MARATONA: PERFIL VIAGENS / Viagens (Agência de viagens) (camada 8.18)]
 
 [CONTEXTO]
-PROJETO MEADA WHATSAPP em /home/igorhaf/meada/projects/whatsapp.
+PROJETO MEADA WHATSAPP em /home/igorhaf/meada.
 Monolito multi-tenant que se apresenta como N produtos verticais ("perfis"). Os perfis são
-HARDCODED em dois arquivos espelhados — `src/main/java/com/meada/whatsapp/profiles/ProfileType.java`
+HARDCODED em dois arquivos espelhados — `src/main/java/com/meada/profiles/ProfileType.java`
 (enum Java) e `frontend/lib/profiles/profile-type.ts` (const TS) — e o `ProfileTypeParityTest` falha
 o build se divergirem. NÃO existe tabela de perfis. Cada tenant tem EXATAMENTE 1 perfil
 (`companies.profile_id`, CHECK na lista de ids). Adicionar um perfil = editar os 2 arquivos + uma

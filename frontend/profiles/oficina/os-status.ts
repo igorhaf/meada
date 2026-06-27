@@ -1,6 +1,6 @@
 /**
  * Status de uma ordem de serviço do perfil oficina (camada 7.9) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/oficina/OsStatus.java.
+ * src/main/java/com/meada/profiles/oficina/OsStatus.java.
  *
  * O OsStatusParityTest (backend) garante que os ids aqui e no enum Java nunca divergem. A CHECK
  * constraint de service_orders.status (migration 38) trava os mesmos ids.

@@ -1,6 +1,6 @@
 /**
  * Status de uma matrícula do perfil academia (camada 7.7) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/academia/AcademiaMembershipStatus.java.
+ * src/main/java/com/meada/profiles/academia/AcademiaMembershipStatus.java.
  *
  * O AcademiaMembershipStatusParityTest (backend) garante que os ids nunca divergem. A CHECK
  * constraint de academia_memberships.status (migration 36) trava os mesmos ids.

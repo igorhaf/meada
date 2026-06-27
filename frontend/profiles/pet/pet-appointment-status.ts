@@ -1,6 +1,6 @@
 /**
  * Status de um agendamento do perfil pet (camada 7.8) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/pet/PetAppointmentStatus.java.
+ * src/main/java/com/meada/profiles/pet/PetAppointmentStatus.java.
  *
  * O PetAppointmentStatusParityTest (backend) garante que os ids nunca divergem. A CHECK constraint
  * de pet_appointments.status (migration 37) trava os mesmos ids.

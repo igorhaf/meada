@@ -7,7 +7,7 @@
 [TAREFA — SUB-MARATONA: PERFIL ESCOLA / Escola (Educação infantil · Escola) (camada 8.19)]
 
 [CONTEXTO]
-PROJETO MEADA WHATSAPP em /home/igorhaf/meada/projects/whatsapp.
+PROJETO MEADA WHATSAPP em /home/igorhaf/meada.
 Vários perfis verticais reais hoje (… academia 7.7, pet 7.8 … comida 8.4, floricultura 8.5, pizzaria
 8.6 e os demais da fila) + generic. Lê CONTEXT.md e o filesystem no arranque pra cravar convenções,
 nº de migration, contagem do Surefire e numeração de tenant ANTES de escrever qualquer código. NÃO

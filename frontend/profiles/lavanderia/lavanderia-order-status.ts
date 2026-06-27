@@ -1,6 +1,6 @@
 /**
  * Status de um pedido lavanderia (delivery com coleta+entrega, camada 8.10) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/lavanderia/orders/LavanderiaOrderStatus.java.
+ * src/main/java/com/meada/profiles/lavanderia/orders/LavanderiaOrderStatus.java.
  *
  * O LavanderiaOrderStatusParityTest (backend) garante que os ids aqui e no enum Java nunca divergem
  * (o teste casa textualmente cada objeto `{ id: '...' }` deste arquivo). A CHECK constraint de

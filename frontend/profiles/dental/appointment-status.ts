@@ -1,6 +1,6 @@
 /**
  * Status de uma consulta do perfil dental (camada 7.4) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/dental/AppointmentStatus.java.
+ * src/main/java/com/meada/profiles/dental/AppointmentStatus.java.
  *
  * O AppointmentStatusParityTest (backend) garante que os ids aqui e no enum Java nunca divergem.
  * A CHECK constraint de dental_appointments.status (migration 33) trava os mesmos ids no banco.

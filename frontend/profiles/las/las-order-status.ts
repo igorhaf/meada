@@ -1,6 +1,6 @@
 /**
  * Status de um pedido las (loja de lãs / novelos / tricô-crochê — varejo, camada 8.23) — espelho
- * 1:1 de src/main/java/com/meada/whatsapp/profiles/las/orders/LasOrderStatus.java.
+ * 1:1 de src/main/java/com/meada/profiles/las/orders/LasOrderStatus.java.
  *
  * O LasOrderStatusParityTest (backend) garante que os ids aqui e no enum Java nunca divergem (o
  * teste casa textualmente cada objeto `{ id: '...' }` deste arquivo, igual aos demais perfis).

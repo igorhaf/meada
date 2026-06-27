@@ -1,6 +1,6 @@
 /**
  * Status de uma matrícula do perfil cursos (camada 8.20) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/cursos/CursoEnrollmentStatus.java.
+ * src/main/java/com/meada/profiles/cursos/CursoEnrollmentStatus.java.
  *
  * O CursoEnrollmentStatusParityTest (backend) garante que os ids nunca divergem. A CHECK
  * constraint de cursos_enrollments.status trava os mesmos ids.

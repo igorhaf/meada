@@ -1,6 +1,6 @@
 /**
  * Período de retirada/entrega do perfil padaria (camada 8.8, ESCAPADA 1) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/padaria/PadariaPeriod.java.
+ * src/main/java/com/meada/profiles/padaria/PadariaPeriod.java.
  *
  * Pedido sob encomenda carrega o dia (pickup_or_delivery_date) + a FAIXA do dia (este enum).
  * O PadariaPeriodParityTest (backend) garante que os ids aqui e no enum Java nunca divergem.

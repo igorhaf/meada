@@ -1,6 +1,6 @@
 /**
  * Status de um pedido padaria (delivery/retirada iFood-style, camada 8.8) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/padaria/orders/PadariaOrderStatus.java.
+ * src/main/java/com/meada/profiles/padaria/orders/PadariaOrderStatus.java.
  *
  * O PadariaOrderStatusParityTest (backend) garante que os ids aqui e no enum Java nunca divergem
  * (o teste casa textualmente cada objeto `{ id: '...' }` deste arquivo, igual aos demais perfis).

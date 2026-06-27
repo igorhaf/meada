@@ -10,7 +10,7 @@ retroativa do prompt gordo que teria gerado o que existe hoje no código. Toda s
 estado REAL no filesystem/banco; nada aqui é especulação.
 
 [CONTEXTO]
-PROJETO MEADA WHATSAPP em /home/igorhaf/meada/projects/whatsapp.
+PROJETO MEADA WHATSAPP em /home/igorhaf/meada.
 Pousada é o template de nicho pra POUSADA / HOSPEDAGEM PEQUENA dentro do mesmo dashboard Meada.
 O tenant acessa pousada.meadadigital.local e vê o produto "PousadaBot". A IA atende hóspedes via
 WhatsApp com tom acolhedor-turístico: mostra os quartos por número de pessoas e datas, calcula o
@@ -91,7 +91,7 @@ DECISÕES CRAVADAS (reais, refletidas no código):
   TRUNCATE/SCRIPTS do AbstractIntegrationTest.
 
 [BACKEND]
-src/main/java/com/meada/whatsapp/profiles/pousada/
+src/main/java/com/meada/profiles/pousada/
 - PousadaProfileGuard — requirePousada → 403 forbidden_wrong_profile para tenant de outro perfil.
   JwtAuthenticationFilter autentica /api/pousada/** (além de /admin/**, sushi/legal/restaurant/salon).
 - PousadaReservationStatus — enum hardcoded com 6 estados, allowedNext()/canTransitionTo() e o texto
@@ -152,7 +152,7 @@ src/main/java/com/meada/whatsapp/profiles/pousada/
 - NÃO mexer em system-template.txt nem em outros perfis.
 
 [TESTES BACKEND]
-src/test/java/com/meada/whatsapp/profiles/pousada/
+src/test/java/com/meada/profiles/pousada/
 - PousadaReservationStatusParityTest — garante paridade Java↔TS dos 6 estados e transições.
 - ProfileTypeParityTest (global) — pousada presente no enum/const.
 - rooms/PousadaRoomServiceTest + PousadaRoomControllerIntegrationTest.

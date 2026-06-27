@@ -1,6 +1,6 @@
 /**
  * Status de uma reserva do perfil restaurant (camada 7.3) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/restaurant/ReservationStatus.java.
+ * src/main/java/com/meada/profiles/restaurant/ReservationStatus.java.
  *
  * O ReservationStatusParityTest (backend) garante que os ids aqui e no enum Java nunca divergem.
  * A CHECK constraint de table_reservations.status (migration 32) trava os mesmos ids no banco.

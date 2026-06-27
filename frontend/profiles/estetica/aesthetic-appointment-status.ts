@@ -1,6 +1,6 @@
 /**
  * Status de um agendamento de estética (camada 8.3) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/estetica/AestheticAppointmentStatus.java.
+ * src/main/java/com/meada/profiles/estetica/AestheticAppointmentStatus.java.
  *
  * O AestheticAppointmentStatusParityTest (backend) garante a paridade. Transições:
  *   agendado   → confirmado, cancelado

@@ -1,6 +1,6 @@
 /**
  * Período de entrega do perfil floricultura (camada 8.5, ESCAPADA) — espelho 1:1 de
- * src/main/java/com/meada/whatsapp/profiles/floricultura/FloriculturaPeriod.java.
+ * src/main/java/com/meada/profiles/floricultura/FloriculturaPeriod.java.
  *
  * Flor é presente AGENDADO: o pedido carrega o dia (deliveryDate) + a FAIXA do dia (este enum).
  * O FloriculturaPeriodParityTest (backend) garante que os ids aqui e no enum Java nunca divergem.
