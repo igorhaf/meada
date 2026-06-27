@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 20_ia_intelligence.sql
--- Meada WhatsApp — Camada 5.18 (Fase B): IA mais inteligente.
+-- Meada — Camada 5.18 (Fase B): IA mais inteligente.
 --
 -- Mesma técnica da 5.15 (#29): sub-objetos OPCIONAIS no responseSchema do Gemini, sem
 -- function calling (incompatível com JSON-mode). O backend persiste cada sub-objeto na

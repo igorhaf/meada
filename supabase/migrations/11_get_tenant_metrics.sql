@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 11_get_tenant_metrics.sql
--- Meada WhatsApp — Camada 5.12: RPC do dashboard de métricas do tenant.
+-- Meada — Camada 5.12: RPC do dashboard de métricas do tenant.
 --
 -- Uma única função retorna TODO o payload do dashboard em jsonb (1 round-trip):
 --   - messagesInbound30d / messagesOutbound30d — contagens dos últimos 30 dias

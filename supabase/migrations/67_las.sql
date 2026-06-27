@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 67_las.sql
--- Meada WhatsApp — Camada 8.23 (SM: perfil Lãs / loja de lãs · novelos · tricô/crochê · varejo). CLONA o
+-- Meada — Camada 8.23 (SM: perfil Lãs / loja de lãs · novelos · tricô/crochê · varejo). CLONA o
 -- chassi de VAREJO COM VARIANTES da Lingerie (65_lingerie.sql), com a adaptação do EIXO DE VARIANTE:
 --   aqui a variante é COR × DYE_LOT (lote de tingimento) — não tamanho×cor.
 --

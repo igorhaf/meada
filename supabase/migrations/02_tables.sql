@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 02_tables.sql
--- Meada WhatsApp — as 11 tabelas do MVP, índices e integridade referencial.
+-- Meada — as 11 tabelas do MVP, índices e integridade referencial.
 --
 -- Escopo deste arquivo:
 --   - Tabelas de domínio com company_id onde aplicável.

@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 35_pousada.sql
--- Meada WhatsApp — Camada 7.6 (SM-G: perfil Pousada / PousadaBot). Sexto perfil vertical
+-- Meada — Camada 7.6 (SM-G: perfil Pousada / PousadaBot). Sexto perfil vertical
 -- real. Tabelas exclusivas do perfil 'pousada': quartos, config e reservas.
 --
 -- EVOLUÇÃO ESTRUTURAL do padrão (vs salon/dental/restaurant): a reserva é um INTERVALO DE

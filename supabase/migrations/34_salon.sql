@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 34_salon.sql
--- Meada WhatsApp — Camada 7.5 (SM-F: perfil Salão / SalãoBot). Quinto perfil vertical real
+-- Meada — Camada 7.5 (SM-F: perfil Salão / SalãoBot). Quinto perfil vertical real
 -- (sushi 7.1, legal 7.2, restaurant 7.3, dental 7.4, salon 7.5). Tabelas exclusivas do
 -- perfil 'salon': profissionais, serviços (offerings), config e agendamentos.
 --

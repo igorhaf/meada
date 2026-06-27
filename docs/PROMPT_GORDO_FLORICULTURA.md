@@ -3,13 +3,13 @@
 [TAREFA — PERFIL FLORICULTURA / Floricultura (loja de flores, entrega agendada) (camada 8.5) — RETROATIVO]
 
 Este documento reconstrói, no formato T5, o "prompt gordo" que teria gerado o perfil floricultura JÁ
-IMPLEMENTADO no projeto Meada WhatsApp (em /home/igorhaf/meada). NÃO é trabalho a
+IMPLEMENTADO no projeto Meada (em /home/igorhaf/meada). NÃO é trabalho a
 executar — é a fotografia retroativa do que o código, a migration e os testes realmente contêm. O
 perfil floricultura é o DÉCIMO SEXTO perfil vertical real (16º contando generic), fechado no commit
 553ce1d, e virou o CHASSI dos perfis agendados que vieram depois (a padaria 8.8 evoluiu dele).
 
 [CONTEXTO]
-PROJETO MEADA WHATSAPP — SaaS multi-empresa de atendimento via WhatsApp com IA, monolito que se
+PROJETO MEADA — SaaS multi-empresa de atendimento via WhatsApp com IA, monolito que se
 apresenta como N produtos verticais ("perfis"). Cada perfil é hardcoded (enum Java
 `ProfileType` ↔ const TS `profile-type.ts`, com `ProfileTypeParityTest` falhando o build se
 divergirem); NÃO existe tabela de perfis. Tenant tem EXATAMENTE 1 perfil (`companies.profile_id`,

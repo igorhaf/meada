@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 59_papelaria.sql
--- Meada WhatsApp — Camada 8.15 (SM: perfil Papelaria / Convites personalizados). CLONA o chassi do
+-- Meada — Camada 8.15 (SM: perfil Papelaria / Convites personalizados). CLONA o chassi do
 -- PADARIA (52_padaria.sql) — pedido com lead time + made_to_order + data condicional + gate de aceite +
 -- catálogo + modifiers + total recalculado + fulfillment — e INAUGURA a ESCAPADA:
 --

@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 08_audit_log.sql
--- Meada WhatsApp — Camada 5.3: audit log enxuto (persistência sem tela).
+-- Meada — Camada 5.3: audit log enxuto (persistência sem tela).
 --
 -- Registra ações sensíveis por tenant. Duas vias de escrita:
 --   1. Backend Spring (service_role) via AuditLogger Java — ex.: company.created

@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 49_floricultura.sql
--- Meada WhatsApp — Camada 8.5 (SM-S: perfil Floricultura / loja de flores com entrega agendada). DÉCIMO SEXTO perfil
+-- Meada — Camada 8.5 (SM-S: perfil Floricultura / loja de flores com entrega agendada). DÉCIMO SEXTO perfil
 -- vertical real (16º contando generic): loja de flores (buquês/arranjos) com ENTREGA AGENDADA + cartão + destinatário. Tabelas exclusivas do perfil
 -- 'floricultura': config (taxa+mínimo), cardápio, OPÇÕES de item (modifiers), pedidos, itens de pedido e
 -- OPÇÕES escolhidas por item de pedido.

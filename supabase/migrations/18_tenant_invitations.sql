@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 18_tenant_invitations.sql
--- Meada WhatsApp — Camada 5.16 (#6): convite de usuário extra (multi-user no tenant).
+-- Meada — Camada 5.16 (#6): convite de usuário extra (multi-user no tenant).
 --
 -- O admin de um tenant convida outra pessoa para administrar a MESMA empresa. Fluxo
 -- (decisão de produto cravada): link manual gerado pelo backend (sem SMTP) — o admin

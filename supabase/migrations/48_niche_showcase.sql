@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 48_niche_showcase.sql
--- Meada WhatsApp — Vitrine de nichos (produtos do Meada institucional). INFRA DE PLATAFORMA.
+-- Meada — Vitrine de nichos (produtos do Meada institucional). INFRA DE PLATAFORMA.
 -- O ROOT marca quais nichos são DESTAQUE (aparecem na home) e define a ORDEM (grid). A página
 -- /produtos lista TODOS os nichos na ordem; a home mostra os marcados como destaque (até 6).
 --

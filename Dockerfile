@@ -1,4 +1,4 @@
-# Dockerfile do backend Spring Boot (Meada WhatsApp) — fase 0.5 (dockerização).
+# Dockerfile do backend Spring Boot (Meada) — fase 0.5 (dockerização).
 #
 # 3 estágios:
 #   builder  — compila o jar (sem testes; testes batem no Supabase real e rodam host-side

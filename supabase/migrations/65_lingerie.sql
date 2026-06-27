@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 65_lingerie.sql
--- Meada WhatsApp — Camada 8.21 (SM: perfil Lingerie / moda íntima · varejo). Tabelas exclusivas do
+-- Meada — Camada 8.21 (SM: perfil Lingerie / moda íntima · varejo). Tabelas exclusivas do
 -- perfil 'lingerie': catálogo de produtos, VARIANTES (tamanho×cor) com ESTOQUE por variante, config,
 -- pedidos, itens (snapshot), e gate de aceite humano.
 --

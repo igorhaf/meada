@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 41_cms.sql
--- Meada WhatsApp — Camada 9.x (SM-M: CMS / página pessoal por tenant). PRIMEIRA feature gateada por
+-- Meada — Camada 9.x (SM-M: CMS / página pessoal por tenant). PRIMEIRA feature gateada por
 -- feature flag (ProfileFeature.CMS, camada 9.0). Cada tenant cujo nicho tem o CMS ligado monta uma
 -- página pública com BLOCOS arrastáveis (page builder) e pode apontar um DOMÍNIO próprio.
 --

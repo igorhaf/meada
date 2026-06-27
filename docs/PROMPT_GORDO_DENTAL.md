@@ -5,7 +5,7 @@
 
 [TAREFA — PERFIL DENTAL / DentalBot (camada 7.4) — RETROATIVO]
 
-Documentar (retroativo) o perfil vertical DENTAL já implementado no projeto MEADA WHATSAPP
+Documentar (retroativo) o perfil vertical DENTAL já implementado no projeto MEADA
 (/home/igorhaf/meada). Quarto perfil vertical real (sushi 7.1, legal 7.2,
 restaurant 7.3, dental 7.4 — 5º contando generic). O tenant dental (`profile_id='dental'`) é um
 produto de CLÍNICA ODONTOLÓGICA dentro do mesmo dashboard Meada. NÃO inventar: tudo abaixo reflete

@@ -2,7 +2,7 @@
 
 Cada arquivo deste diretório é um **prompt gordo formato T5**: um brief denso e
 temático-completo que um agente executor usa pra erguer um nicho vertical inteiro do
-Meada WhatsApp num único passo (migration + backend + frontend + testes + seed + smoke).
+Meada num único passo (migration + backend + frontend + testes + seed + smoke).
 Foram escritos a partir de **regra de negócio** (análise empírica do domínio), não de
 análise de código.
 

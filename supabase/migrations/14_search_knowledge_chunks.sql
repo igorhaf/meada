@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 14_search_knowledge_chunks.sql
--- Meada WhatsApp — Camada 5.13.b: RPC de retrieval (busca semântica de chunks).
+-- Meada — Camada 5.13.b: RPC de retrieval (busca semântica de chunks).
 --
 -- Dado o embedding da consulta do usuário, retorna os top-N chunks mais similares do
 -- tenant (cosine), acima de um threshold. Usado pelo backend no retrieval (5.13.d) —

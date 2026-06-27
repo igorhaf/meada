@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 63_escola.sql
--- Meada WhatsApp — Camada 8.19 (SM: perfil Escola / Educação infantil). Tabelas exclusivas do
+-- Meada — Camada 8.19 (SM: perfil Escola / Educação infantil). Tabelas exclusivas do
 -- perfil 'escola': config, turmas, alunos (sub-entidade do responsável), matrículas (assinaturas),
 -- pagamentos manuais (mensalidade) e visitas agendadas.
 --

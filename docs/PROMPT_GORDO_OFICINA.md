@@ -10,7 +10,7 @@ não é uma sub-maratona a executar. NONO perfil vertical real do catálogo e PR
 da fila planejada de 8 (sushi/legal/restaurant/dental/salon/pousada/academia/pet/oficina).
 
 [CONTEXTO]
-PROJETO MEADA WHATSAPP em /home/igorhaf/meada.
+PROJETO MEADA em /home/igorhaf/meada.
 Oficina é o template de nicho pra OFICINA MECÂNICA / AUTO CENTER dentro do mesmo dashboard
 Meada. O tenant (`profile_id='oficina'`) acessa o produto "OficinaBot": a IA atende clientes
 via WhatsApp com tom prestativo-direto, identifica o veículo, ABRE a ordem de serviço (OS) a

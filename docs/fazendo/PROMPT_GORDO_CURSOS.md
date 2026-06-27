@@ -6,7 +6,7 @@
 [TAREFA — SUB-MARATONA: PERFIL CURSOS / Cursos (Ensino passo a passo) (camada 8.20)]
 
 [CONTEXTO]
-PROJETO MEADA WHATSAPP em /home/igorhaf/meada.
+PROJETO MEADA em /home/igorhaf/meada.
 Catálogo de perfis verticais reais já fechado/declarado no enum (… academia 7.7, nutri 8.0, …
 floricultura 8.5, pizzaria 8.6, e os da fila do README: casamento/padaria/adega/lavanderia/
 dermatologia/otica/projetos…) + generic. ESTE perfil é mais um vertical real (campo da plataforma).

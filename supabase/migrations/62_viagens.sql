@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 62_viagens.sql
--- Meada WhatsApp — Camada 8.18 (SM: perfil Viagens / agência de viagens). CLONA o chassi do EVENTOS
+-- Meada — Camada 8.18 (SM: perfil Viagens / agência de viagens). CLONA o chassi do EVENTOS
 -- (45_eventos.sql) — proposta order-based + itens de cotação (total materializado) + gate de aprovação
 -- em 2 fases via tag que muta o estado — e inaugura a ESCAPADA:
 --

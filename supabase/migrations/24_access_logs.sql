@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 24_access_logs.sql
--- Meada WhatsApp — Camada 5.24 (Fase H): logs de acesso (#92).
+-- Meada — Camada 5.24 (Fase H): logs de acesso (#92).
 --
 -- Registra eventos de AUTENTICAÇÃO (não cada request — volume): login_success,
 -- login_failed, password_changed. Diferente do audit_log (mutações de dados de negócio),

@@ -1,6 +1,6 @@
 # embedding-sidecar
 
-Sidecar de embeddings self-hosted (camada 5.13.a do bloco RAG do Meada WhatsApp).
+Sidecar de embeddings self-hosted (camada 5.13.a do bloco RAG do Meada).
 
 FastAPI + `sentence-transformers` servindo o modelo **`intfloat/multilingual-e5-small`**
 (384 dimensões, ~600MB de RAM, boa qualidade em pt-BR). Usado pelo backend Java (a partir

@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 01_extensions_and_schema.sql
--- Meada WhatsApp — fundação: extensões e o schema `app`.
+-- Meada — fundação: extensões e o schema `app`.
 --
 -- Escopo deste arquivo (e SOMENTE este):
 --   1. Extensões necessárias.

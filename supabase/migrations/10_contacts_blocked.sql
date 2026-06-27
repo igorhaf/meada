@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 10_contacts_blocked.sql
--- Meada WhatsApp — Camada 5.11: bloqueio de contato (#41).
+-- Meada — Camada 5.11: bloqueio de contato (#41).
 --
 -- Adiciona contacts.blocked: quando true, o WebhookService persiste a mensagem
 -- inbound (histórico íntegro — o tenant vê que o bloqueado tentou contato) mas NÃO

@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 68_suplementos.sql
--- Meada WhatsApp — Camada 8.24 (SM: perfil Suplementos / loja de saúde · nutrição esportiva). CLONA o
+-- Meada — Camada 8.24 (SM: perfil Suplementos / loja de saúde · nutrição esportiva). CLONA o
 -- chassi order-based do COMIDA (47_comida.sql) — pedido + gate de aceite humano + total recalculado +
 -- taxa/mínimo + Kanban — combinado com o chassi de VARIANTES COM ESTOQUE do LINGERIE (65), e inaugura
 -- DUAS coisas num perfil de VAREJO:

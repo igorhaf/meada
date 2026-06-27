@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 31_legal.sql
--- Meada WhatsApp — Camada 7.2 (SM-C: perfil Legal / ProcessoBot). Segundo perfil vertical
+-- Meada — Camada 7.2 (SM-C: perfil Legal / ProcessoBot). Segundo perfil vertical
 -- real, no mesmo padrão do sushi (SM-B). Tabelas exclusivas do perfil 'legal':
 -- clientes do escritório, processos e andamentos.
 --

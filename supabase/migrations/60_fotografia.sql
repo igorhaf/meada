@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 60_fotografia.sql
--- Meada WhatsApp — Camada 8.16 (SM: perfil Fotografia / estúdio · cinema · audiovisual). Tabelas
+-- Meada — Camada 8.16 (SM: perfil Fotografia / estúdio · cinema · audiovisual). Tabelas
 -- exclusivas do perfil 'fotografia': fotógrafos, pacotes (catálogo), config, sessões/coberturas.
 --
 -- COMBINA dois chassis + uma escapada:

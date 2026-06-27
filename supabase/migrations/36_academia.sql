@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 36_academia.sql
--- Meada WhatsApp — Camada 7.7 (SM-H: perfil Academia / AcademiaBot). Sétimo perfil vertical
+-- Meada — Camada 7.7 (SM-H: perfil Academia / AcademiaBot). Sétimo perfil vertical
 -- real. Tabelas exclusivas do perfil 'academia': planos, aulas semanais, config, matrículas
 -- (assinaturas), junction matrícula↔aulas, e pagamentos manuais.
 --

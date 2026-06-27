@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 33_dental.sql
--- Meada WhatsApp — Camada 7.4 (SM-E: perfil Dental / DentalBot). Quarto perfil vertical
+-- Meada — Camada 7.4 (SM-E: perfil Dental / DentalBot). Quarto perfil vertical
 -- real (sushi 7.1, legal 7.2, restaurant 7.3, dental 7.4). Tabelas exclusivas do perfil
 -- 'dental': pacientes, config do consultório e consultas (appointments).
 --

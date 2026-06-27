@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 52_padaria.sql
--- Meada WhatsApp — Camada 8.8 (SM: perfil Padaria / Confeitaria). CLONA o chassi do FLORICULTURA
+-- Meada — Camada 8.8 (SM: perfil Padaria / Confeitaria). CLONA o chassi do FLORICULTURA
 -- (49_floricultura.sql) — que clonou o COMIDA — cardápio + OPÇÕES/personalização (modifiers via
 -- price_delta) + carrinho-na-conversa + tag de pedido + recálculo de total + snapshot + taxa/mínimo +
 -- Kanban + GATE DE ACEITE HUMANO + pedido AGENDADO por dia + período. DUAS escapadas novas:

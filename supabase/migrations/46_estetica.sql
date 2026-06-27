@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 46_estetica.sql
--- Meada WhatsApp — Camada 8.3 (SM-Q: perfil Estética / EsteticaBot). DÉCIMO TERCEIRO perfil
+-- Meada — Camada 8.3 (SM-Q: perfil Estética / EsteticaBot). DÉCIMO TERCEIRO perfil
 -- vertical real (14º contando generic): clínica de estética (facial/corporal, drenagem, limpeza de
 -- pele, depilação a laser…). Tabelas exclusivas do perfil 'estetica': profissionais, procedimentos,
 -- config, PACOTES (saldo de sessões), agendamentos (que consomem saldo) e ficha/evolução por sessão.

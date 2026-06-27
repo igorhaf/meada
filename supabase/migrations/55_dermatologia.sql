@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 55_dermatologia.sql
--- Meada WhatsApp — Camada 8.11 (SM: perfil Dermatologia / clínica dermatológica). Tabelas exclusivas
+-- Meada — Camada 8.11 (SM: perfil Dermatologia / clínica dermatológica). Tabelas exclusivas
 -- do perfil 'dermatologia': dermatologistas, config, tipos de atendimento (com duração + preparo),
 -- pacientes (sub-entidade do contact) e consultas.
 --

@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 05_storage.sql
--- Meada WhatsApp — bucket privado de documentos com isolamento por tenant.
+-- Meada — bucket privado de documentos com isolamento por tenant.
 --
 -- Escopo deste arquivo:
 --   - Cria o bucket privado 'documents'.

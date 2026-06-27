@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sobe a stack dockerizada do Meada WhatsApp (fase 0.5): backend + frontend + embeddings + caddy.
+# Sobe a stack dockerizada do Meada (fase 0.5): backend + frontend + embeddings + caddy.
 # O banco é o Supabase REMOTO (lido do .env). Para o Apache local (libera a porta 80 p/ o Caddy)
 # — temporário, NÃO desabilita; o meada-down.sh deixa instruções pra religar se você quiser.
 set -euo pipefail

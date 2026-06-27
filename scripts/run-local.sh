@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sobe o backend whatsapp localmente, lendo as variáveis de ambiente do .env da raiz.
+# Sobe o backend meada localmente, lendo as variáveis de ambiente do .env da raiz.
 #   ./scripts/run-local.sh
 #
 # Falha cedo (e com mensagem clara) se o .env não existir.
@@ -23,7 +23,7 @@ set -a
 source "$ENV_FILE"
 set +a
 
-LOG_FILE="/tmp/whatsapp-backend.log"
+LOG_FILE="/tmp/meada-backend.log"
 echo "Variáveis carregadas de $ENV_FILE. Subindo o backend (mvn spring-boot:run)..."
 echo "Log também em $LOG_FILE (para acompanhamento via tail/grep)."
 cd "$ROOT_DIR"

@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 29_company_profile.sql
--- Meada WhatsApp — Camada 7.0 (fundação multi-perfil). Adiciona companies.profile_id:
+-- Meada — Camada 7.0 (fundação multi-perfil). Adiciona companies.profile_id:
 -- o discriminador vertical do tenant. Meada é um monolito que se apresenta como N
 -- produtos verticais ("perfis"); o perfil é CRAVADO pelo root ao criar a empresa, o
 -- tenant não escolhe.

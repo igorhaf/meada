@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 64_cursos.sql
--- Meada WhatsApp — Camada 8.20 (SM: perfil Cursos / escola livre · curso online · formação). Tabelas
+-- Meada — Camada 8.20 (SM: perfil Cursos / escola livre · curso online · formação). Tabelas
 -- exclusivas do perfil 'cursos': cursos, MÓDULOS ordenados, config, matrículas (assinaturas),
 -- progresso individual por módulo, e pagamentos manuais.
 --

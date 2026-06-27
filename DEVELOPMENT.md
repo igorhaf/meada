@@ -1,4 +1,4 @@
-# DEVELOPMENT — Meada WhatsApp
+# DEVELOPMENT — Meada
 
 Notas de setup do ambiente local e de CI. Pendências ambientais (não de produto)
 ficam aqui. Riscos de produto vivem em RISKS.md.

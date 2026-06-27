@@ -1,4 +1,4 @@
-# Relatório Pós-Maratona — Meada WhatsApp
+# Relatório Pós-Maratona — Meada
 
 **Gerado em:** 2026-06-16
 **HEAD:** `4150f6a` (sincronizado com `origin/main` — 0/0)

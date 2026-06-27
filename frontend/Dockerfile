@@ -1,4 +1,4 @@
-# Dockerfile do frontend Next.js 16 (Meada WhatsApp) — fase 0.5 (dockerização).
+# Dockerfile do frontend Next.js 16 (Meada) — fase 0.5 (dockerização).
 #
 # dev  — node:20-alpine rodando `npm run dev` com o código por VOLUME (hot-reload). Target
 #        usado pelo compose dev. node_modules e .next ficam em volumes anônimos (não são

@@ -1,4 +1,4 @@
-# RISKS — Meada WhatsApp
+# RISKS — Meada
 
 Registro de riscos conhecidos e pendências bloqueantes do projeto. Cada item segue
 o template fixo abaixo. Auditar este arquivo antes de marcos relevantes (ativação

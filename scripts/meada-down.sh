@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Derruba a stack dockerizada do Meada WhatsApp (fase 0.5). NÃO religa o Apache automaticamente
+# Derruba a stack dockerizada do Meada (fase 0.5). NÃO religa o Apache automaticamente
 # (decisão: Apache é resíduo — religar é escolha consciente sua).
 set -euo pipefail
 

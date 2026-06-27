@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 30_sushi.sql
--- Meada WhatsApp — Camada 7.1 (SM-B: perfil Sushi / SushiBot). Primeiro perfil vertical
+-- Meada — Camada 7.1 (SM-B: perfil Sushi / SushiBot). Primeiro perfil vertical
 -- real depois da fundação multi-perfil (SM-A). Tabelas exclusivas do perfil 'sushi':
 -- cardápio, config do restaurante, pedidos e itens de pedido.
 --

@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 13_knowledge_tables.sql
--- Meada WhatsApp — Camada 5.13.b: tabelas do RAG (documentos + chunks com embeddings).
+-- Meada — Camada 5.13.b: tabelas do RAG (documentos + chunks com embeddings).
 --
 -- pgvector: a extensão 'vector' é habilitada aqui (idempotente). knowledge_chunks.embedding
 -- é vector(384) — dimensão do modelo intfloat/multilingual-e5-small (sidecar 5.13.a).

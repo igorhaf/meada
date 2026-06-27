@@ -5,7 +5,7 @@
 [TAREFA — PERFIL SUSHI / SushiBot (camada 7.1) — RETROATIVO]
 
 [CONTEXTO]
-PROJETO MEADA WHATSAPP em /home/igorhaf/meada.
+PROJETO MEADA em /home/igorhaf/meada.
 SushiBot é o PRIMEIRO perfil vertical real do projeto, logo depois da fundação multi-perfil
 (SM-A). É o ALICERCE que todos os perfis order-based posteriores (comida, floricultura, pizzaria…)
 clonaram. Migration 30_sushi.sql; perfil `profile_id='sushi'`; quarto id do enum (5º contando

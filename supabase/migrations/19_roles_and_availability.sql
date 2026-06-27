@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 19_roles_and_availability.sql
--- Meada WhatsApp — Camada 5.17 (Fase A): hierarquia de roles (#75) + slots (#61).
+-- Meada — Camada 5.17 (Fase A): hierarquia de roles (#75) + slots (#61).
 --
 -- #75 HIERARQUIA DE ROLES (owner/admin/agent):
 --   users.role já tem CHECK (owner|admin|agent) desde o schema base. Esta migration:

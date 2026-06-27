@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 09_count_unread_conversations.sql
--- Meada WhatsApp — Camada 5.10: RPC para badge de "não-lido" no menu.
+-- Meada — Camada 5.10: RPC para badge de "não-lido" no menu.
 --
 -- Conta conversas do tenant logado, abertas, cuja ÚLTIMA mensagem (por created_at)
 -- é INBOUND — "o contato falou por último e ninguém respondeu ainda". Sinal real de

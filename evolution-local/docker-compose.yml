@@ -1,7 +1,7 @@
-# Evolution API v2 local — para validação E2E do backend whatsapp.
+# Evolution API v2 local — para validação E2E do backend meada.
 # Sobe Evolution + Postgres (estado da Evolution) + Redis, isolados. NÃO confundir
 # o Postgres daqui com o Supabase do produto: este guarda o estado interno da
-# Evolution (instâncias/sessões); o backend whatsapp fala com o Supabase remoto.
+# Evolution (instâncias/sessões); o backend meada fala com o Supabase remoto.
 #
 #   cd evolution-local && docker compose up -d
 #

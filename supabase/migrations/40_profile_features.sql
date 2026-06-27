@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 40_profile_features.sql
--- Meada WhatsApp — Camada 9.0 (SM-L: Feature Flags por Nicho). INFRA DE PLATAFORMA.
+-- Meada — Camada 9.0 (SM-L: Feature Flags por Nicho). INFRA DE PLATAFORMA.
 -- Tabela de plataforma (não-tenant) onde o ROOT (super-admin) liga/desliga features por nicho
 -- (profile_id). A PRIMEIRA feature é 'cms' (página pessoal por tenant) — esta SM NÃO implementa o
 -- CMS, só a infra de flags + o gate (requireFeature) pronto pra SM-M plugar.

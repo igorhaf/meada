@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 51_casamento.sql
--- Meada WhatsApp — Camada 8.7 (SM: perfil Casamento / assessoria e cerimonial de casamento). 20º
+-- Meada — Camada 8.7 (SM: perfil Casamento / assessoria e cerimonial de casamento). 20º
 -- perfil vertical real. A assessoria COORDENA casamentos (não é fornecedor isolado): a IA atende os
 -- noivos, abre uma proposta a partir do briefing, e captura a aprovação/recusa quando a equipe já
 -- montou o orçamento no painel.

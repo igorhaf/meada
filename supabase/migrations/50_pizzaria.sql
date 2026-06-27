@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 50_pizzaria.sql
--- Meada WhatsApp — Camada 8.6 (SM-T: perfil Pizzaria / delivery de pizza com meio-a-meio). DÉCIMO SÉTIMO perfil
+-- Meada — Camada 8.6 (SM-T: perfil Pizzaria / delivery de pizza com meio-a-meio). DÉCIMO SÉTIMO perfil
 -- vertical real (17º contando generic): pizzaria com pizzas inteiras e MEIO-A-MEIO. Tabelas exclusivas do perfil
 -- 'pizzaria': config (taxa+mínimo), cardápio, OPÇÕES de item (modifiers), pedidos, itens de pedido e
 -- OPÇÕES escolhidas por item de pedido.

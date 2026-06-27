@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 12_knowledge_storage.sql
--- Meada WhatsApp — Camada 5.13.b: bucket privado de documentos de conhecimento (RAG).
+-- Meada — Camada 5.13.b: bucket privado de documentos de conhecimento (RAG).
 --
 -- Espelha o padrão do 05_storage.sql: bucket privado + policies em storage.objects
 -- que isolam por tenant pelo 1º segmento do path (= company_id em lowercase).

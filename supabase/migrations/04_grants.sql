@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 04_grants.sql
--- Meada WhatsApp — privilégios de tabela para os roles `authenticated` e
+-- Meada — privilégios de tabela para os roles `authenticated` e
 --   `service_role`.
 --
 -- POR QUE ESTE ARQUIVO EXISTE (mesmo sendo redundante num Supabase de fábrica):

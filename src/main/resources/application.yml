@@ -1,5 +1,5 @@
 # =============================================================================
-# application.yml — Meada WhatsApp backend
+# application.yml — Meada backend
 #
 # Estrutura: YAML multi-documento (--- separator).
 #   - Documento RAIZ: tudo que é COMUM (datasource, hikari, webhook, server) +

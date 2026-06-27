@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 28_plataforma.sql
--- Meada WhatsApp — Camada 6 (sub-maratona 3: Plataforma). Migration única consolidada
+-- Meada — Camada 6 (sub-maratona 3: Plataforma). Migration única consolidada
 -- das fases 6.7 (anúncios cross-tenant) e 6.8 (planos). Paletas (6.8) NÃO têm migration —
 -- são catálogo hardcoded no frontend (lib/themes/palettes.ts), leitura pura.
 --

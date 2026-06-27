@@ -1,4 +1,4 @@
-# CLAUDE.md — Meada WhatsApp
+# CLAUDE.md — Meada
 
 Instruções para qualquer instância do Claude trabalhando neste projeto. Leia antes de
 agir. Estas regras foram cravadas pelo Igor ao longo das sessões e têm precedência.

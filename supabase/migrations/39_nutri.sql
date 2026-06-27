@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 39_nutri.sql
--- Meada WhatsApp — Camada 8.0 (SM-K: perfil Nutri / NutriBot). DÉCIMO perfil vertical real e
+-- Meada — Camada 8.0 (SM-K: perfil Nutri / NutriBot). DÉCIMO perfil vertical real e
 -- PRIMEIRA da camada 8.x. Tabelas exclusivas do perfil 'nutri': profissionais, config, pacientes
 -- (sub-entidade do contact), planos alimentares (sub-entidade do paciente — DOIS níveis) e
 -- consultas (agenda com conflito por profissional).

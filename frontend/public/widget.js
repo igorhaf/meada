@@ -1,5 +1,5 @@
 /*
- * Meada WhatsApp — widget de chat web embutível (camada 5.25 #73).
+ * Meada — widget de chat web embutível (camada 5.25 #73).
  *
  * Vanilla JS, ZERO dependências, sem build. Embute num site arbitrário do tenant assim:
  *

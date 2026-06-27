@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 03_rls.sql
--- Meada WhatsApp — Row Level Security: isolamento por tenant em TODAS as tabelas.
+-- Meada — Row Level Security: isolamento por tenant em TODAS as tabelas.
 --
 -- Escopo deste arquivo:
 --   - ENABLE + FORCE row level security nas 11 tabelas.

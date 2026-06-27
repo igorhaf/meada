@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 32_restaurant.sql
--- Meada WhatsApp — Camada 7.3 (SM-D: perfil Restaurante / MesaBot). Terceiro perfil
+-- Meada — Camada 7.3 (SM-D: perfil Restaurante / MesaBot). Terceiro perfil
 -- vertical real depois do SushiBot (7.1) e do ProcessoBot (7.2). Tabelas exclusivas do
 -- perfil 'restaurant': mesas, config de reservas e reservas.
 --

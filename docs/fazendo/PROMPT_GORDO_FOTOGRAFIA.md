@@ -7,7 +7,7 @@
 [TAREFA — SUB-MARATONA: PERFIL FOTOGRAFIA / Fotografia (Fotografia · Cinema · Audiovisual) (camada 8.16)]
 
 [CONTEXTO]
-PROJETO MEADA WHATSAPP em /home/igorhaf/meada.
+PROJETO MEADA em /home/igorhaf/meada.
 17+ perfis verticais reais hoje (… comida 8.4, floricultura 8.5, pizzaria 8.6, e a fila adega/
 casamento/padaria/lavanderia/dermatologia/ótica/projetos em execução) + generic. Lê CLAUDE.md,
 CONTEXT.md e o filesystem no arranque pra cravar convenções, nº de migration, contagem do Surefire

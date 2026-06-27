@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 26_admin_operacao.sql
--- Meada WhatsApp — Camada 6 (sub-maratona 1: Operação). Migration única consolidada
+-- Meada — Camada 6 (sub-maratona 1: Operação). Migration única consolidada
 -- das fases 6.1 (empresas), 6.2 (usuários/convites) e 6.5 (auditoria/ações admin).
 --
 -- TABELAS NOVAS:

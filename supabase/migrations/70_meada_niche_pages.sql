@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 70_meada_niche_pages.sql
--- Meada WhatsApp — SEED das PÁGINAS INSTITUCIONAIS por nicho na company-âncora 'meada'
+-- Meada — SEED das PÁGINAS INSTITUCIONAIS por nicho na company-âncora 'meada'
 -- (00000000-0000-0000-0000-000000000000, is_platform). Uma página CMS por perfil vertical
 -- (33 nichos: legal, dental, sushi, … suplementos), servida em meadadigital.com/{nicho} via
 -- app/[pageSlug]/page.tsx → /public/cms/by-slug/meada/{nicho}.

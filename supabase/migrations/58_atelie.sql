@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 58_atelie.sql
--- Meada WhatsApp — Camada 8.14 (SM: perfil Ateliê / Costura sob medida · Arte · Design). 19º perfil
+-- Meada — Camada 8.14 (SM: perfil Ateliê / Costura sob medida · Arte · Design). 19º perfil
 -- vertical real (20º contando generic). UM perfil 'atelie' serve os TRÊS tipos de negócio (costura
 -- sob medida, arte, design) — o tipo é um CAMPO da proposta (project_type), NÃO três perfis.
 --

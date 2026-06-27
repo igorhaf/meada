@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 06_unique_open_conversation.sql
--- Meada WhatsApp — no máximo UMA conversa aberta por (contact, instance).
+-- Meada — no máximo UMA conversa aberta por (contact, instance).
 --
 -- Por que existe:
 --   O fluxo do webhook (Camada 2) faz "resolve/cria conversation" para cada

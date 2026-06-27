@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 44_platform_company.sql
--- Meada WhatsApp — Camada 9.x (CMS do ROOT). Cria a COMPANY-ÂNCORA canônica que representa a
+-- Meada — Camada 9.x (CMS do ROOT). Cria a COMPANY-ÂNCORA canônica que representa a
 -- própria plataforma ("Meada"), para que o site institucional (servido no domínio-base) seja
 -- editável pelo super-admin no painel root via o MESMO CMS multi-página dos tenants.
 --

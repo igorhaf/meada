@@ -4,7 +4,7 @@
 
 [TAREFA — PERFIL RESTAURANT / MesaBot (camada 7.3) — RETROATIVO]
 
-Documentar (retroativo, formato T5) o perfil vertical RESTAURANT já implementado no Meada WhatsApp:
+Documentar (retroativo, formato T5) o perfil vertical RESTAURANT já implementado no Meada:
 o tenant restaurant (`profile_id='restaurant'`) é um produto de RESERVAS de restaurante (MesaBot).
 Gerencia mesas e reservas; a IA atende clientes via WhatsApp, verifica disponibilidade e confirma a
 reserva. É o 3º perfil vertical real (sushi 7.1 · legal 7.2 · restaurant 7.3) e o 4º no enum
@@ -13,7 +13,7 @@ está em CLAUDE.md, na migration 32_restaurant.sql, em docs/PERFIL_MESABOT.md e 
 `src/main/java/com/meada/profiles/restaurant/`.
 
 [CONTEXTO]
-PROJETO MEADA WHATSAPP em /home/igorhaf/meada.
+PROJETO MEADA em /home/igorhaf/meada.
 Monolito que se apresenta como N produtos verticais ("perfis"). Tenant restaurant acessa o produto
 "Restaurante" (subdomínio `mesa`, paleta `tijolo`) e vê o produto de RESERVAS DE MESA. A IA atende
 clientes em linguagem natural via WhatsApp: conhece as mesas disponíveis e as reservas já marcadas

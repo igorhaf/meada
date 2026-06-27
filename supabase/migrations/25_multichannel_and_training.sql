@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 25_multichannel_and_training.sql
--- Meada WhatsApp — Camada 5.25 (Fase I parcial) + #57 modo treinamento.
+-- Meada — Camada 5.25 (Fase I parcial) + #57 modo treinamento.
 --
 -- #74 UNIFICAÇÃO MULTI-CANAL: contacts.channels jsonb agrega os canais do mesmo contato
 --     (ex.: {"whatsapp": "+5511...", "web": "sess-abc"}). conversations.channel marca a

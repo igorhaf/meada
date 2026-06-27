@@ -8,7 +8,7 @@
 [TAREFA — SUB-MARATONA: PERFIL PAPELARIA / Papelaria (Papelaria · Convites personalizados) (camada 8.15)]
 
 [CONTEXTO]
-PROJETO MEADA WHATSAPP em /home/igorhaf/meada.
+PROJETO MEADA em /home/igorhaf/meada.
 Monolito multi-tenant que se apresenta como N produtos verticais ("perfis"). Perfis são HARDCODED em
 dois arquivos espelhados — enum Java `ProfileType` (`src/main/java/com/meada/profiles/
 ProfileType.java`) + const TS (`frontend/lib/profiles/profile-type.ts`) — com `ProfileTypeParityTest`

@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 66_moda_infantil.sql
--- Meada WhatsApp — Camada 8.22 (SM: perfil Moda Infantil / roupa de criança · varejo). CLONA o chassi
+-- Meada — Camada 8.22 (SM: perfil Moda Infantil / roupa de criança · varejo). CLONA o chassi
 -- de VAREJO COM VARIANTES inaugurado pela Lingerie (65_lingerie.sql), com DUAS adaptações:
 --   (1) O eixo de tamanho da variante é por FAIXA ETÁRIA (KidsSize: RN, 0-3m, 3-6m, ... 10a, 12a), e a
 --       IA tem uma SUGESTÃO idade→tamanho (suggestForAgeMonths no enum, lado Java). size continua

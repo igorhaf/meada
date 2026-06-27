@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 22_teams_and_limits.sql
--- Meada WhatsApp — Camada 5.20 (Fase D): times (#76) + limites por plano (#77).
+-- Meada — Camada 5.20 (Fase D): times (#76) + limites por plano (#77).
 --
 -- #76 TIMES/DEPARTAMENTOS:
 --   tabela teams (nome por empresa) + conversations.team_id nullable. Sem hierarquia

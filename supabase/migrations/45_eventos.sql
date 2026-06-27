@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 45_eventos.sql
--- Meada WhatsApp — Camada 8.2 (SM-P: perfil Eventos / EventosBot). DÉCIMO SEGUNDO perfil vertical
+-- Meada — Camada 8.2 (SM-P: perfil Eventos / EventosBot). DÉCIMO SEGUNDO perfil vertical
 -- real (13º contando generic): casa de festas / buffet / cerimonial / espaço de eventos. Tabelas
 -- exclusivas do perfil 'eventos': cerimonialistas, config, propostas (orçamento), itens de
 -- orçamento e itens de cronograma.

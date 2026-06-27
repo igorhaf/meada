@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 17_conversations_scheduling_intent.sql
--- Meada WhatsApp — Camada 5.15 (#29): IA reconhece intent de agendamento.
+-- Meada — Camada 5.15 (#29): IA reconhece intent de agendamento.
 --
 -- Adiciona conversations.scheduling_intent jsonb (nullable, sem default):
 --   - null  = nenhuma intenção de agendar detectada (estado normal da maioria).

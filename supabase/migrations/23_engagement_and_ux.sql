@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 23_engagement_and_ux.sql
--- Meada WhatsApp — Camadas 5.21 (engajamento) + 5.22 (UX). Migrations agrupadas.
+-- Meada — Camadas 5.21 (engajamento) + 5.22 (UX). Migrations agrupadas.
 --
 -- #82 BOAS-VINDAS: ai_settings.welcome_message text (até 500 chars, validado no app).
 --     OutboundService detecta a 1ª inbound do contato e envia o welcome antes da resposta.

@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 54_lavanderia.sql
--- Meada WhatsApp — Camada 8.10 (SM: perfil Lavanderia / lavagem com coleta e entrega agendadas).
+-- Meada — Camada 8.10 (SM: perfil Lavanderia / lavagem com coleta e entrega agendadas).
 -- Tabelas exclusivas do perfil 'lavanderia': config (taxa+mínimo+turnaround default), catálogo de
 -- SERVIÇOS (com turnaround_days por serviço), OPÇÕES de serviço (modifiers), pedidos, itens e opções
 -- escolhidas por item.

@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 61_concessionaria.sql
--- Meada WhatsApp — Camada 8.17 (SM: perfil Concessionária / loja de carros). 21º perfil vertical
+-- Meada — Camada 8.17 (SM: perfil Concessionária / loja de carros). 21º perfil vertical
 -- real. HÍBRIDO TRIPLO: a IA faz as três coisas de uma concessionária — (1) MOSTRA o ESTOQUE
 -- (catálogo de veículos com ciclo de estoque próprio), (2) AGENDA test-drive (agenda por vendedor),
 -- (3) registra LEAD de compra (funil). O VEÍCULO é a entidade central: test-drive e lead o

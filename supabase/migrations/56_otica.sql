@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 56_otica.sql
--- Meada WhatsApp — Camada 8.12 (SM: perfil Ótica / loja de ótica). PRIMEIRO HÍBRIDO: combina DOIS chassis
+-- Meada — Camada 8.12 (SM: perfil Ótica / loja de ótica). PRIMEIRO HÍBRIDO: combina DOIS chassis
 -- já existentes no MESMO perfil — agenda-clínica-leve (clona DENTAL 33) + order-com-receita-e-prazo
 -- (clona COMIDA/FLORICULTURA 47/49). Os dois fluxos coexistem HARMONICAMENTE; o perfil é único mas expõe
 -- DOIS subdomínios funcionais com DUAS TAGS distintas.

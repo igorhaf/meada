@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 42_cms_multipage.sql
--- Meada WhatsApp — Camada 9.x (SM-N: CMS multi-página + tema + verificação de domínio).
+-- Meada — Camada 9.x (SM-N: CMS multi-página + tema + verificação de domínio).
 -- Evolui o CMS da SM-M (1 página por tenant) para SITE com N PÁGINAS, tema por site, e posse de
 -- domínio verificada por TXT.
 --

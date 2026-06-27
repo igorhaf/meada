@@ -36,5 +36,5 @@
     "tailwindcss": "^4",
     "typescript": "^5"
   },
-  "description": "Meada WhatsApp — frontend do painel admin (Next + Supabase Auth)"
+  "description": "Meada — frontend do painel admin (Next + Supabase Auth)"
 }

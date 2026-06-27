@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 47_comida.sql
--- Meada WhatsApp — Camada 8.4 (SM-R: perfil Comida / delivery estilo iFood). DÉCIMO QUARTO perfil
+-- Meada — Camada 8.4 (SM-R: perfil Comida / delivery estilo iFood). DÉCIMO QUARTO perfil
 -- vertical real (15º contando generic): delivery genérico de comida. Tabelas exclusivas do perfil
 -- 'comida': config (taxa+mínimo), cardápio, OPÇÕES de item (modifiers), pedidos, itens de pedido e
 -- OPÇÕES escolhidas por item de pedido.

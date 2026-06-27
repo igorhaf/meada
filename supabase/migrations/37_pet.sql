@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 37_pet.sql
--- Meada WhatsApp — Camada 7.8 (SM-I: perfil Pet / PetBot). Oitavo perfil vertical real e
+-- Meada — Camada 7.8 (SM-I: perfil Pet / PetBot). Oitavo perfil vertical real e
 -- ÚLTIMO da fila planejada — fecha o catálogo de 8 perfis. Tabelas exclusivas do perfil
 -- 'pet': profissionais, serviços (com restrição de espécie), config, animais (sub-entidade
 -- do tutor) e agendamentos.

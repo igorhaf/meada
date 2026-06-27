@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 27_medicao_e_saude.sql
--- Meada WhatsApp — Camada 6 (sub-maratona 2: Medição + Saúde). Migration única
+-- Meada — Camada 6 (sub-maratona 2: Medição + Saúde). Migration única
 -- consolidada das fases 6.2.5 (token tracking), 6.3 (métricas globais reais — só
 -- consome o que a 6.2.5 grava, sem schema próprio) e 6.4 (saúde/jobs/erros).
 --

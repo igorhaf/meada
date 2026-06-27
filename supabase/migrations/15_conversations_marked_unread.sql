@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 15_conversations_marked_unread.sql
--- Meada WhatsApp — Camada 5.14 (#20): marcar conversa como não-lida manualmente.
+-- Meada — Camada 5.14 (#20): marcar conversa como não-lida manualmente.
 --
 -- Adiciona conversations.marked_unread: o tenant marca uma conversa como "preciso
 -- voltar aqui" mesmo quando ele já foi o último a responder (a heurística automática

@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 16_tags.sql
--- Meada WhatsApp — Camada 5.14 (#22): tags/etiquetas livres em conversas.
+-- Meada — Camada 5.14 (#22): tags/etiquetas livres em conversas.
 --
 -- Duas tabelas:
 --   1. tags — etiquetas que o tenant cria (nome livre + cor de uma paleta fixa de 8).

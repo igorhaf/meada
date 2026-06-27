@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 38_oficina.sql
--- Meada WhatsApp — Camada 7.9 (SM-J: perfil Oficina / OficinaBot). NONO perfil vertical real
+-- Meada — Camada 7.9 (SM-J: perfil Oficina / OficinaBot). NONO perfil vertical real
 -- e PRIMEIRO além da fila planejada de 8. Tabelas exclusivas do perfil 'oficina': mecânicos,
 -- veículos (sub-entidade do cliente), ordens de serviço (order-based) e itens da OS.
 --

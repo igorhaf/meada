@@ -1,4 +1,4 @@
-# Meada WhatsApp
+# Meada
 
 SaaS multi-empresa de atendimento ao cliente via WhatsApp com IA, **multi-perfil**: um monolito
 que se apresenta como N produtos verticais (Meada genérico, ProcessoBot/advocacia,

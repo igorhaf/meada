@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 53_adega.sql
--- Meada WhatsApp — Camada 8.9 (SM: perfil Adega / delivery de bebidas). 18º perfil vertical real
+-- Meada — Camada 8.9 (SM: perfil Adega / delivery de bebidas). 18º perfil vertical real
 -- (19º contando generic): adega / delivery de vinhos, espumantes, cervejas, destilados, sem-álcool e
 -- acessórios. Tabelas exclusivas do perfil 'adega': config (taxa+mínimo), cardápio, OPÇÕES de item
 -- (modifiers: Volume/Temperatura), pedidos, itens de pedido e OPÇÕES escolhidas por item de pedido.

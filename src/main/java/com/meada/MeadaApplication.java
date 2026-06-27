@@ -6,7 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
- * Ponto de entrada do backend Meada WhatsApp.
+ * Ponto de entrada do backend Meada.
  *
  * @SpringBootApplication habilita component-scan a partir deste pacote
  * (com.meada) e a auto-configuração do Spring Boot — incluindo o

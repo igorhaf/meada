@@ -1,4 +1,4 @@
-# Roadmap MVP — Meada WhatsApp
+# Roadmap MVP — Meada
 
 Lista de 50 features para o MVP funcional do SaaS de atendimento WhatsApp+IA agnóstico. Marcação `[x]` = implementada (com tag de fase); `[ ]` = pendente; `[~]` = abandonada intencionalmente.
 

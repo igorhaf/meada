@@ -1,4 +1,4 @@
-# docker-compose do Meada WhatsApp — fase 0.5 (dockerização + DevX local).
+# docker-compose do Meada — fase 0.5 (dockerização + DevX local).
 #
 # Orquestra única do dev local: backend (Spring), frontend (Next), embeddings (sidecar Python)
 # e caddy (proxy reverso na porta 80). O BANCO é o Supabase REMOTO (não há Postgres aqui) —

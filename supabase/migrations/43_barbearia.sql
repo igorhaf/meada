@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 43_barbearia.sql
--- Meada WhatsApp — Camada 8.1 (SM-O: perfil Barbearia / BarbeariaBot). 11º perfil vertical real
+-- Meada — Camada 8.1 (SM-O: perfil Barbearia / BarbeariaBot). 11º perfil vertical real
 -- (sushi 7.1, legal 7.2, restaurant 7.3, dental 7.4, salon 7.5, pousada 7.6, academia 7.7,
 -- pet 7.8, oficina 7.9, nutri 8.0, barbearia 8.1). Tabelas exclusivas do perfil 'barbearia':
 -- barbeiros, serviços, config, agendamentos E a fila de walk-in.

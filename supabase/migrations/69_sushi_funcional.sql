@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 69_sushi_funcional.sql
--- Meada WhatsApp — torna FUNCIONAIS (gerenciáveis pelo tenant) várias coisas do perfil sushi que
+-- Meada — torna FUNCIONAIS (gerenciáveis pelo tenant) várias coisas do perfil sushi que
 -- antes eram HARDCODED, e adiciona cupom/fidelidade/retirada/agendamento. Migration ÚNICA e atômica
 -- (tudo toca sushi_orders/config, então sobe junto). Blocos:
 --   (1) CATEGORIAS do cardápio (era enum SushiCategory + CHECK) → tabela sushi_categories (CRUD).

@@ -21,8 +21,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Meada WhatsApp — Painel',
-  description: 'Painel administrativo do Meada WhatsApp',
+  title: 'Meada — Painel',
+  description: 'Painel administrativo do Meada',
 };
 
 // Anti-flash (camada 5.9): aplica a classe `dark` no <html> ANTES do React hidratar,

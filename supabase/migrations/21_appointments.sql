@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 21_appointments.sql
--- Meada WhatsApp — Camada 5.19 (Fase C): agendamento real (#59 #60 #63 #64).
+-- Meada — Camada 5.19 (Fase C): agendamento real (#59 #60 #63 #64).
 --
 -- Tabela appointments: um compromisso agendado de um contato para um serviço (ou livre),
 -- num horário, com status do ciclo de vida. A IA cria (via sub-objeto confirmed_appointment
