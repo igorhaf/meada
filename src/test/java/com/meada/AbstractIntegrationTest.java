@@ -133,7 +133,8 @@ public abstract class AbstractIntegrationTest {
         "db/migrations/59_papelaria.sql",
         "db/migrations/62_viagens.sql",
         "db/migrations/68_suplementos.sql",
-        "db/migrations/69_sushi_funcional.sql"
+        "db/migrations/69_sushi_funcional.sql",
+        "db/migrations/72_academia_inadimplencia.sql"
     };
 
     /**

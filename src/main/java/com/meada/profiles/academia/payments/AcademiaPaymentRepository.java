@@ -59,10 +59,13 @@ public class AcademiaPaymentRepository {
 
     /** Último mês pago (mais recente reference_month) de uma matrícula, se houver. */
     public Optional<LocalDate> lastPaidMonth(UUID companyId, UUID membershipId) {
-        return jdbcTemplate.query(
-                "select max(reference_month) as m from academia_payments where company_id = ? and membership_id = ?",
-                (rs, rn) -> rs.getObject("m", LocalDate.class), companyId, membershipId)
-            .stream().findFirst().map(Optional::ofNullable).orElse(Optional.empty());
+        // max() sempre retorna 1 linha; quando não há pagamentos, m vem NULL. O row-mapper devolve
+        // null e Optional.ofNullable trata isso — mas findFirst() sobre um elemento null lançaria NPE
+        // (Optional.of(null)). Por isso mapeamos direto pra Optional dentro do mapper.
+        List<Optional<LocalDate>> rows = jdbcTemplate.query(
+            "select max(reference_month) as m from academia_payments where company_id = ? and membership_id = ?",
+            (rs, rn) -> Optional.ofNullable(rs.getObject("m", LocalDate.class)), companyId, membershipId);
+        return rows.isEmpty() ? Optional.empty() : rows.get(0);
     }
 
     /** Quantos pagamentos a matrícula tem. */
