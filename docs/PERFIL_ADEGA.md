@@ -16,6 +16,8 @@ preço/nome + modifiers + taxa de entrega/pedido mínimo + Kanban + gate de acei
 |------|------|-----------|
 | Catálogo | `/dashboard/adega-menu` | CRUD de itens (nome, descrição, preço, categoria, disponível) **e** dos modifiers de cada item (Volume, Temperatura — grupos com delta de preço). |
 | Pedidos | `/dashboard/adega-orders` | Kanban do pedido + **gate de aceite** (aceitar/recusar) + histórico. Cada pedido mostra o **selo "+18 confirmado"** (compliance). |
+| Cupons | `/dashboard/adega-coupons` | CRUD de cupons de desconto (percent/fixed + mínimo + validade + máx. de usos). |
+| Fidelidade | `/dashboard/adega-loyalty` | Toggle + limiar + recompensa da fidelidade por contagem de pedidos entregues. |
 | Configurações | `/dashboard/adega-settings` | Taxa de entrega (flat) + pedido mínimo. |
 
 ## ESCAPADA — Trava de faixa etária (+18, venda de álcool)
@@ -67,11 +69,34 @@ Transição inválida → 409 `invalid_status_transition`. Terminais: `entregue`
 | `recusado` | Sim | Texto defensivo + motivo opcional. |
 | `cancelado` | Sim | "Seu pedido foi cancelado. Se quiser refazer, é só me chamar." |
 
+## Cupons e Fidelidade (backlog #1/#2 — clone do chassi sushi)
+
+Migration `80_adega_coupons_loyalty.sql`. Espelho exato do motor do sushi (mig 69):
+
+- **Cupom** (`adega_coupons`): kind `percent` (1..100) / `fixed` (centavos), `min_order_cents`,
+  `max_uses`, `valid_until`, `active`, `uses`. Código **único por adega (case-insensitive,
+  lower(code))**. A IA só passa o **código** no campo `cupom` da tag; o backend **valida**
+  (ativo + validade + mínimo + usos) e aplica sobre o subtotal. **Cupom inválido NÃO aborta** o
+  pedido — sai sem o desconto. `uses` incrementa na criação (mesma transação).
+- **Fidelidade** (`adega_loyalty_config`, 1:1): `enabled` + `threshold_orders` + reward
+  (percent/fixed). O backend conta os pedidos **`entregue`** do contato **ANTES** de inserir o novo;
+  quando `count > 0 && count % threshold == 0` → desconto automático + `loyalty_applied=true`.
+- **Desconto no pedido** (`adega_orders.discount_cents` + `coupon_id`/`coupon_code_snapshot` +
+  `loyalty_applied`): cupom + fidelidade **SOMAM, clampados ao subtotal**.
+  `total = subtotal − discount + delivery_fee`.
+- **A trava +18 não muda:** o desconto só é calculado DEPOIS do `age_confirmed` (a pré-condição
+  continua vindo antes de qualquer cálculo).
+
 ## O que a IA faz
 
 - Monta o pedido em **linguagem livre** na conversa, com os modifiers (Volume, Temperatura).
 - **Confirma SEMPRE a MAIORIDADE** antes de fechar; pode sugerir **harmonização** entre o que já está
   no cardápio.
+- Ao fechar, **pode oferecer UMA sugestão de conveniência** do próprio cardápio (harmonização,
+  acessório, ou completar o pedido mínimo) — no máximo uma vez, sem insistir, **nunca** como
+  incentivo a beber mais.
+- **Registra o código do cupom** no campo `cupom` da tag quando o cliente informar — quem valida e
+  calcula é o backend (a IA nunca inventa desconto).
 - **Confirma SEMPRE** com o valor total e o endereço antes de fechar; inclui **"Beba com moderação"**.
 - Emite a tag `<pedido_adega>` com `age_confirmed:true`; o pedido nasce **aguardando**.
 - Avisa o cliente que o pedido vai para **confirmação da loja**.
@@ -98,19 +123,21 @@ remove a tag antes de enviar a mensagem ao cliente.
     { "item_id": "UUID", "qtd": 1, "options": ["UUID_VOLUME", "UUID_TEMPERATURA"] }
   ],
   "endereco": "Rua X, 10",
+  "cupom": "OFF10",
   "total_cents": 0
 }
 ```
 
 - **`age_confirmed:true` é OBRIGATÓRIO** — sem ele o pedido NÃO é criado (trava +18).
 - `options` é **opcional** por item (lista de UUIDs dos modifiers escolhidos).
+- `cupom` é **opcional** — só o código; o backend valida e aplica (inválido → pedido sem desconto).
 - `total_cents` é **ignorado** pelo backend.
 
 ## O que NÃO existe nesta fase
 
 - **Clube de assinatura de vinho** (recorrência — o padrão de assinatura é do academia).
 - **Curadoria/scoring de safra**, integração com sommelier/API de rótulos.
-- **Controle de estoque por garrafa**, cupom/desconto, fidelidade.
+- **Controle de estoque por garrafa** (cupom e fidelidade JÁ existem — ver seção acima).
 - **Integração com iFood / Zé Delivery**, rastreio de entregador em mapa, ETA dinâmico.
 - **Validação documental de idade** (RG/foto/biometria) — a confirmação é **declaratória** pela IA;
   verificação real na entrega é processo da loja.
@@ -123,6 +150,8 @@ remove a tag antes de enviar a mensagem ao cliente.
 - Migration `53_adega.sql` (6 tabelas: config, menu_items, menu_item_options, orders, order_items,
   order_item_options). A CHECK de `companies.profile_id` ACRESCENTA `'adega'` preservando os 17
   perfis anteriores.
+- Migration `80_adega_coupons_loyalty.sql` (cupom + fidelidade + colunas de desconto em
+  `adega_orders`, clone do sushi mig 69; seed idempotente de `adega_loyalty_config`).
 - `adega_orders.age_confirmed` é **boolean NOT NULL sem default** — o banco é a defesa final da
   trava (o backend só insere `true`).
 - Categorias **hardcoded** (vinhos / espumantes / cervejas / destilados / sem_alcool / acessorios) em

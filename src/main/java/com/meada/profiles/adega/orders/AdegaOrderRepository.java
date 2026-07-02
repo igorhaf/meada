@@ -1,5 +1,9 @@
 package com.meada.profiles.adega.orders;
 
+import com.meada.profiles.adega.coupons.AdegaCoupon;
+import com.meada.profiles.adega.coupons.AdegaCouponRepository;
+import com.meada.profiles.adega.loyalty.AdegaLoyaltyConfig;
+import com.meada.profiles.adega.loyalty.AdegaLoyaltyConfigRepository;
 import com.meada.profiles.adega.menu.AdegaMenuOption;
 import com.meada.profiles.adega.menu.AdegaMenuOptionRepository;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -7,6 +11,8 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -25,13 +31,21 @@ public class AdegaOrderRepository {
     /** Alguma opção pedida é inválida/indisponível/de outro item — o pedido NÃO é criado. */
     public static class InvalidOptionException extends RuntimeException {}
 
+    private static final ZoneId BR = ZoneId.of("America/Sao_Paulo");
+
     private final JdbcTemplate jdbcTemplate;
     private final AdegaMenuOptionRepository optionRepository;
+    private final AdegaCouponRepository couponRepository;
+    private final AdegaLoyaltyConfigRepository loyaltyRepository;
 
     public AdegaOrderRepository(JdbcTemplate jdbcTemplate,
-                                 AdegaMenuOptionRepository optionRepository) {
+                                 AdegaMenuOptionRepository optionRepository,
+                                 AdegaCouponRepository couponRepository,
+                                 AdegaLoyaltyConfigRepository loyaltyRepository) {
         this.jdbcTemplate = jdbcTemplate;
         this.optionRepository = optionRepository;
+        this.couponRepository = couponRepository;
+        this.loyaltyRepository = loyaltyRepository;
     }
 
     private final RowMapper<AdegaOrderItemOption> ITEM_OPTION_MAPPER = (rs, rn) -> new AdegaOrderItemOption(
@@ -57,8 +71,11 @@ public class AdegaOrderRepository {
             (UUID) rs.getObject("conversation_id"),
             rs.getString("status"),
             rs.getInt("subtotal_cents"),
+            rs.getInt("discount_cents"),
             rs.getInt("delivery_fee_cents"),
             rs.getInt("total_cents"),
+            rs.getString("coupon_code_snapshot"),
+            rs.getBoolean("loyalty_applied"),
             rs.getString("delivery_address"),
             rs.getString("notes"),
             rs.getString("rejection_reason"),
@@ -71,8 +88,9 @@ public class AdegaOrderRepository {
     }
 
     private static final String ORDER_SELECT =
-        "select o.id, o.conversation_id, o.status, o.subtotal_cents, o.delivery_fee_cents, "
-            + "o.total_cents, o.delivery_address, o.notes, o.rejection_reason, o.age_confirmed, "
+        "select o.id, o.conversation_id, o.status, o.subtotal_cents, o.discount_cents, "
+            + "o.delivery_fee_cents, o.total_cents, o.coupon_code_snapshot, o.loyalty_applied, "
+            + "o.delivery_address, o.notes, o.rejection_reason, o.age_confirmed, "
             + "o.created_at, o.status_updated_at, ct.name as contact_name, ct.phone_number as contact_phone "
             + "from adega_orders o join contacts ct on ct.id = o.contact_id ";
 
@@ -132,22 +150,26 @@ public class AdegaOrderRepository {
                 it.unitPriceCents(), options));
         }
         return new AdegaOrder(o.id(), o.conversationId(), o.status(), o.subtotalCents(),
-            o.deliveryFeeCents(), o.totalCents(), o.deliveryAddress(), o.notes(), o.rejectionReason(),
+            o.discountCents(), o.deliveryFeeCents(), o.totalCents(), o.couponCode(), o.loyaltyApplied(),
+            o.deliveryAddress(), o.notes(), o.rejectionReason(),
             o.ageConfirmed(), o.createdAt(), o.statusUpdatedAt(), o.contactName(), o.contactPhone(), withOpts);
     }
 
     /**
      * Cria o pedido + itens + opções numa transação. Os preços/nomes são lidos do cardápio AGORA
      * (snapshot); para cada linha, {@code unit_price = base + Σ deltas} das opções escolhidas. O
-     * subtotal é a soma de unit_price × qtd; o total = subtotal + delivery_fee. Linhas cujo
-     * menu_item não existe/não é do tenant são IGNORADAS (o handler já validou). Se alguma opção
+     * subtotal é a soma de unit_price × qtd. Aplica cupom (best-effort: cupom inválido NÃO aborta —
+     * apenas não desconta) + fidelidade (conta os entregues do contato ANTES de inserir o novo);
+     * discount = min(subtotal, cupom+fidelidade); total = subtotal − discount + delivery_fee. Linhas
+     * cujo menu_item não existe/não é do tenant são IGNORADAS (o handler já validou). Se alguma opção
      * pedida é inválida/indisponível/de outro item, lança {@link InvalidOptionException} (pedido NÃO
      * criado com opção fantasma). Lança IllegalArgumentException se, após filtrar, não sobrar linha.
      */
     @Transactional
     public AdegaOrder createOrder(UUID companyId, UUID conversationId, UUID contactId,
                                    String deliveryAddress, List<OrderLineInput> lines,
-                                   int deliveryFeeCents, boolean ageConfirmed, String notes) {
+                                   String couponCode, int deliveryFeeCents, boolean ageConfirmed,
+                                   String notes) {
         // Snapshot de preço+nome+opções por linha (lê do cardápio do tenant).
         record OptSnap(UUID menuOptionId, String groupLabel, String optionLabel, int delta) {}
         record Snap(UUID menuItemId, String name, int unitPrice, int qtd, List<OptSnap> options) {}
@@ -188,16 +210,58 @@ public class AdegaOrderRepository {
         if (snaps.isEmpty()) {
             throw new IllegalArgumentException("nenhum item válido no pedido");
         }
-        int total = subtotal + deliveryFeeCents;
+
+        // Cupom (backlog #1, best-effort — inválido NÃO aborta, o pedido sai sem o desconto).
+        UUID couponId = null;
+        String couponSnapshot = null;
+        int couponDiscount = 0;
+        if (couponCode != null && !couponCode.isBlank()) {
+            Optional<AdegaCoupon> maybe = couponRepository.findByCode(companyId, couponCode);
+            if (maybe.isPresent()) {
+                AdegaCoupon c = maybe.get();
+                LocalDate today = LocalDate.now(BR);
+                boolean valid = c.active()
+                    && (c.validUntil() == null || !c.validUntil().isBefore(today))
+                    && subtotal >= c.minOrderCents()
+                    && (c.maxUses() == null || c.uses() < c.maxUses());
+                if (valid) {
+                    couponDiscount = "percent".equals(c.kind())
+                        ? subtotal * c.value() / 100
+                        : c.value();
+                    couponId = c.id();
+                    couponSnapshot = c.code();
+                }
+            }
+        }
+
+        // Fidelidade (backlog #2) — conta os pedidos ENTREGUES do contato ANTES de inserir o novo
+        // (o novo não conta a si mesmo).
+        boolean loyaltyApplied = false;
+        int loyaltyDiscount = 0;
+        AdegaLoyaltyConfig loyalty = loyaltyRepository.findByCompany(companyId);
+        if (loyalty.enabled()) {
+            long deliveredCount = countDeliveredForContact(companyId, contactId);
+            if (deliveredCount > 0 && deliveredCount % loyalty.thresholdOrders() == 0) {
+                loyaltyApplied = true;
+                loyaltyDiscount = "percent".equals(loyalty.rewardKind())
+                    ? subtotal * loyalty.rewardValue() / 100
+                    : loyalty.rewardValue();
+            }
+        }
+
+        // Desconto total clampado ao subtotal (total nunca negativo).
+        int discount = Math.min(subtotal, couponDiscount + loyaltyDiscount);
+        int total = subtotal - discount + deliveryFeeCents;
 
         // status default 'aguardando' (gate de aceite). age_confirmed persistido (ESCAPADA +18 —
         // o service já garantiu true; o banco tem NOT NULL como defesa final).
         UUID orderId = jdbcTemplate.queryForObject(
             "insert into adega_orders (company_id, conversation_id, contact_id, subtotal_cents, "
-                + "delivery_fee_cents, total_cents, delivery_address, age_confirmed, notes) "
-                + "values (?, ?, ?, ?, ?, ?, ?, ?, ?) returning id",
-            UUID.class, companyId, conversationId, contactId, subtotal, deliveryFeeCents, total,
-            deliveryAddress, ageConfirmed, notes);
+                + "discount_cents, delivery_fee_cents, total_cents, coupon_id, coupon_code_snapshot, "
+                + "loyalty_applied, delivery_address, age_confirmed, notes) "
+                + "values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) returning id",
+            UUID.class, companyId, conversationId, contactId, subtotal, discount, deliveryFeeCents,
+            total, couponId, couponSnapshot, loyaltyApplied, deliveryAddress, ageConfirmed, notes);
 
         for (Snap s : snaps) {
             UUID orderItemId = jdbcTemplate.queryForObject(
@@ -212,7 +276,25 @@ public class AdegaOrderRepository {
                     orderItemId, opt.menuOptionId(), opt.groupLabel(), opt.optionLabel(), opt.delta());
             }
         }
+
+        // Incrementa uses do cupom aplicado (mesma transação).
+        if (couponId != null) {
+            couponRepository.incrementUses(companyId, couponId);
+        }
+
         return findById(companyId, orderId).orElseThrow();
+    }
+
+    /**
+     * Conta os pedidos ENTREGUES de um contato ({@code status = 'entregue'} — o terminal
+     * não-recusado/não-cancelado do chassi adega). Usado pela fidelidade.
+     */
+    public long countDeliveredForContact(UUID companyId, UUID contactId) {
+        Long n = jdbcTemplate.queryForObject(
+            "select count(*) from adega_orders "
+                + "where company_id = ? and contact_id = ? and status = 'entregue'",
+            Long.class, companyId, contactId);
+        return n == null ? 0L : n;
     }
 
     /**

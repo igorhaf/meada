@@ -107,6 +107,13 @@ public class PedidoAdegaConfirmHandler {
             return Optional.empty();
         }
 
+        // Cupom (backlog #1, opcional): só o CÓDIGO viaja na tag — quem valida e calcula é o backend
+        // (cupom inválido não aborta; o pedido sai sem o desconto).
+        String couponCode = root.path("cupom").asText(null);
+        if (couponCode != null && couponCode.isBlank()) {
+            couponCode = null;
+        }
+
         JsonNode itemsNode = root.path("items");
         if (!itemsNode.isArray() || itemsNode.isEmpty()) {
             log.warn("adega: tag <pedido_adega> sem items p/ conversa {} — pedido não criado", conversationId);
@@ -162,7 +169,7 @@ public class PedidoAdegaConfirmHandler {
 
         try {
             AdegaOrder order = orderService.create(companyId, conversationId, contactId,
-                endereco.strip(), lines, ageConfirmed, null);
+                endereco.strip(), lines, ageConfirmed, couponCode, null);
             log.info("adega: pedido {} criado p/ conversa {} ({} itens, total {} cents)",
                 order.id(), conversationId, lines.size(), order.totalCents());
             return Optional.of(order);

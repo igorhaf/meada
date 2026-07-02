@@ -446,6 +446,8 @@ const ADEGA_GROUP: NavGroup = {
   items: [
     { label: 'Catálogo', href: '/dashboard/adega-menu', icon: Wine },
     { label: 'Pedidos', href: '/dashboard/adega-orders', icon: ClipboardList },
+    { label: 'Cupons', href: '/dashboard/adega-coupons', icon: Ticket },
+    { label: 'Fidelidade', href: '/dashboard/adega-loyalty', icon: Award },
     { label: 'Configurações', href: '/dashboard/adega-settings', icon: Settings },
   ],
 }

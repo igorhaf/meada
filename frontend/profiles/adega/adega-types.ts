@@ -27,6 +27,27 @@ export type MenuItem = {
   options: MenuOption[]
 }
 
+/** Cupom de desconto gerido pelo tenant (espelha AdegaCoupon do backend). */
+export type Coupon = {
+  id: string
+  code: string
+  kind: 'percent' | 'fixed'
+  value: number
+  minOrderCents: number
+  maxUses: number | null
+  uses: number
+  validUntil: string | null
+  active: boolean
+}
+
+/** Configuração de fidelidade (a cada N pedidos entregues, o próximo ganha um desconto). */
+export type LoyaltyConfig = {
+  enabled: boolean
+  thresholdOrders: number
+  rewardKind: 'percent' | 'fixed'
+  rewardValue: number
+}
+
 /** Status de um pedido (espelha AdegaOrderStatus). Ordem fixa. */
 export type OrderStatus =
   | 'aguardando'
@@ -66,7 +87,10 @@ export type Order = {
   status: OrderStatus
   subtotalCents: number
   deliveryFeeCents: number
+  discountCents?: number
   totalCents: number
+  couponCode?: string | null
+  loyaltyApplied?: boolean
   deliveryAddress: string
   notes: string | null
   rejectionReason: string | null

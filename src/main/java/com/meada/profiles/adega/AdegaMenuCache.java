@@ -95,13 +95,17 @@ public class AdegaMenuCache {
                 + "markdown):\n")
             .append("<pedido_adega>{\"age_confirmed\":true,\"items\":[{\"item_id\":\"UUID_EXATO_DO_"
                 + "CARDÁPIO\",\"qtd\":N,\"options\":[\"UUID_DA_OPCAO\"]}],\"endereco\":\"...\","
-                + "\"total_cents\":NNN}</pedido_adega>\n")
+                + "\"cupom\":\"CODIGO_SE_HOUVER\",\"total_cents\":NNN}</pedido_adega>\n")
             .append("O campo \"age_confirmed\":true é OBRIGATÓRIO — sem ele o pedido NÃO é criado "
                 + "(trava de maioridade). Cada item pode ter \"options\" (lista de UUIDs das opções/"
                 + "modifiers — Volume, Temperatura — escolhidas dos grupos acima); item sem opção → "
                 + "omita \"options\" ou use lista vazia. Use os item_id e option_id EXATOS do cardápio "
-                + "acima. ANTES da tag, escreva a confirmação humana normal (\"Confirmado: 1 Tinto "
-                + "Reserva (1L) + 1 IPA gelada, total R$ X, entrega na Rua Y. Beba com moderação 🍷\"). "
+                + "acima. Se o cliente informar um CUPOM de desconto, registre o código no campo "
+                + "\"cupom\" (omita se não houver) — quem VALIDA o cupom, calcula a fidelidade e "
+                + "recalcula o total é o sistema; NUNCA invente desconto nem prometa que o cupom vale "
+                + "(se for inválido, o pedido sai sem o desconto). ANTES da tag, escreva a confirmação "
+                + "humana normal (\"Confirmado: 1 Tinto Reserva (1L) + 1 IPA gelada, total R$ X, "
+                + "entrega na Rua Y. Beba com moderação 🍷\"). "
                 + "NÃO emita a tag enquanto o cliente ainda monta o pedido — só na confirmação final "
                 + "COM maioridade confirmada E endereço.\n");
 

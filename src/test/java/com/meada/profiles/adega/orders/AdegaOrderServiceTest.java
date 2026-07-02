@@ -74,7 +74,7 @@ class AdegaOrderServiceTest extends AbstractIntegrationTest {
     private AdegaOrder seedOrder() {
         AdegaMenuItem item = menuService.create(COMPANY, USER, "Cerveja", null, 500, "cervejas");
         return service.create(COMPANY, conversationId, contactId, "Rua X 1",
-            List.of(new OrderLineInput(item.id(), 2, List.of())), true, null);
+            List.of(new OrderLineInput(item.id(), 2, List.of())), true, null, null);
     }
 
     // ---- ESCAPADA +18 (trava de faixa etária) -------------------------------
@@ -84,7 +84,7 @@ class AdegaOrderServiceTest extends AbstractIntegrationTest {
     void create_ageNotConfirmed_throwsAndNoOrder() {
         AdegaMenuItem item = menuService.create(COMPANY, USER, "Vodka", null, 9000, "destilados");
         assertThatThrownBy(() -> service.create(COMPANY, conversationId, contactId, "Rua X 1",
-                List.of(new OrderLineInput(item.id(), 1, List.of())), false, null))
+                List.of(new OrderLineInput(item.id(), 1, List.of())), false, null, null))
             .isInstanceOf(AgeNotConfirmedException.class);
 
         // a trava dispara ANTES de qualquer cálculo/INSERT — nenhuma linha em adega_orders.
@@ -113,7 +113,7 @@ class AdegaOrderServiceTest extends AbstractIntegrationTest {
         AdegaMenuOption gelado = menuService.addOption(COMPANY, USER, vodka.id(), "Temperatura", "Gelado", 200, 1);
 
         AdegaOrder order = service.create(COMPANY, conversationId, contactId, "Rua Y 2",
-            List.of(new OrderLineInput(vodka.id(), 2, List.of(volume.id(), gelado.id()))), true, null);
+            List.of(new OrderLineInput(vodka.id(), 2, List.of(volume.id(), gelado.id()))), true, null, null);
 
         // unit_price = 9000 + 3000 + 200 = 12200; subtotal = 12200 * 2 = 24400; total = 24400 + 700 = 25100.
         assertThat(order.items().get(0).unitPriceCents()).isEqualTo(12200);
@@ -135,11 +135,88 @@ class AdegaOrderServiceTest extends AbstractIntegrationTest {
         AdegaMenuOption optDeOutro = menuService.addOption(COMPANY, USER, outro.id(), "Volume", "600ml", 500, 0);
 
         assertThatThrownBy(() -> service.create(COMPANY, conversationId, contactId, "Rua Z",
-                List.of(new OrderLineInput(vinho.id(), 1, List.of(optDeOutro.id()))), true, null))
+                List.of(new OrderLineInput(vinho.id(), 1, List.of(optDeOutro.id()))), true, null, null))
             .isInstanceOf(InvalidOptionException.class);
 
         Long count = jdbcTemplate.queryForObject("select count(*) from adega_orders", Long.class);
         assertThat(count).isZero();
+    }
+
+    // ---- Cupom + fidelidade (backlog #1/#2 — clone do chassi sushi) ---------
+
+    @Test
+    @DisplayName("cupom percent aplica desconto sobre o subtotal + incrementa uses")
+    void couponPercent() {
+        jdbcTemplate.update("insert into adega_coupons (company_id, code, kind, value) values (?, 'OFF20', 'percent', 20)", COMPANY);
+        AdegaMenuItem item = menuService.create(COMPANY, USER, "Tinto Reserva", null, 5000, "vinhos");
+        AdegaOrder order = service.create(COMPANY, conversationId, contactId, "Rua X",
+            List.of(new OrderLineInput(item.id(), 1, List.of())), true, "OFF20", null);
+        assertThat(order.subtotalCents()).isEqualTo(5000);
+        assertThat(order.discountCents()).isEqualTo(1000);   // 20% de 5000
+        assertThat(order.couponCode()).isEqualTo("OFF20");
+        assertThat(order.totalCents()).isEqualTo(4700);      // 5000 − 1000 + 700 de taxa.
+        Integer uses = jdbcTemplate.queryForObject("select uses from adega_coupons where code = 'OFF20'", Integer.class);
+        assertThat(uses).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("cupom fixed é clampado ao subtotal (desconto nunca > subtotal)")
+    void couponFixedClamp() {
+        jdbcTemplate.update("insert into adega_coupons (company_id, code, kind, value) values (?, 'BIG', 'fixed', 99999)", COMPANY);
+        AdegaMenuItem item = menuService.create(COMPANY, USER, "IPA", null, 4000, "cervejas");
+        AdegaOrder order = service.create(COMPANY, conversationId, contactId, "Rua X",
+            List.of(new OrderLineInput(item.id(), 1, List.of())), true, "BIG", null);
+        assertThat(order.discountCents()).isEqualTo(4000);   // clampado ao subtotal.
+        assertThat(order.totalCents()).isEqualTo(700);       // sobra só a taxa de entrega.
+    }
+
+    @Test
+    @DisplayName("cupom inválido (expirado) → pedido criado SEM desconto (não aborta) e uses inalterado")
+    void invalidCouponNotAborts() {
+        jdbcTemplate.update("insert into adega_coupons (company_id, code, kind, value, valid_until) "
+            + "values (?, 'OLD', 'percent', 50, current_date - 1)", COMPANY);
+        AdegaMenuItem item = menuService.create(COMPANY, USER, "Espumante Brut", null, 4000, "espumantes");
+        AdegaOrder order = service.create(COMPANY, conversationId, contactId, "Rua X",
+            List.of(new OrderLineInput(item.id(), 1, List.of())), true, "OLD", null);
+        assertThat(order.discountCents()).isZero();
+        assertThat(order.couponCode()).isNull();
+        Integer uses = jdbcTemplate.queryForObject("select uses from adega_coupons where code = 'OLD'", Integer.class);
+        assertThat(uses).isZero();
+    }
+
+    @Test
+    @DisplayName("fidelidade: ao atingir o threshold de entregues → desconto + loyalty_applied")
+    void loyaltyApplied() {
+        jdbcTemplate.update("insert into adega_loyalty_config (company_id, enabled, threshold_orders, reward_kind, reward_value) "
+            + "values (?, true, 2, 'percent', 10)", COMPANY);
+        AdegaMenuItem item = menuService.create(COMPANY, USER, "Malbec", null, 5000, "vinhos");
+        // 2 pedidos JÁ entregues do contato (threshold=2 → o próximo ganha o reward).
+        jdbcTemplate.update("insert into adega_orders (company_id, conversation_id, contact_id, status, subtotal_cents, "
+            + "total_cents, delivery_address, age_confirmed) values (?, ?, ?, 'entregue', 5000, 5000, 'Rua X', true)",
+            COMPANY, conversationId, contactId);
+        jdbcTemplate.update("insert into adega_orders (company_id, conversation_id, contact_id, status, subtotal_cents, "
+            + "total_cents, delivery_address, age_confirmed) values (?, ?, ?, 'entregue', 5000, 5000, 'Rua X', true)",
+            COMPANY, conversationId, contactId);
+
+        AdegaOrder order = service.create(COMPANY, conversationId, contactId, "Rua X",
+            List.of(new OrderLineInput(item.id(), 1, List.of())), true, null, null);
+        assertThat(order.loyaltyApplied()).isTrue();
+        assertThat(order.discountCents()).isEqualTo(500);   // 10% de 5000.
+    }
+
+    @Test
+    @DisplayName("fidelidade: abaixo do threshold → sem desconto")
+    void loyaltyBelowThreshold() {
+        jdbcTemplate.update("insert into adega_loyalty_config (company_id, enabled, threshold_orders, reward_kind, reward_value) "
+            + "values (?, true, 3, 'percent', 10)", COMPANY);
+        AdegaMenuItem item = menuService.create(COMPANY, USER, "Malbec", null, 5000, "vinhos");
+        jdbcTemplate.update("insert into adega_orders (company_id, conversation_id, contact_id, status, subtotal_cents, "
+            + "total_cents, delivery_address, age_confirmed) values (?, ?, ?, 'entregue', 5000, 5000, 'Rua X', true)",
+            COMPANY, conversationId, contactId);
+        AdegaOrder order = service.create(COMPANY, conversationId, contactId, "Rua X",
+            List.of(new OrderLineInput(item.id(), 1, List.of())), true, null, null);
+        assertThat(order.loyaltyApplied()).isFalse();
+        assertThat(order.discountCents()).isZero();
     }
 
     // ---- Gate de aceite (ESCAPADA 1) ----------------------------------------

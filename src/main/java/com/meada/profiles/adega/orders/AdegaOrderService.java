@@ -59,20 +59,21 @@ public class AdegaOrderService {
      * Cria um pedido a partir das linhas confirmadas pela IA. <b>PRÉ-CONDIÇÃO +18:</b> sem
      * {@code ageConfirmed=true} lança {@link AgeNotConfirmedException} ANTES de qualquer cálculo —
      * não há pedido de menor no banco. A taxa de entrega vem do config do tenant (0 se ausente). O
-     * repositório faz o snapshot de preço+nome+opções, recalcula os totais (descarta o total da IA) e
-     * persiste {@code age_confirmed} pra compliance.
+     * repositório faz o snapshot de preço+nome+opções, recalcula os totais (descarta o total da IA),
+     * aplica cupom + fidelidade (backlog #1/#2 — cupom inválido NÃO aborta) e persiste
+     * {@code age_confirmed} pra compliance.
      */
     @Transactional
     public AdegaOrder create(UUID companyId, UUID conversationId, UUID contactId,
                               String deliveryAddress, List<OrderLineInput> lines,
-                              boolean ageConfirmed, String notes) {
+                              boolean ageConfirmed, String couponCode, String notes) {
         if (!ageConfirmed) {
             throw new AgeNotConfirmedException();   // trava +18 — não cria pedido sem maioridade confirmada.
         }
         AdegaConfig config = configRepository.findByCompany(companyId);
         return orderRepository.createOrder(
-            companyId, conversationId, contactId, deliveryAddress, lines, config.deliveryFeeCents(),
-            ageConfirmed, notes);
+            companyId, conversationId, contactId, deliveryAddress, lines, couponCode,
+            config.deliveryFeeCents(), ageConfirmed, notes);
     }
 
     public List<AdegaOrder> list(UUID companyId, String status, int limit, int offset) {
