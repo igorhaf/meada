@@ -8,6 +8,7 @@ import com.meada.profiles.atelie.proposals.AtelieProposalService.ArtisanNotFound
 import com.meada.profiles.atelie.proposals.AtelieProposalService.DepositRequiredException;
 import com.meada.profiles.atelie.proposals.AtelieProposalService.EmptyBudgetException;
 import com.meada.profiles.atelie.proposals.AtelieProposalService.InvalidDepositException;
+import com.meada.profiles.atelie.proposals.AtelieProposalService.InvalidProposalCouponException;
 import com.meada.profiles.atelie.proposals.AtelieProposalService.FittingNotFoundException;
 import com.meada.profiles.atelie.proposals.AtelieProposalService.InactiveArtisanException;
 import com.meada.profiles.atelie.proposals.AtelieProposalService.InvalidFittingStatusException;
@@ -97,6 +98,8 @@ public class AtelieProposalController {
     public record StatusRequest(String newStatus) {}
 
     public record DepositRequest(Integer depositCents, Boolean depositPaid) {}
+
+    public record CouponRequest(String code) {}
 
     @GetMapping("/api/atelie/proposals")
     public ResponseEntity<Object> list(
@@ -381,6 +384,48 @@ public class AtelieProposalController {
             return error(404, "Not Found", "fitting_not_found");
         } catch (InvalidFittingStatusException e) {
             return error(400, "Bad Request", "invalid_fitting_status");
+        } catch (ProposalLockedException e) {
+            return error(409, "Conflict", "proposal_locked");
+        }
+    }
+
+    // ---- Cupom na proposta (onda 2, backlog #13 — aplicado pelo painel) ----
+
+    @PatchMapping("/api/atelie/proposals/{id}/coupon")
+    public ResponseEntity<Object> applyCoupon(
+            @RequestAttribute(JwtAuthenticationFilter.AUTH_USER_ATTRIBUTE) AuthenticatedUser user,
+            @PathVariable UUID id, @RequestBody CouponRequest req) {
+        UUID companyId;
+        try {
+            companyId = profileGuard.requireAtelie(user);
+        } catch (WrongProfileException e) {
+            return error(403, "Forbidden", "forbidden_wrong_profile");
+        }
+        try {
+            return ResponseEntity.ok(service.applyCoupon(companyId, id, req.code()));
+        } catch (ProposalNotFoundException e) {
+            return error(404, "Not Found", "proposal_not_found");
+        } catch (InvalidProposalCouponException e) {
+            return error(400, "Bad Request", "invalid_coupon");
+        } catch (ProposalLockedException e) {
+            return error(409, "Conflict", "proposal_locked");
+        }
+    }
+
+    @DeleteMapping("/api/atelie/proposals/{id}/coupon")
+    public ResponseEntity<Object> removeCoupon(
+            @RequestAttribute(JwtAuthenticationFilter.AUTH_USER_ATTRIBUTE) AuthenticatedUser user,
+            @PathVariable UUID id) {
+        UUID companyId;
+        try {
+            companyId = profileGuard.requireAtelie(user);
+        } catch (WrongProfileException e) {
+            return error(403, "Forbidden", "forbidden_wrong_profile");
+        }
+        try {
+            return ResponseEntity.ok(service.removeCoupon(companyId, id));
+        } catch (ProposalNotFoundException e) {
+            return error(404, "Not Found", "proposal_not_found");
         } catch (ProposalLockedException e) {
             return error(409, "Conflict", "proposal_locked");
         }

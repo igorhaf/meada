@@ -64,6 +64,9 @@ export type AtelieProposal = {
   briefing: string | null
   estimatedDate: string | null
   totalCents: number
+  discountCents: number
+  couponId: string | null
+  couponCodeSnapshot: string | null
   status: AtelieProposalStatusId
   notes: string | null
   depositCents: number | null
@@ -74,6 +77,64 @@ export type AtelieProposal = {
   statusUpdatedAt: string
   items: AtelieProposalItem[]
   fittings: AtelieFitting[]
+}
+
+/** Item do catálogo de materiais/técnicas (onda 2, backlog #15 — espelha AtelieCatalogItem). */
+export type AtelieCatalogItem = {
+  id: string
+  companyId: string
+  name: string
+  category: string | null
+  unitPriceCents: number
+  active: boolean
+  notes: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+/** Cupom de desconto (onda 2, backlog #13 — espelha AtelieCoupon; clone do motor adega). */
+export type AtelieCoupon = {
+  id: string
+  companyId: string
+  code: string
+  kind: 'percent' | 'fixed'
+  value: number
+  minOrderCents: number
+  maxUses: number | null
+  uses: number
+  validUntil: string | null
+  active: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+/** Medida do cliente/contato (onda 2, backlog #9 — espelha AtelieMeasurement). */
+export type AtelieMeasurement = {
+  id: string
+  companyId: string
+  contactId: string
+  label: string
+  value: string
+  createdAt: string
+  updatedAt: string
+}
+
+/** Linha agregada do relatório de faturamento (onda 2, backlog #14). */
+export type AtelieReportRow = {
+  month?: string
+  projectType?: string
+  artisanName?: string | null
+  count: number
+  totalCents: number
+}
+
+export type AtelieReportSummary = {
+  months: number
+  totalCount: number
+  totalCents: number
+  byMonth: AtelieReportRow[]
+  byType: AtelieReportRow[]
+  byArtisan: AtelieReportRow[]
 }
 
 /** Formata centavos em R$ pt-BR. */

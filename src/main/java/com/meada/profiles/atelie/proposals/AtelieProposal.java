@@ -14,7 +14,9 @@ import java.util.UUID;
  * não confundir: orçamento entra no total; provas/ajustes NÃO. SINAL (onda backlog #2):
  * {@code depositCents} (valor combinado; null/0 = sem sinal) + {@code depositPaid} (marcação manual
  * da equipe) — com sinal registrado e não pago, aprovada→fechada é bloqueada (409 deposit_required).
- * Espelho do EventProposal.
+ * CUPOM (onda 2, backlog #13): {@code discountCents} MATERIALIZADO e re-derivado a cada mutação de
+ * item (clampado ao total); total final = totalCents − discountCents. Aplicado pelo painel — a IA
+ * nunca toca preço. Espelho do EventProposal.
  */
 public record AtelieProposal(
     UUID id,
@@ -29,6 +31,9 @@ public record AtelieProposal(
     String briefing,
     LocalDate estimatedDate,
     int totalCents,
+    int discountCents,
+    UUID couponId,
+    String couponCodeSnapshot,
     String status,
     String notes,
     Integer depositCents,

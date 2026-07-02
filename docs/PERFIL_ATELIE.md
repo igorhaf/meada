@@ -16,7 +16,10 @@ tag que muta o estado de um artefato existente) e inaugura a **sub-entidade de E
 | Tela | Rota | O que faz |
 |------|------|-----------|
 | Artesãos | `/dashboard/atelie-artisans` | CRUD de artesãos/responsáveis (catálogo simples, sem agenda; desativar preferido a excluir). |
-| Propostas | `/dashboard/atelie-proposals` | Lista por status + badge de tipo + alertas ("Entrega atrasada", "Sinal pendente"); detalhe com DOIS editores (ORÇAMENTO + PROVAS/AJUSTES) e o registro do SINAL. |
+| Propostas | `/dashboard/atelie-proposals` | Lista por status + badge de tipo + alertas ("Entrega atrasada", "Sinal pendente"); detalhe com os editores de ORÇAMENTO (com autofill do catálogo + cupom) e PROVAS/AJUSTES, o registro do SINAL e as MEDIDAS do cliente. |
+| Materiais | `/dashboard/atelie-catalog` | Catálogo de materiais/técnicas com preço — autofill do orçamento + fonte do upsell da IA (sem valores na conversa). |
+| Cupons | `/dashboard/atelie-coupons` | Cupons percent/fixed (mínimo, validade, max usos) que a EQUIPE aplica na proposta. |
+| Relatórios | `/dashboard/atelie-reports` | Faturamento das peças entregues (líquido, por mês/tipo/artesão). |
 | Configurações | `/dashboard/atelie-settings` | Nome do ateliê + notas + toggle do lembrete de prova/ajuste (sem horário). |
 
 ## UM perfil, três tipos (`project_type`)
@@ -98,11 +101,57 @@ proposta viva com `estimated_date` < hoje ganha badge **"Entrega atrasada"** na 
 vermelho no detalhe (helper `isDeliveryOverdue` em `atelie-types.ts`, comparação yyyy-MM-dd no fuso
 local).
 
+## Onda 2 do backlog (#9/#10/#13/#14/#15 — migration 82)
+
+### #15 — Catálogo de materiais/técnicas (`atelie_catalog_items`)
+
+Itens pré-cadastrados (nome + categoria livre + preço unitário + ativo) com CRUD em
+`/api/atelie/catalog` e tela "Materiais". É o **autofill** do editor de orçamento (select preenche
+descrição+preço; o item da proposta continua SNAPSHOT texto — mudar o catálogo não altera propostas
+passadas) e a fonte do upsell da IA (#10). Delete livre (nada referencia por FK); inativo sai do
+autofill/upsell.
+
+### #13 — Cupom de desconto na proposta (`atelie_coupons` + desconto materializado)
+
+Clone do motor sushi/academia/adega (percent 1..100 / fixed, `min_order_cents` sobre o TOTAL do
+orçamento, validade, max usos, UNIQUE case-insensitive `lower(code)`). **Aplicado PELO PAINEL**
+(PATCH `/api/atelie/proposals/{id}/coupon` + DELETE — a IA NÃO passa cupom nem negocia preço,
+diferente do fluxo adega): cupom inválido no painel é erro EXPLÍCITO 400 `invalid_coupon`. O
+desconto é MATERIALIZADO (`discount_cents` + `coupon_id` + `coupon_code_snapshot`) e **RE-DERIVADO a
+cada mutação de item** na mesma transação do recalc do total (percent recalcula; fixed clampa ao
+total; o mínimo só é validado no APPLY). `uses` incrementa ao aplicar e DEVOLVE ao remover/trocar.
+Total final = `total_cents − discount_cents`; a notificação de `orcada` informa o total LÍQUIDO; o
+gate `empty_budget` segue sobre o total bruto.
+
+### #9 — Tabela de medidas por cliente (`atelie_measurements`)
+
+Medidas do **CONTATO** (não da proposta) — reuso automático na recompra. Linhas label+valor LIVRES
+(costura/arte/design medem coisas diferentes), UPSERT por `(contato, lower(label))` — regravar a
+mesma medida atualiza o valor. Editadas no detalhe da proposta (quando há contato vinculado).
+**ADMINISTRATIVAS: a IA NÃO recebe as medidas no contexto** (trava do nicho: nunca confirma medida
+não cravada pela equipe).
+
+### #14 — Relatório de faturamento
+
+GET `/api/atelie/reports/summary?months=N` (1..24, default 6) + tela "Relatórios": faturamento =
+propostas **REALIZADAS** (peça entregue), valor **LÍQUIDO** (total − desconto), agregado por mês do
+`closed_at` (America/Sao_Paulo), por `project_type` (costura×arte×design) e por artesão (null =
+"Sem atribuição"). Sem DDL.
+
+### #10 — Upsell da IA no briefing (via catálogo)
+
+O `AtelieContextCache` injeta os **NOMES** (+categoria) do catálogo ativo — **SEM preço** — e a
+persona permite sugerir **NO MÁXIMO UMA VEZ** um complemento DESSA lista (forro, bordado,
+acabamento) quando o briefing abre espaço, sem citar valores e sem insistir. Fora do catálogo, nada
+de sugestão (a trava "NUNCA inventa material fora do cadastrado" agora tem um cadastro concreto).
+
 ## O que a IA faz
 
 - Abre uma **proposta** a partir do briefing (tipo de peça/obra, ocasião, medidas/dimensões
   aproximadas, referência descrita em texto).
 - **Captura a aprovação/recusa** quando a proposta já está **orçada** (gate de 2 fases).
+- Pode sugerir **UMA única vez** um complemento do CATÁLOGO cadastrado (forro, bordado, acabamento) —
+  sem valores e sem insistir (onda 2, backlog #10).
 
 ## O que a IA NÃO faz
 
@@ -139,10 +188,6 @@ outras. O `OutboundService` remove a tag antes de enviar ao cliente.
 ## O que NÃO existe nesta fase
 
 - **Conflito de agenda/data** (não há agenda — datas das provas são previsões livres).
-- **Catálogo de tecidos/materiais/técnicas** pré-cadastrados (orçamento ad-hoc — a equipe digita os
-  itens).
-- **Tabela de medidas estruturada** do cliente (ombro/busto/cintura como colunas — o briefing é texto
-  livre).
 - **Contrato e-sign** (o "contrato" é o estado `fechada`); **pagamento ONLINE do sinal/parcelas**
   (Stripe #50 — o REGISTRO manual do sinal já existe, onda backlog #2).
 - **Foto/anexo** de referência/croqui/render/arte (bloqueador SERVICE_ROLE_KEY).
@@ -158,6 +203,9 @@ outras. O `OutboundService` remove a tag antes de enviar ao cliente.
 - Migration `81_atelie_lembrete_sinal.sql` (onda backlog #1/#2/#12): `fitting_reminder_enabled` na
   config, `reminded_due_date` + índice parcial nas fittings, `deposit_cents`/`deposit_paid`/
   `deposit_paid_at` na proposta.
+- Migration `82_atelie_onda2.sql` (onda 2, backlog #9/#10/#13/#14/#15): `atelie_catalog_items` +
+  `atelie_coupons` + `atelie_measurements` + `discount_cents`/`coupon_id`/`coupon_code_snapshot` na
+  proposta.
 - `atelie_proposals`/`atelie_proposal_items`/`atelie_fittings`: INSERT pelo backend (service_role);
   tenant SELECT/UPDATE.
 - `total_cents`/`line_total_cents` MATERIALIZADOS no INSERT/UPDATE (não generated). `estimated_date`/

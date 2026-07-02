@@ -112,6 +112,18 @@ export function transitionFitting(proposalId: string, fittingId: string, status:
   })
 }
 
+// ---- Cupom na proposta (onda 2, backlog #13 — aplicado pelo painel) ----
+
+export function applyCoupon(id: string, code: string): Promise<AtelieProposal> {
+  return apiFetch<AtelieProposal>(`/api/atelie/proposals/${id}/coupon`, {
+    method: 'PATCH', body: JSON.stringify({ code }),
+  })
+}
+
+export function removeCoupon(id: string): Promise<AtelieProposal> {
+  return apiFetch<AtelieProposal>(`/api/atelie/proposals/${id}/coupon`, { method: 'DELETE' })
+}
+
 // ---- Sinal/entrada (onda backlog #2) ----
 
 export type DepositInput = {

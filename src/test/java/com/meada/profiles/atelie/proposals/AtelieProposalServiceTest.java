@@ -254,6 +254,107 @@ class AtelieProposalServiceTest extends AbstractIntegrationTest {
     }
 
     // -------------------------------------------------------------------------
+    // CUPOM NA PROPOSTA (onda 2, backlog #13) — aplicação/remoção/re-derivação.
+    // -------------------------------------------------------------------------
+
+    /** Insere um cupom direto (sem service → sem audit) e devolve o id. */
+    private UUID seedCoupon(String code, String kind, int value, int minOrderCents, Integer maxUses,
+                            java.time.LocalDate validUntil, boolean active) {
+        UUID id = UUID.randomUUID();
+        jdbcTemplate.update(
+            "insert into atelie_coupons (id, company_id, code, kind, value, min_order_cents, max_uses, "
+                + "valid_until, active) values (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            id, COMPANY, code, kind, value, minOrderCents, maxUses,
+            validUntil == null ? null : java.sql.Date.valueOf(validUntil), active);
+        return id;
+    }
+
+    private int usesOf(UUID couponId) {
+        Integer n = jdbcTemplate.queryForObject("select uses from atelie_coupons where id = ?",
+            Integer.class, couponId);
+        return n == null ? 0 : n;
+    }
+
+    @Test
+    @DisplayName("applyCoupon percent aplica desconto + incrementa uses; removeCoupon zera + devolve o uso")
+    void coupon_applyAndRemove() {
+        AtelieProposal p = openProposal();
+        service.addItem(COMPANY, p.id(), "Tecido", 1, 100000);
+        UUID coupon = seedCoupon("DEZ", "percent", 10, 0, null, null, true);
+
+        AtelieProposal withCoupon = service.applyCoupon(COMPANY, p.id(), "dez");   // case-insensitive
+        assertThat(withCoupon.discountCents()).isEqualTo(10000);
+        assertThat(withCoupon.couponCodeSnapshot()).isEqualTo("DEZ");
+        assertThat(usesOf(coupon)).isEqualTo(1);
+
+        AtelieProposal removed = service.removeCoupon(COMPANY, p.id());
+        assertThat(removed.discountCents()).isZero();
+        assertThat(removed.couponId()).isNull();
+        assertThat(usesOf(coupon)).isZero();
+    }
+
+    @Test
+    @DisplayName("mutação de item RE-DERIVA o desconto (percent recalcula; fixed clampado ao total)")
+    void coupon_recomputedOnItemMutation() {
+        AtelieProposal p = openProposal();
+        AtelieProposalItem item = service.addItem(COMPANY, p.id(), "Tecido", 1, 100000);
+        seedCoupon("VINTE", "percent", 20, 0, null, null, true);
+        service.applyCoupon(COMPANY, p.id(), "VINTE");
+        assertThat(service.get(COMPANY, p.id()).orElseThrow().discountCents()).isEqualTo(20000);
+
+        // dobra o item → desconto percent recalcula sobre o novo total.
+        service.updateItem(COMPANY, p.id(), item.id(), null, 2, null);
+        assertThat(service.get(COMPANY, p.id()).orElseThrow().discountCents()).isEqualTo(40000);
+
+        // fixed maior que o total → clampa (troca o cupom; o VINTE devolve o uso).
+        seedCoupon("GIGANTE", "fixed", 999999, 0, null, null, true);
+        AtelieProposal clamped = service.applyCoupon(COMPANY, p.id(), "GIGANTE");
+        assertThat(clamped.discountCents()).isEqualTo(clamped.totalCents());
+    }
+
+    @Test
+    @DisplayName("cupom inativo/vencido/esgotado/abaixo do mínimo/inexistente → InvalidProposalCouponException")
+    void coupon_invalid() {
+        AtelieProposal p = openProposal();
+        service.addItem(COMPANY, p.id(), "Tecido", 1, 10000);
+
+        seedCoupon("OFF", "percent", 10, 0, null, null, false);
+        seedCoupon("VENCIDO", "percent", 10, 0, null, java.time.LocalDate.now().minusDays(1), true);
+        UUID esgotado = seedCoupon("ESGOTADO", "percent", 10, 0, 1, null, true);
+        jdbcTemplate.update("update atelie_coupons set uses = 1 where id = ?", esgotado);
+        seedCoupon("MINIMO", "percent", 10, 999999, null, null, true);
+
+        for (String code : new String[] {"OFF", "VENCIDO", "ESGOTADO", "MINIMO", "NAOEXISTE"}) {
+            assertThatThrownBy(() -> service.applyCoupon(COMPANY, p.id(), code))
+                .isInstanceOf(AtelieProposalService.InvalidProposalCouponException.class);
+        }
+    }
+
+    @Test
+    @DisplayName("notificação de orcada usa o total LÍQUIDO (com o desconto do cupom abatido)")
+    void coupon_notificationUsesNetTotal() {
+        AtelieProposal p = openProposal();
+        service.addItem(COMPANY, p.id(), "Tecido", 1, 500000);
+        seedCoupon("DEZ", "percent", 10, 0, null, null, true);
+        service.applyCoupon(COMPANY, p.id(), "DEZ");
+
+        service.updateStatus(COMPANY, p.id(), "orcada");
+        assertThat(fakeEvolution.sent()).hasSize(1);
+        assertThat(fakeEvolution.sent().get(0).text()).contains("R$ 4500,00");
+    }
+
+    @Test
+    @DisplayName("applyCoupon em proposta travada (fechada) → ProposalLockedException")
+    void coupon_locked() {
+        AtelieProposal p = openProposal();
+        service.addItem(COMPANY, p.id(), "Tecido", 1, 10000);
+        seedCoupon("DEZ", "percent", 10, 0, null, null, true);
+        jdbcTemplate.update("update atelie_proposals set status = 'fechada' where id = ?", p.id());
+        assertThatThrownBy(() -> service.applyCoupon(COMPANY, p.id(), "DEZ"))
+            .isInstanceOf(ProposalLockedException.class);
+    }
+
+    // -------------------------------------------------------------------------
     // SINAL/ENTRADA (onda backlog #2) — registro + gate no fechamento.
     // -------------------------------------------------------------------------
 

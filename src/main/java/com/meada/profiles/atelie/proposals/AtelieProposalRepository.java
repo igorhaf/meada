@@ -58,7 +58,8 @@ public class AtelieProposalRepository {
     private static final String PROPOSAL_SELECT =
         "select p.id, p.contact_id, p.artisan_id, p.conversation_id, p.customer_name, p.customer_phone, "
             + "ar.name as artisan_name, p.project_type, p.occasion, p.briefing, p.estimated_date, "
-            + "p.total_cents, p.status, p.notes, p.deposit_cents, p.deposit_paid, p.deposit_paid_at, "
+            + "p.total_cents, p.discount_cents, p.coupon_id, p.coupon_code_snapshot, "
+            + "p.status, p.notes, p.deposit_cents, p.deposit_paid, p.deposit_paid_at, "
             + "p.opened_at, p.closed_at, p.status_updated_at "
             + "from atelie_proposals p left join atelie_artisans ar on ar.id = p.artisan_id ";
 
@@ -81,6 +82,9 @@ public class AtelieProposalRepository {
             rs.getString("briefing"),
             ed == null ? null : ed.toLocalDate(),
             rs.getInt("total_cents"),
+            rs.getInt("discount_cents"),
+            (UUID) rs.getObject("coupon_id"),
+            rs.getString("coupon_code_snapshot"),
             rs.getString("status"),
             rs.getString("notes"),
             depositCents,
@@ -162,7 +166,8 @@ public class AtelieProposalRepository {
     private AtelieProposal withChildren(AtelieProposal p) {
         return new AtelieProposal(p.id(), p.contactId(), p.artisanId(), p.conversationId(),
             p.customerName(), p.customerPhone(), p.artisanName(), p.projectType(), p.occasion(),
-            p.briefing(), p.estimatedDate(), p.totalCents(), p.status(), p.notes(),
+            p.briefing(), p.estimatedDate(), p.totalCents(),
+            p.discountCents(), p.couponId(), p.couponCodeSnapshot(), p.status(), p.notes(),
             p.depositCents(), p.depositPaid(), p.depositPaidAt(),
             p.openedAt(), p.closedAt(), p.statusUpdatedAt(), listItems(p.id()), listFittings(p.id()));
     }
@@ -310,13 +315,50 @@ public class AtelieProposalRepository {
         return true;
     }
 
-    /** Re-soma o total da proposta a partir das linhas de ORÇAMENTO (materializa o derivado). */
+    /**
+     * Re-soma o total da proposta a partir das linhas de ORÇAMENTO (materializa o derivado) e
+     * RE-DERIVA o desconto do cupom aplicado, se houver (onda 2, backlog #13) — percent recalcula
+     * sobre o novo total; fixed é clampado ao novo total. Tudo na MESMA transação da mutação do item.
+     */
     private void recalcTotal(UUID companyId, UUID proposalId) {
         jdbcTemplate.update(
             "update atelie_proposals set total_cents = coalesce("
                 + "(select sum(line_total_cents) from atelie_proposal_items where proposal_id = ?), 0), "
                 + "updated_at = now() where company_id = ? and id = ?",
             proposalId, companyId, proposalId);
+        recomputeDiscount(companyId, proposalId);
+    }
+
+    /** Re-deriva discount_cents a partir do cupom aplicado e do total_cents ATUAL (clampado). */
+    private void recomputeDiscount(UUID companyId, UUID proposalId) {
+        jdbcTemplate.update(
+            "update atelie_proposals p set discount_cents = coalesce("
+                + "(select least(case when c.kind = 'percent' "
+                + "  then (p.total_cents::bigint * c.value / 100)::integer else c.value end, p.total_cents) "
+                + " from atelie_coupons c where c.id = p.coupon_id), 0) "
+                + "where p.company_id = ? and p.id = ?",
+            companyId, proposalId);
+    }
+
+    /**
+     * Aplica o cupom na proposta (onda 2, backlog #13): grava coupon_id + snapshot do code e
+     * re-deriva o desconto. O service já validou (active/validade/mínimo/max_uses) e incrementa
+     * uses na MESMA transação.
+     */
+    public void applyCoupon(UUID companyId, UUID proposalId, UUID couponId, String codeSnapshot) {
+        jdbcTemplate.update(
+            "update atelie_proposals set coupon_id = ?, coupon_code_snapshot = ?, updated_at = now() "
+                + "where company_id = ? and id = ?",
+            couponId, codeSnapshot, companyId, proposalId);
+        recomputeDiscount(companyId, proposalId);
+    }
+
+    /** Remove o cupom da proposta (zera desconto + vínculo). O service decrementa uses na transação. */
+    public void removeCoupon(UUID companyId, UUID proposalId) {
+        jdbcTemplate.update(
+            "update atelie_proposals set coupon_id = null, coupon_code_snapshot = null, "
+                + "discount_cents = 0, updated_at = now() where company_id = ? and id = ?",
+            companyId, proposalId);
     }
 
     // -------------------------------------------------------------------------

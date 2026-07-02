@@ -4,6 +4,8 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.meada.profiles.atelie.artisans.AtelieArtisan;
 import com.meada.profiles.atelie.artisans.AtelieArtisanRepository;
+import com.meada.profiles.atelie.catalog.AtelieCatalogItem;
+import com.meada.profiles.atelie.catalog.AtelieCatalogRepository;
 import com.meada.profiles.atelie.proposals.AtelieProposal;
 import com.meada.profiles.atelie.proposals.AtelieProposalRepository;
 import org.springframework.stereotype.Component;
@@ -30,12 +32,15 @@ public class AtelieContextCache {
 
     private final AtelieArtisanRepository artisanRepository;
     private final AtelieProposalRepository proposalRepository;
+    private final AtelieCatalogRepository catalogRepository;
     private final Cache<String, String> cache;
 
     public AtelieContextCache(AtelieArtisanRepository artisanRepository,
-                              AtelieProposalRepository proposalRepository) {
+                              AtelieProposalRepository proposalRepository,
+                              AtelieCatalogRepository catalogRepository) {
         this.artisanRepository = artisanRepository;
         this.proposalRepository = proposalRepository;
+        this.catalogRepository = catalogRepository;
         this.cache = Caffeine.newBuilder()
             .expireAfterWrite(Duration.ofSeconds(20))
             .maximumSize(1000)
@@ -81,6 +86,23 @@ public class AtelieContextCache {
                 sb.append("\n");
             }
             sb.append("\n");
+        }
+
+        // --- CATÁLOGO DE MATERIAIS/TÉCNICAS (onda 2, backlog #10/#15) — SÓ NOMES, sem preço ---
+        List<AtelieCatalogItem> catalog = catalogRepository.listByCompany(companyId, true);
+        if (!catalog.isEmpty()) {
+            sb.append("MATERIAIS/TÉCNICAS QUE O ATELIÊ TRABALHA (catálogo cadastrado; SEM valores — quem "
+                + "orça é a equipe):\n");
+            for (AtelieCatalogItem item : catalog) {
+                sb.append("- ").append(item.name());
+                if (item.category() != null && !item.category().isBlank()) {
+                    sb.append(" (").append(item.category()).append(")");
+                }
+                sb.append("\n");
+            }
+            sb.append("Se o briefing abrir espaço, você PODE sugerir NO MÁXIMO UMA VEZ um complemento "
+                + "DESTA lista (ex.: forro, bordado, acabamento) — sem citar valor e sem insistir se o "
+                + "cliente não quiser. NUNCA sugira nada fora do catálogo.\n\n");
         }
 
         // --- PROPOSTAS DO CLIENTE EM ABERTO (pra capturar aprovação) ---

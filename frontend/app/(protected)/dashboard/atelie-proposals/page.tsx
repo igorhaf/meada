@@ -11,14 +11,22 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Modal } from '@/components/ui/modal'
 import { listArtisans } from '@/lib/api/atelie/artisans'
+import { listCatalog } from '@/lib/api/atelie/catalog'
+import {
+  deleteMeasurement,
+  listMeasurements,
+  upsertMeasurement,
+} from '@/lib/api/atelie/measurements'
 import {
   addFitting,
   addItem,
+  applyCoupon,
   deleteFitting,
   deleteItem,
   getProposal,
   listProposals,
   openProposal,
+  removeCoupon,
   reorderFittings,
   transitionFitting,
   updateDeposit,
@@ -74,6 +82,9 @@ const EMPTY_FITTING: FittingForm = { title: '', dueDate: '', description: '' }
 
 type DepositForm = { value: string; paid: boolean }
 
+type MeasurementForm = { label: string; value: string }
+const EMPTY_MEASUREMENT: MeasurementForm = { label: '', value: '' }
+
 /**
  * Propostas de ateliê do AtelieBot (camada 8.14). Clona o EventosBot: lista por status, abre proposta
  * (Modal), detalhe com DOIS editores inline: (a) ORÇAMENTO (total recalculado pelo backend a cada
@@ -98,6 +109,10 @@ export default function AtelieProposalsPage() {
   const [fittingError, setFittingError] = useState<string | null>(null)
   const [depositForm, setDepositForm] = useState<DepositForm>({ value: '', paid: false })
   const [depositError, setDepositError] = useState<string | null>(null)
+  const [couponCode, setCouponCode] = useState('')
+  const [couponError, setCouponError] = useState<string | null>(null)
+  const [measurementForm, setMeasurementForm] = useState<MeasurementForm>(EMPTY_MEASUREMENT)
+  const [measurementError, setMeasurementError] = useState<string | null>(null)
   const [statusTarget, setStatusTarget] = useState<AtelieProposalStatusId | null>(null)
   const [statusError, setStatusError] = useState<string | null>(null)
 
@@ -109,10 +124,19 @@ export default function AtelieProposalsPage() {
 
   const artisans = useQuery({ queryKey: ['atelie-artisans-all'], queryFn: () => listArtisans({ onlyActive: true }) })
 
+  const catalog = useQuery({ queryKey: ['atelie-catalog-active'], queryFn: () => listCatalog({ onlyActive: true }) })
+
   const detail = useQuery({
     queryKey: ['atelie-proposal', detailId],
     queryFn: () => getProposal(detailId as string),
     enabled: detailId !== null,
+  })
+
+  const detailContactId = detail.data?.contactId ?? null
+  const measurements = useQuery({
+    queryKey: ['atelie-measurements', detailContactId],
+    queryFn: () => listMeasurements(detailContactId as string),
+    enabled: detailContactId !== null,
   })
 
   const openMutation = useMutation({
@@ -220,6 +244,64 @@ export default function AtelieProposalsPage() {
     },
   })
 
+  const applyCouponMutation = useMutation({
+    mutationFn: () => {
+      if (!detailId) throw new Error('sem proposta')
+      return applyCoupon(detailId, couponCode.trim())
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['atelie-proposal', detailId] })
+      qc.invalidateQueries({ queryKey: ['atelie-proposals'] })
+      qc.invalidateQueries({ queryKey: ['atelie-coupons'] })
+      setCouponCode(''); setCouponError(null)
+    },
+    onError: (e) => {
+      if (e instanceof ApiError && e.reason === 'invalid_coupon') setCouponError('Cupom inválido (inexistente, inativo, vencido, esgotado ou abaixo do orçamento mínimo).')
+      else if (e instanceof ApiError && e.reason === 'proposal_locked') setCouponError('Esta proposta não aceita mais alteração de cupom.')
+      else setCouponError('Erro ao aplicar o cupom.')
+    },
+  })
+
+  const removeCouponMutation = useMutation({
+    mutationFn: () => {
+      if (!detailId) throw new Error('sem proposta')
+      return removeCoupon(detailId)
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['atelie-proposal', detailId] })
+      qc.invalidateQueries({ queryKey: ['atelie-proposals'] })
+      qc.invalidateQueries({ queryKey: ['atelie-coupons'] })
+      setCouponError(null)
+    },
+    onError: (e) => {
+      if (e instanceof ApiError && e.reason === 'proposal_locked') setCouponError('Esta proposta não aceita mais alteração de cupom.')
+      else setCouponError('Erro ao remover o cupom.')
+    },
+  })
+
+  const upsertMeasurementMutation = useMutation({
+    mutationFn: () => {
+      if (!detailContactId) throw new Error('sem contato')
+      return upsertMeasurement(detailContactId, {
+        label: measurementForm.label.trim(),
+        value: measurementForm.value.trim(),
+      })
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['atelie-measurements', detailContactId] })
+      setMeasurementForm(EMPTY_MEASUREMENT); setMeasurementError(null)
+    },
+    onError: (e) => {
+      if (e instanceof ApiError && e.reason === 'invalid_measurement') setMeasurementError('Medida inválida (etiqueta e valor até 100 caracteres).')
+      else setMeasurementError('Erro ao salvar a medida.')
+    },
+  })
+
+  const deleteMeasurementMutation = useMutation({
+    mutationFn: (id: string) => deleteMeasurement(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['atelie-measurements', detailContactId] }),
+  })
+
   const depositMutation = useMutation({
     mutationFn: () => {
       if (!detailId) throw new Error('sem proposta')
@@ -269,6 +351,8 @@ export default function AtelieProposalsPage() {
     if (p) {
       setDepositForm({ value: p.depositCents != null ? String(p.depositCents / 100) : '', paid: p.depositPaid })
       setDepositError(null)
+      setCouponCode(''); setCouponError(null)
+      setMeasurementForm(EMPTY_MEASUREMENT); setMeasurementError(null)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pId])
@@ -334,7 +418,7 @@ export default function AtelieProposalsPage() {
                 </p>
               </div>
               <div className="shrink-0 text-right">
-                <div className="text-sm font-medium">{formatBrl(prop.totalCents)}</div>
+                <div className="text-sm font-medium">{formatBrl(prop.totalCents - prop.discountCents)}</div>
                 <div className="text-xs text-muted-foreground">{formatDate(prop.openedAt)}</div>
               </div>
             </button>
@@ -446,11 +530,65 @@ export default function AtelieProposalsPage() {
               </dl>
             </Card>
 
+            {/* Medidas do cliente (onda 2, backlog #9 — por CONTATO, reuso na recompra) */}
+            {p.contactId && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold">Medidas do cliente</h3>
+                  <span className="text-xs text-muted-foreground">valem para todas as peças deste cliente</span>
+                </div>
+                {(measurements.data?.items ?? []).length === 0 ? (
+                  <p className="text-xs text-muted-foreground">Nenhuma medida registrada ainda.</p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {(measurements.data?.items ?? []).map((m) => (
+                      <span key={m.id} className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-xs">
+                        <span className="text-muted-foreground">{m.label}:</span> {m.value}
+                        <button type="button" className="ml-1 text-muted-foreground hover:text-destructive"
+                          disabled={deleteMeasurementMutation.isPending}
+                          onClick={() => deleteMeasurementMutation.mutate(m.id)}>×</button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <form className="flex flex-wrap items-end gap-2 rounded-lg border border-dashed border-border p-3"
+                  onSubmit={(e) => { e.preventDefault(); upsertMeasurementMutation.mutate() }}>
+                  <div className="w-36">
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Medida</label>
+                    <input value={measurementForm.label} required maxLength={100} placeholder="busto, cintura, manga…"
+                      onChange={(e) => setMeasurementForm((f) => ({ ...f, label: e.target.value }))}
+                      className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm" />
+                  </div>
+                  <div className="w-28">
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Valor</label>
+                    <input value={measurementForm.value} required maxLength={100} placeholder="92 cm"
+                      onChange={(e) => setMeasurementForm((f) => ({ ...f, value: e.target.value }))}
+                      className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm" />
+                  </div>
+                  <Button type="submit" className="h-8 px-3 text-xs" disabled={upsertMeasurementMutation.isPending}>
+                    Salvar medida
+                  </Button>
+                  <p className="w-full text-xs text-muted-foreground">
+                    Regravar a mesma medida atualiza o valor. As medidas ficam no cadastro do cliente
+                    (não na proposta) e NÃO vão para a IA.
+                  </p>
+                </form>
+                {measurementError && <p className="text-sm text-destructive">{measurementError}</p>}
+              </div>
+            )}
+
             {/* Orçamento (entra no total) */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold">Orçamento</h3>
-                <span className="text-sm font-medium">Total: {formatBrl(p.totalCents)}</span>
+                <span className="text-sm font-medium">
+                  Total: {formatBrl(p.totalCents - p.discountCents)}
+                  {p.discountCents > 0 && (
+                    <span className="ml-2 text-xs font-normal text-muted-foreground">
+                      ({formatBrl(p.totalCents)} − {formatBrl(p.discountCents)} de desconto)
+                    </span>
+                  )}
+                </span>
               </div>
               {p.items.length === 0 ? (
                 <p className="text-xs text-muted-foreground">Nenhum item de orçamento ainda.</p>
@@ -481,6 +619,24 @@ export default function AtelieProposalsPage() {
               {!locked && (
                 <form className="flex flex-wrap items-end gap-2 rounded-lg border border-dashed border-border p-3"
                   onSubmit={(e) => { e.preventDefault(); addItemMutation.mutate() }}>
+                  {(catalog.data?.items ?? []).length > 0 && (
+                    <div className="w-full">
+                      <label className="mb-1 block text-xs font-medium text-muted-foreground">Do catálogo (autofill, opcional)</label>
+                      <select value="" onChange={(e) => {
+                        const item = (catalog.data?.items ?? []).find((c) => c.id === e.target.value)
+                        if (item) {
+                          setItemForm((f) => ({ ...f, description: item.name, price: String(item.unitPriceCents / 100) }))
+                        }
+                      }} className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm">
+                        <option value="">Preencher com um material/técnica cadastrado…</option>
+                        {(catalog.data?.items ?? []).map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}{c.category ? ` (${c.category})` : ''} — {formatBrl(c.unitPriceCents)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   <div className="flex-1 min-w-[8rem]">
                     <label className="mb-1 block text-xs font-medium text-muted-foreground">Descrição</label>
                     <input value={itemForm.description} onChange={(e) => setItemForm((f) => ({ ...f, description: e.target.value }))} required
@@ -503,6 +659,37 @@ export default function AtelieProposalsPage() {
                 </form>
               )}
               {itemError && <p className="text-sm text-destructive">{itemError}</p>}
+
+              {/* Cupom (onda 2, backlog #13 — aplicado pelo painel; a IA não negocia preço) */}
+              {p.couponCodeSnapshot ? (
+                <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm">
+                  <span>
+                    Cupom <span className="font-mono font-medium">{p.couponCodeSnapshot}</span> aplicado
+                    <span className="ml-1 text-xs text-muted-foreground">(−{formatBrl(p.discountCents)})</span>
+                  </span>
+                  {!locked && (
+                    <Button variant="outline" className="h-7 px-2 text-xs"
+                      disabled={removeCouponMutation.isPending} onClick={() => removeCouponMutation.mutate()}>
+                      Remover cupom
+                    </Button>
+                  )}
+                </div>
+              ) : !locked && (
+                <form className="flex flex-wrap items-end gap-2"
+                  onSubmit={(e) => { e.preventDefault(); applyCouponMutation.mutate() }}>
+                  <div className="w-44">
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Cupom (opcional)</label>
+                    <input value={couponCode} maxLength={40} placeholder="CÓDIGO"
+                      onChange={(e) => setCouponCode(e.target.value)}
+                      className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm uppercase" />
+                  </div>
+                  <Button type="submit" variant="outline" className="h-8 px-3 text-xs"
+                    disabled={applyCouponMutation.isPending || !couponCode.trim()}>
+                    Aplicar
+                  </Button>
+                </form>
+              )}
+              {couponError && <p className="text-sm text-destructive">{couponError}</p>}
             </div>
 
             {/* Provas/ajustes (NÃO entram no total — a escapada da SM) */}

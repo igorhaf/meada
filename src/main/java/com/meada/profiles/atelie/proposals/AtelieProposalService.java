@@ -5,10 +5,13 @@ import com.meada.profiles.atelie.AtelieProjectType;
 import com.meada.profiles.atelie.AtelieProposalStatus;
 import com.meada.profiles.atelie.artisans.AtelieArtisan;
 import com.meada.profiles.atelie.artisans.AtelieArtisanRepository;
+import com.meada.profiles.atelie.coupons.AtelieCoupon;
+import com.meada.profiles.atelie.coupons.AtelieCouponRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -33,17 +36,22 @@ import java.util.UUID;
 @Service
 public class AtelieProposalService {
 
+    private static final ZoneId TENANT_ZONE = ZoneId.of("America/Sao_Paulo");
+
     private final AtelieProposalRepository repository;
     private final AtelieArtisanRepository artisanRepository;
+    private final AtelieCouponRepository couponRepository;
     private final AtelieProposalNotifier notifier;
     private final AtelieContextCache contextCache;
 
     public AtelieProposalService(AtelieProposalRepository repository,
                                  AtelieArtisanRepository artisanRepository,
+                                 AtelieCouponRepository couponRepository,
                                  AtelieProposalNotifier notifier,
                                  AtelieContextCache contextCache) {
         this.repository = repository;
         this.artisanRepository = artisanRepository;
+        this.couponRepository = couponRepository;
         this.notifier = notifier;
         this.contextCache = contextCache;
     }
@@ -61,6 +69,7 @@ public class AtelieProposalService {
     public static class InvalidFittingStatusException extends RuntimeException {}
     public static class InvalidDepositException extends RuntimeException {}
     public static class DepositRequiredException extends RuntimeException {}
+    public static class InvalidProposalCouponException extends RuntimeException {}
 
     /** Normaliza o project_type contra {@link AtelieProjectType}; ausente/inválido → 'costura'. */
     private static String normalizeProjectType(String raw) {
@@ -216,6 +225,52 @@ public class AtelieProposalService {
     }
 
     // -------------------------------------------------------------------------
+    // CUPOM NA PROPOSTA (onda 2, backlog #13) — aplicado PELO PAINEL; a IA não toca preço.
+    // -------------------------------------------------------------------------
+
+    /**
+     * Aplica um cupom pelo code (case-insensitive): valida active + validade + mínimo (sobre o
+     * total do orçamento) + max_uses, grava o vínculo + snapshot, re-deriva o desconto e incrementa
+     * uses — tudo na MESMA transação. Cupom inválido → 400 invalid_coupon (no painel o erro é
+     * explícito; ≠ adega, onde a IA passa o cupom e o inválido é silencioso). Proposta com cupom já
+     * aplicado troca de cupom (o anterior tem o uso devolvido).
+     */
+    @Transactional
+    public AtelieProposal applyCoupon(UUID companyId, UUID proposalId, String code) {
+        requireMutableProposal(companyId, proposalId);
+        AtelieProposal current = repository.findById(companyId, proposalId).orElseThrow(ProposalNotFoundException::new);
+        AtelieCoupon coupon = couponRepository.findByCode(companyId, code)
+            .orElseThrow(InvalidProposalCouponException::new);
+        boolean expired = coupon.validUntil() != null && coupon.validUntil().isBefore(LocalDate.now(TENANT_ZONE));
+        boolean maxedOut = coupon.maxUses() != null && coupon.uses() >= coupon.maxUses();
+        boolean belowMin = current.totalCents() < coupon.minOrderCents();
+        if (!coupon.active() || expired || maxedOut || belowMin) {
+            throw new InvalidProposalCouponException();
+        }
+        // troca de cupom: devolve o uso do anterior antes de aplicar o novo.
+        if (current.couponId() != null) {
+            couponRepository.decrementUses(companyId, current.couponId());
+        }
+        repository.applyCoupon(companyId, proposalId, coupon.id(), coupon.code());
+        couponRepository.incrementUses(companyId, coupon.id());
+        contextCache.invalidate(companyId);
+        return repository.findById(companyId, proposalId).orElseThrow(ProposalNotFoundException::new);
+    }
+
+    /** Remove o cupom da proposta (zera desconto) e devolve o uso ao cupom. */
+    @Transactional
+    public AtelieProposal removeCoupon(UUID companyId, UUID proposalId) {
+        requireMutableProposal(companyId, proposalId);
+        AtelieProposal current = repository.findById(companyId, proposalId).orElseThrow(ProposalNotFoundException::new);
+        if (current.couponId() != null) {
+            couponRepository.decrementUses(companyId, current.couponId());
+        }
+        repository.removeCoupon(companyId, proposalId);
+        contextCache.invalidate(companyId);
+        return repository.findById(companyId, proposalId).orElseThrow(ProposalNotFoundException::new);
+    }
+
+    // -------------------------------------------------------------------------
     // SINAL/ENTRADA (onda backlog #2) — registro manual até o gateway #50.
     // -------------------------------------------------------------------------
 
@@ -266,7 +321,9 @@ public class AtelieProposalService {
 
         repository.updateStatus(companyId, id, newStatus.id(), newStatus.isTerminal());
 
-        String text = newStatus.notificationText(pieceLabel(current), brl(current.totalCents()));
+        // total LÍQUIDO na notificação (cupom aplicado pelo painel — onda 2, backlog #13).
+        String text = newStatus.notificationText(pieceLabel(current),
+            brl(current.totalCents() - current.discountCents()));
         notifier.notifyStatus(companyId, current.conversationId(), text);
 
         contextCache.invalidate(companyId);

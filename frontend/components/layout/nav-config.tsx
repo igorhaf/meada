@@ -466,12 +466,16 @@ const ESCOLA_GROUP: NavGroup = {
 }
 
 /** Grupo de navegação exclusivo do perfil atelie (costura sob medida/arte/design, camada 8.14). "Ateliê".
- * Rotas /dashboard/atelie-* — Propostas tem os 2 editores (orçamento + provas/ajustes). */
+ * Rotas /dashboard/atelie-* — Propostas tem os 2 editores (orçamento + provas/ajustes) + cupom/sinal/
+ * medidas; Materiais é o catálogo do autofill; Relatórios é o faturamento (onda 2 do backlog). */
 const ATELIE_GROUP: NavGroup = {
   heading: 'Ateliê',
   items: [
     { label: 'Artesãos', href: '/dashboard/atelie-artisans', icon: Scissors },
     { label: 'Propostas', href: '/dashboard/atelie-proposals', icon: FileText },
+    { label: 'Materiais', href: '/dashboard/atelie-catalog', icon: Package },
+    { label: 'Cupons', href: '/dashboard/atelie-coupons', icon: Ticket },
+    { label: 'Relatórios', href: '/dashboard/atelie-reports', icon: BarChart3 },
     { label: 'Configurações', href: '/dashboard/atelie-settings', icon: Settings },
   ],
 }

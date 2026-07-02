@@ -143,7 +143,8 @@ public abstract class AbstractIntegrationTest {
         "db/migrations/78_academia_loyalty.sql",
         "db/migrations/79_academia_aniversario.sql",
         "db/migrations/80_adega_coupons_loyalty.sql",
-        "db/migrations/81_atelie_lembrete_sinal.sql"
+        "db/migrations/81_atelie_lembrete_sinal.sql",
+        "db/migrations/82_atelie_onda2.sql"
     };
 
     /**
@@ -292,6 +293,7 @@ public abstract class AbstractIntegrationTest {
               escola_payments, escola_enrollments, escola_visits,
               escola_students, escola_classes, escola_config,
               atelie_proposal_items, atelie_fittings, atelie_proposals,
+              atelie_measurements, atelie_coupons, atelie_catalog_items,
               atelie_artisans, atelie_config,
               wedding_proposal_items, wedding_timeline_items, wedding_checklist_tasks, wedding_proposals,
               wedding_planners, wedding_config,
