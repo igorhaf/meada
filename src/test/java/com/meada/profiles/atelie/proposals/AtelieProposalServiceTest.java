@@ -2,7 +2,9 @@ package com.meada.profiles.atelie.proposals;
 
 import com.meada.AbstractIntegrationTest;
 import com.meada.outbound.EvolutionSender;
+import com.meada.profiles.atelie.proposals.AtelieProposalService.DepositRequiredException;
 import com.meada.profiles.atelie.proposals.AtelieProposalService.EmptyBudgetException;
+import com.meada.profiles.atelie.proposals.AtelieProposalService.InvalidDepositException;
 import com.meada.profiles.atelie.proposals.AtelieProposalService.InvalidFittingStatusException;
 import com.meada.profiles.atelie.proposals.AtelieProposalService.InvalidStatusTransitionException;
 import com.meada.profiles.atelie.proposals.AtelieProposalService.ProposalLockedException;
@@ -248,6 +250,76 @@ class AtelieProposalServiceTest extends AbstractIntegrationTest {
         assertThatThrownBy(() -> service.transitionFitting(COMPANY, p.id(), f.id(), "realizada"))
             .isInstanceOf(ProposalLockedException.class);
         assertThatThrownBy(() -> service.deleteFitting(COMPANY, p.id(), f.id()))
+            .isInstanceOf(ProposalLockedException.class);
+    }
+
+    // -------------------------------------------------------------------------
+    // SINAL/ENTRADA (onda backlog #2) — registro + gate no fechamento.
+    // -------------------------------------------------------------------------
+
+    /** Leva a proposta até 'aprovada' (rascunho→orcada→aprovada) com 1 item de orçamento. */
+    private AtelieProposal approvedProposal() {
+        AtelieProposal p = openProposal();
+        service.addItem(COMPANY, p.id(), "Tecido", 1, 500000);
+        service.updateStatus(COMPANY, p.id(), "orcada");
+        return service.updateStatus(COMPANY, p.id(), "aprovada");
+    }
+
+    @Test
+    @DisplayName("setDeposit registra valor + marca pago com deposit_paid_at; desmarcar zera o carimbo")
+    void setDeposit_roundTrip() {
+        AtelieProposal p = openProposal();
+        AtelieProposal withDeposit = service.setDeposit(COMPANY, p.id(), 100000, false);
+        assertThat(withDeposit.depositCents()).isEqualTo(100000);
+        assertThat(withDeposit.depositPaid()).isFalse();
+        assertThat(withDeposit.depositPaidAt()).isNull();
+
+        AtelieProposal paid = service.setDeposit(COMPANY, p.id(), 100000, true);
+        assertThat(paid.depositPaid()).isTrue();
+        assertThat(paid.depositPaidAt()).isNotNull();
+
+        AtelieProposal unpaid = service.setDeposit(COMPANY, p.id(), 100000, false);
+        assertThat(unpaid.depositPaid()).isFalse();
+        assertThat(unpaid.depositPaidAt()).isNull();
+    }
+
+    @Test
+    @DisplayName("setDeposit pago sem valor (null/0) ou valor negativo → InvalidDepositException")
+    void setDeposit_invalid() {
+        AtelieProposal p = openProposal();
+        assertThatThrownBy(() -> service.setDeposit(COMPANY, p.id(), null, true))
+            .isInstanceOf(InvalidDepositException.class);
+        assertThatThrownBy(() -> service.setDeposit(COMPANY, p.id(), 0, true))
+            .isInstanceOf(InvalidDepositException.class);
+        assertThatThrownBy(() -> service.setDeposit(COMPANY, p.id(), -1, false))
+            .isInstanceOf(InvalidDepositException.class);
+    }
+
+    @Test
+    @DisplayName("GATE: aprovada→fechada com sinal registrado e NÃO pago → DepositRequiredException")
+    void close_depositRequired() {
+        AtelieProposal p = approvedProposal();
+        service.setDeposit(COMPANY, p.id(), 200000, false);
+        assertThatThrownBy(() -> service.updateStatus(COMPANY, p.id(), "fechada"))
+            .isInstanceOf(DepositRequiredException.class);
+        // sinal marcado como recebido → fechamento liberado.
+        service.setDeposit(COMPANY, p.id(), 200000, true);
+        assertThat(service.updateStatus(COMPANY, p.id(), "fechada").status()).isEqualTo("fechada");
+    }
+
+    @Test
+    @DisplayName("sem sinal registrado (null) → fechamento segue livre (nem todo ateliê cobra sinal)")
+    void close_withoutDeposit_free() {
+        AtelieProposal p = approvedProposal();
+        assertThat(service.updateStatus(COMPANY, p.id(), "fechada").status()).isEqualTo("fechada");
+    }
+
+    @Test
+    @DisplayName("setDeposit em proposta travada (fechada) → ProposalLockedException")
+    void setDeposit_locked() {
+        AtelieProposal p = openProposal();
+        jdbcTemplate.update("update atelie_proposals set status = 'fechada' where id = ?", p.id());
+        assertThatThrownBy(() -> service.setDeposit(COMPANY, p.id(), 100000, false))
             .isInstanceOf(ProposalLockedException.class);
     }
 

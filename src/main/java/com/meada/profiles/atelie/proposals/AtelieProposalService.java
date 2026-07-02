@@ -59,6 +59,8 @@ public class AtelieProposalService {
     public static class InvalidStatusException extends RuntimeException {}
     public static class InvalidStatusTransitionException extends RuntimeException {}
     public static class InvalidFittingStatusException extends RuntimeException {}
+    public static class InvalidDepositException extends RuntimeException {}
+    public static class DepositRequiredException extends RuntimeException {}
 
     /** Normaliza o project_type contra {@link AtelieProjectType}; ausente/inválido → 'costura'. */
     private static String normalizeProjectType(String raw) {
@@ -214,6 +216,30 @@ public class AtelieProposalService {
     }
 
     // -------------------------------------------------------------------------
+    // SINAL/ENTRADA (onda backlog #2) — registro manual até o gateway #50.
+    // -------------------------------------------------------------------------
+
+    /**
+     * Registra o sinal combinado e/ou marca como recebido. null/0 = sem sinal (fechamento livre).
+     * Marcar como pago EXIGE valor registrado (&gt; 0) — senão 400 invalid_deposit. Mesma trava de
+     * estado dos sub-itens (a partir de 'fechada' o sinal congela → 409 proposal_locked).
+     */
+    @Transactional
+    public AtelieProposal setDeposit(UUID companyId, UUID id, Integer depositCents, boolean depositPaid) {
+        requireMutableProposal(companyId, id);
+        if (depositCents != null && depositCents < 0) {
+            throw new InvalidDepositException();
+        }
+        if (depositPaid && (depositCents == null || depositCents <= 0)) {
+            throw new InvalidDepositException();
+        }
+        AtelieProposal updated = repository.updateDeposit(companyId, id, depositCents, depositPaid)
+            .orElseThrow(ProposalNotFoundException::new);
+        contextCache.invalidate(companyId);
+        return updated;
+    }
+
+    // -------------------------------------------------------------------------
     // STATUS
     // -------------------------------------------------------------------------
 
@@ -229,6 +255,13 @@ public class AtelieProposalService {
         // não dá pra orçar uma proposta sem item de orçamento (total derivado > 0).
         if (newStatus == AtelieProposalStatus.ORCADA && current.totalCents() <= 0) {
             throw new EmptyBudgetException();
+        }
+        // GATE DE SINAL (onda backlog #2): com sinal REGISTRADO e não pago, o fechamento é bloqueado
+        // (protege o caixa — o ateliê compra tecido/material com o sinal). Sem sinal registrado
+        // (null/0), o fechamento segue livre — nem todo ateliê cobra sinal.
+        if (newStatus == AtelieProposalStatus.FECHADA && current.depositCents() != null
+            && current.depositCents() > 0 && !current.depositPaid()) {
+            throw new DepositRequiredException();
         }
 
         repository.updateStatus(companyId, id, newStatus.id(), newStatus.isTerminal());

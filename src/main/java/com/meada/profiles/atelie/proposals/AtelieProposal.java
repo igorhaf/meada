@@ -11,7 +11,10 @@ import java.util.UUID;
  * (costura|arte|design) é CAMPO da proposta — o MESMO perfil serve os três tipos. Snapshots de
  * cliente. {@code items} (orçamento) e {@code fittings} (provas/ajustes) hidratados no
  * findById/detalhe (podem vir vazios em listagens leves). DOIS tipos de sub-item no mesmo artefato —
- * não confundir: orçamento entra no total; provas/ajustes NÃO. Espelho do EventProposal.
+ * não confundir: orçamento entra no total; provas/ajustes NÃO. SINAL (onda backlog #2):
+ * {@code depositCents} (valor combinado; null/0 = sem sinal) + {@code depositPaid} (marcação manual
+ * da equipe) — com sinal registrado e não pago, aprovada→fechada é bloqueada (409 deposit_required).
+ * Espelho do EventProposal.
  */
 public record AtelieProposal(
     UUID id,
@@ -28,6 +31,9 @@ public record AtelieProposal(
     int totalCents,
     String status,
     String notes,
+    Integer depositCents,
+    boolean depositPaid,
+    Instant depositPaidAt,
     Instant openedAt,
     Instant closedAt,
     Instant statusUpdatedAt,

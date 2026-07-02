@@ -5,7 +5,9 @@ import com.meada.admin.security.JwtAuthenticationFilter;
 import com.meada.profiles.atelie.AtelieProfileGuard;
 import com.meada.profiles.atelie.AtelieProfileGuard.WrongProfileException;
 import com.meada.profiles.atelie.proposals.AtelieProposalService.ArtisanNotFoundException;
+import com.meada.profiles.atelie.proposals.AtelieProposalService.DepositRequiredException;
 import com.meada.profiles.atelie.proposals.AtelieProposalService.EmptyBudgetException;
+import com.meada.profiles.atelie.proposals.AtelieProposalService.InvalidDepositException;
 import com.meada.profiles.atelie.proposals.AtelieProposalService.FittingNotFoundException;
 import com.meada.profiles.atelie.proposals.AtelieProposalService.InactiveArtisanException;
 import com.meada.profiles.atelie.proposals.AtelieProposalService.InvalidFittingStatusException;
@@ -93,6 +95,8 @@ public class AtelieProposalController {
     public record FittingStatusRequest(String status) {}
 
     public record StatusRequest(String newStatus) {}
+
+    public record DepositRequest(Integer depositCents, Boolean depositPaid) {}
 
     @GetMapping("/api/atelie/proposals")
     public ResponseEntity<Object> list(
@@ -382,6 +386,30 @@ public class AtelieProposalController {
         }
     }
 
+    // ---- Sinal/entrada (onda backlog #2) ----
+
+    @PatchMapping("/api/atelie/proposals/{id}/deposit")
+    public ResponseEntity<Object> setDeposit(
+            @RequestAttribute(JwtAuthenticationFilter.AUTH_USER_ATTRIBUTE) AuthenticatedUser user,
+            @PathVariable UUID id, @RequestBody DepositRequest req) {
+        UUID companyId;
+        try {
+            companyId = profileGuard.requireAtelie(user);
+        } catch (WrongProfileException e) {
+            return error(403, "Forbidden", "forbidden_wrong_profile");
+        }
+        try {
+            return ResponseEntity.ok(service.setDeposit(companyId, id, req.depositCents(),
+                Boolean.TRUE.equals(req.depositPaid())));
+        } catch (ProposalNotFoundException e) {
+            return error(404, "Not Found", "proposal_not_found");
+        } catch (InvalidDepositException e) {
+            return error(400, "Bad Request", "invalid_deposit");
+        } catch (ProposalLockedException e) {
+            return error(409, "Conflict", "proposal_locked");
+        }
+    }
+
     // ---- Status ----
 
     @PatchMapping("/api/atelie/proposals/{id}/status")
@@ -402,6 +430,8 @@ public class AtelieProposalController {
             return error(400, "Bad Request", "empty_budget");
         } catch (ProposalNotFoundException e) {
             return error(404, "Not Found", "proposal_not_found");
+        } catch (DepositRequiredException e) {
+            return error(409, "Conflict", "deposit_required");
         } catch (InvalidStatusTransitionException e) {
             return error(409, "Conflict", "invalid_status_transition");
         }

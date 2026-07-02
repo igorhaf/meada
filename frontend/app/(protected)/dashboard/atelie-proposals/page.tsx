@@ -1,7 +1,7 @@
 'use client'
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { PageHeader } from '@/components/layout/page-header'
 import { ApiError } from '@/lib/api/client'
@@ -21,6 +21,7 @@ import {
   openProposal,
   reorderFittings,
   transitionFitting,
+  updateDeposit,
   updateProposalStatus,
 } from '@/lib/api/atelie/proposals'
 import {
@@ -38,6 +39,7 @@ import {
 import {
   formatBrl,
   formatDate,
+  isDeliveryOverdue,
   type AtelieFitting,
   type AtelieProposal,
 } from '@/profiles/atelie/atelie-types'
@@ -70,6 +72,8 @@ const EMPTY_ITEM: ItemForm = { description: '', quantity: '1', price: '' }
 type FittingForm = { title: string; dueDate: string; description: string }
 const EMPTY_FITTING: FittingForm = { title: '', dueDate: '', description: '' }
 
+type DepositForm = { value: string; paid: boolean }
+
 /**
  * Propostas de ateliê do AtelieBot (camada 8.14). Clona o EventosBot: lista por status, abre proposta
  * (Modal), detalhe com DOIS editores inline: (a) ORÇAMENTO (total recalculado pelo backend a cada
@@ -92,6 +96,8 @@ export default function AtelieProposalsPage() {
   const [itemError, setItemError] = useState<string | null>(null)
   const [fittingForm, setFittingForm] = useState<FittingForm>(EMPTY_FITTING)
   const [fittingError, setFittingError] = useState<string | null>(null)
+  const [depositForm, setDepositForm] = useState<DepositForm>({ value: '', paid: false })
+  const [depositError, setDepositError] = useState<string | null>(null)
   const [statusTarget, setStatusTarget] = useState<AtelieProposalStatusId | null>(null)
   const [statusError, setStatusError] = useState<string | null>(null)
 
@@ -214,6 +220,24 @@ export default function AtelieProposalsPage() {
     },
   })
 
+  const depositMutation = useMutation({
+    mutationFn: () => {
+      if (!detailId) throw new Error('sem proposta')
+      const cents = depositForm.value === '' ? null : Math.round(Number(depositForm.value) * 100)
+      return updateDeposit(detailId, { depositCents: cents, depositPaid: depositForm.paid })
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['atelie-proposal', detailId] })
+      qc.invalidateQueries({ queryKey: ['atelie-proposals'] })
+      setDepositError(null)
+    },
+    onError: (e) => {
+      if (e instanceof ApiError && e.reason === 'invalid_deposit') setDepositError('Para marcar como recebido, informe um valor de sinal maior que zero.')
+      else if (e instanceof ApiError && e.reason === 'proposal_locked') setDepositError('Esta proposta não aceita mais alteração do sinal.')
+      else setDepositError('Erro ao salvar o sinal.')
+    },
+  })
+
   const statusMutation = useMutation({
     mutationFn: (newStatus: AtelieProposalStatusId) => {
       if (!detailId) throw new Error('sem proposta')
@@ -227,6 +251,7 @@ export default function AtelieProposalsPage() {
     onError: (e) => {
       setStatusTarget(null)
       if (e instanceof ApiError && e.reason === 'empty_budget') setStatusError('Adicione ao menos um item de orçamento antes de orçar.')
+      else if (e instanceof ApiError && e.reason === 'deposit_required') setStatusError('Esta proposta tem sinal registrado e ainda não recebido — marque o sinal como recebido antes de fechar.')
       else if (e instanceof ApiError && e.reason === 'invalid_status_transition') setStatusError('Transição de status inválida.')
       else setStatusError('Erro ao mudar o status.')
     },
@@ -237,6 +262,16 @@ export default function AtelieProposalsPage() {
   const totalPages = Math.max(1, Math.ceil(total / 50))
   const p = detail.data
   const locked = p ? ITEMS_LOCKED[p.status] : true
+
+  // Sincroniza o form do sinal ao abrir o detalhe de OUTRA proposta (não a cada refetch — preserva digitação).
+  const pId = p?.id
+  useEffect(() => {
+    if (p) {
+      setDepositForm({ value: p.depositCents != null ? String(p.depositCents / 100) : '', paid: p.depositPaid })
+      setDepositError(null)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pId])
 
   /** Move a prova/ajuste no índice `idx` para `idx+delta` e persiste a nova ordem. */
   function moveFitting(fittings: AtelieFitting[], idx: number, delta: number) {
@@ -286,8 +321,14 @@ export default function AtelieProposalsPage() {
                   <span className="font-medium">{prop.customerName}</span>
                   <TypeBadge type={prop.projectType} />
                   <StatusBadge status={prop.status} />
+                  {isDeliveryOverdue(prop.estimatedDate, prop.status) && (
+                    <Badge variant="danger">Entrega atrasada</Badge>
+                  )}
+                  {prop.depositCents != null && prop.depositCents > 0 && !prop.depositPaid && (
+                    <Badge variant="warning">Sinal pendente</Badge>
+                  )}
                 </div>
-                <p className="truncate text-xs text-muted-foreground">
+                <p className={`truncate text-xs ${isDeliveryOverdue(prop.estimatedDate, prop.status) ? 'text-red-600' : 'text-muted-foreground'}`}>
                   {prop.estimatedDate ? formatDate(prop.estimatedDate) : 'prazo a definir'}
                   {prop.occasion ? ` · ${prop.occasion}` : ''}
                 </p>
@@ -392,7 +433,13 @@ export default function AtelieProposalsPage() {
               <dl className="grid grid-cols-2 gap-3 text-sm">
                 <div><dt className="text-xs text-muted-foreground">Telefone</dt><dd>{p.customerPhone ?? '—'}</dd></div>
                 <div><dt className="text-xs text-muted-foreground">Ocasião</dt><dd>{p.occasion ?? '—'}</dd></div>
-                <div><dt className="text-xs text-muted-foreground">Prazo previsto</dt><dd>{p.estimatedDate ? formatDate(p.estimatedDate) : '—'}</dd></div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Prazo previsto</dt>
+                  <dd className={isDeliveryOverdue(p.estimatedDate, p.status) ? 'font-medium text-red-600' : ''}>
+                    {p.estimatedDate ? formatDate(p.estimatedDate) : '—'}
+                    {isDeliveryOverdue(p.estimatedDate, p.status) && ' · em atraso'}
+                  </dd>
+                </div>
                 <div><dt className="text-xs text-muted-foreground">Origem</dt><dd>{p.conversationId ? 'WhatsApp' : 'Manual'}</dd></div>
                 {p.briefing && <div className="col-span-2"><dt className="text-xs text-muted-foreground">Briefing</dt><dd>{p.briefing}</dd></div>}
                 {p.notes && <div className="col-span-2"><dt className="text-xs text-muted-foreground">Observações</dt><dd>{p.notes}</dd></div>}
@@ -521,6 +568,49 @@ export default function AtelieProposalsPage() {
                 </form>
               )}
               {fittingError && <p className="text-sm text-destructive">{fittingError}</p>}
+            </div>
+
+            {/* Sinal/entrada (onda backlog #2 — registro manual até o gateway #50) */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold">Sinal / entrada</h3>
+                {p.depositCents != null && p.depositCents > 0 && (
+                  <Badge variant={p.depositPaid ? 'success' : 'warning'}>
+                    {p.depositPaid ? 'Sinal recebido' : 'Sinal pendente'}
+                  </Badge>
+                )}
+              </div>
+              {locked ? (
+                <p className="text-xs text-muted-foreground">
+                  {p.depositCents != null && p.depositCents > 0
+                    ? `Sinal de ${formatBrl(p.depositCents)} — ${p.depositPaid ? `recebido${p.depositPaidAt ? ` em ${formatDate(p.depositPaidAt)}` : ''}` : 'não recebido'}.`
+                    : 'Sem sinal registrado.'}
+                </p>
+              ) : (
+                <form className="flex flex-wrap items-end gap-2 rounded-lg border border-dashed border-border p-3"
+                  onSubmit={(e) => { e.preventDefault(); depositMutation.mutate() }}>
+                  <div className="w-28">
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Valor (R$)</label>
+                    <input type="number" min="0" step="0.01" value={depositForm.value}
+                      onChange={(e) => setDepositForm((f) => ({ ...f, value: e.target.value }))}
+                      placeholder="0,00"
+                      className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm" />
+                  </div>
+                  <label className="flex h-8 items-center gap-2 text-sm">
+                    <input type="checkbox" checked={depositForm.paid}
+                      onChange={(e) => setDepositForm((f) => ({ ...f, paid: e.target.checked }))} />
+                    Recebido
+                  </label>
+                  <Button type="submit" className="h-8 px-3 text-xs" disabled={depositMutation.isPending}>
+                    {depositMutation.isPending ? 'Salvando…' : 'Salvar sinal'}
+                  </Button>
+                  <p className="w-full text-xs text-muted-foreground">
+                    Com sinal registrado e não recebido, o fechamento fica bloqueado até a equipe
+                    confirmar o recebimento (Pix confirmado à mão até o pagamento online chegar).
+                  </p>
+                </form>
+              )}
+              {depositError && <p className="text-sm text-destructive">{depositError}</p>}
             </div>
 
             {/* Status */}

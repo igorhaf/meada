@@ -13,10 +13,11 @@ export type AtelieArtisan = {
   updatedAt: string
 }
 
-/** Config do tenant atelie (espelha AtelieConfig). Nome do ateliê + notas (SEM horário). */
+/** Config do tenant atelie (espelha AtelieConfig). Nome do ateliê + notas + lembrete de prova (SEM horário). */
 export type AtelieConfig = {
   businessName: string | null
   notes: string | null
+  fittingReminderEnabled: boolean
 }
 
 /** Item de ORÇAMENTO de uma proposta (espelha AtelieProposalItem). lineTotalCents materializado. */
@@ -65,6 +66,9 @@ export type AtelieProposal = {
   totalCents: number
   status: AtelieProposalStatusId
   notes: string | null
+  depositCents: number | null
+  depositPaid: boolean
+  depositPaidAt: string | null
   openedAt: string
   closedAt: string | null
   statusUpdatedAt: string
@@ -81,4 +85,19 @@ export function formatBrl(cents: number | null | undefined): string {
 export function formatDate(iso: string | null | undefined): string {
   if (!iso) return '—'
   return new Date(iso).toLocaleDateString('pt-BR')
+}
+
+/**
+ * Alerta de atraso da entrega (onda backlog #12): prazo prometido (estimatedDate) já passou e a
+ * proposta ainda está viva (não-terminal). Comparação por string yyyy-MM-dd no fuso LOCAL do
+ * navegador (toLocaleDateString en-CA) — evita o off-by-one do toISOString/UTC à noite.
+ */
+export function isDeliveryOverdue(
+  estimatedDate: string | null,
+  status: AtelieProposalStatusId,
+): boolean {
+  if (!estimatedDate) return false
+  if (status === 'realizada' || status === 'recusada' || status === 'cancelada') return false
+  const today = new Date().toLocaleDateString('en-CA')
+  return estimatedDate < today
 }

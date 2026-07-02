@@ -58,13 +58,16 @@ public class AtelieProposalRepository {
     private static final String PROPOSAL_SELECT =
         "select p.id, p.contact_id, p.artisan_id, p.conversation_id, p.customer_name, p.customer_phone, "
             + "ar.name as artisan_name, p.project_type, p.occasion, p.briefing, p.estimated_date, "
-            + "p.total_cents, p.status, p.notes, p.opened_at, p.closed_at, p.status_updated_at "
+            + "p.total_cents, p.status, p.notes, p.deposit_cents, p.deposit_paid, p.deposit_paid_at, "
+            + "p.opened_at, p.closed_at, p.status_updated_at "
             + "from atelie_proposals p left join atelie_artisans ar on ar.id = p.artisan_id ";
 
     private AtelieProposal mapProposal(java.sql.ResultSet rs, List<AtelieProposalItem> items,
                                        List<AtelieFitting> fittings) throws java.sql.SQLException {
         Date ed = rs.getDate("estimated_date");
         java.sql.Timestamp closed = rs.getTimestamp("closed_at");
+        Integer depositCents = rs.getObject("deposit_cents") == null ? null : rs.getInt("deposit_cents");
+        java.sql.Timestamp depositPaidAt = rs.getTimestamp("deposit_paid_at");
         return new AtelieProposal(
             (UUID) rs.getObject("id"),
             (UUID) rs.getObject("contact_id"),
@@ -80,6 +83,9 @@ public class AtelieProposalRepository {
             rs.getInt("total_cents"),
             rs.getString("status"),
             rs.getString("notes"),
+            depositCents,
+            rs.getBoolean("deposit_paid"),
+            depositPaidAt == null ? null : depositPaidAt.toInstant(),
             rs.getTimestamp("opened_at").toInstant(),
             closed == null ? null : closed.toInstant(),
             rs.getTimestamp("status_updated_at").toInstant(),
@@ -157,6 +163,7 @@ public class AtelieProposalRepository {
         return new AtelieProposal(p.id(), p.contactId(), p.artisanId(), p.conversationId(),
             p.customerName(), p.customerPhone(), p.artisanName(), p.projectType(), p.occasion(),
             p.briefing(), p.estimatedDate(), p.totalCents(), p.status(), p.notes(),
+            p.depositCents(), p.depositPaid(), p.depositPaidAt(),
             p.openedAt(), p.closedAt(), p.statusUpdatedAt(), listItems(p.id()), listFittings(p.id()));
     }
 
@@ -199,6 +206,22 @@ public class AtelieProposalRepository {
             if (n == 0) {
                 return Optional.empty();
             }
+        }
+        return findById(companyId, id);
+    }
+
+    /**
+     * Grava o SINAL da proposta (onda backlog #2): valor combinado + marcação de pago. deposit_paid_at
+     * é materializado aqui — preservado enquanto pago (não re-carimba) e zerado ao desmarcar.
+     */
+    public Optional<AtelieProposal> updateDeposit(UUID companyId, UUID id, Integer depositCents, boolean depositPaid) {
+        int n = jdbcTemplate.update(
+            "update atelie_proposals set deposit_cents = ?, deposit_paid = ?, "
+                + "deposit_paid_at = case when ? then coalesce(deposit_paid_at, now()) end, "
+                + "updated_at = now() where company_id = ? and id = ?",
+            depositCents, depositPaid, depositPaid, companyId, id);
+        if (n == 0) {
+            return Optional.empty();
         }
         return findById(companyId, id);
     }

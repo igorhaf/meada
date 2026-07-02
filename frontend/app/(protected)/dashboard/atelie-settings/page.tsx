@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, Section } from '@/components/ui/card'
 import { getConfig, updateConfig } from '@/lib/api/atelie/config'
 
-type FormState = { businessName: string; notes: string }
+type FormState = { businessName: string; notes: string; fittingReminderEnabled: boolean }
 
 /**
  * Configurações do AtelieBot (camada 8.14): nome do ateliê + notas. SEM horário/slot — a proposta é
@@ -27,14 +27,22 @@ export default function AtelieSettingsPage() {
 
   useEffect(() => {
     if (data) {
-      setForm({ businessName: data.businessName ?? '', notes: data.notes ?? '' })
+      setForm({
+        businessName: data.businessName ?? '',
+        notes: data.notes ?? '',
+        fittingReminderEnabled: data.fittingReminderEnabled ?? true,
+      })
     }
   }, [data])
 
   const saveMutation = useMutation({
     mutationFn: () => {
       if (!form) throw new Error('form não carregado')
-      return updateConfig({ businessName: form.businessName || null, notes: form.notes || null })
+      return updateConfig({
+        businessName: form.businessName || null,
+        notes: form.notes || null,
+        fittingReminderEnabled: form.fittingReminderEnabled,
+      })
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['atelie-config'] })
@@ -73,6 +81,20 @@ export default function AtelieSettingsPage() {
                     rows={3} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
                 </div>
               </div>
+            </Section>
+
+            <Section title="Lembrete de prova/ajuste">
+              <label className="flex items-start gap-2 text-sm">
+                <input type="checkbox" checked={form.fittingReminderEnabled} className="mt-0.5"
+                  onChange={(e) => setForm((f) => f && { ...f, fittingReminderEnabled: e.target.checked })} />
+                <span>
+                  Lembrar o cliente pelo WhatsApp na <strong>véspera</strong> de cada prova/ajuste com prazo
+                  <span className="block text-xs text-muted-foreground">
+                    Mensagem automática fixa (não passa pela IA), enviada 1x por prova/data. Remarcar a
+                    prova para outra data reenvia o lembrete.
+                  </span>
+                </span>
+              </label>
             </Section>
 
             <p className="text-xs text-muted-foreground">

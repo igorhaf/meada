@@ -4,6 +4,7 @@ import type { AtelieConfig } from '@/profiles/atelie/atelie-types'
 export type UpdateConfigInput = {
   businessName?: string | null
   notes?: string | null
+  fittingReminderEnabled?: boolean
 }
 
 export function getConfig(): Promise<AtelieConfig> {

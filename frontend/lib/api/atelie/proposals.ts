@@ -112,6 +112,19 @@ export function transitionFitting(proposalId: string, fittingId: string, status:
   })
 }
 
+// ---- Sinal/entrada (onda backlog #2) ----
+
+export type DepositInput = {
+  depositCents: number | null
+  depositPaid: boolean
+}
+
+export function updateDeposit(id: string, input: DepositInput): Promise<AtelieProposal> {
+  return apiFetch<AtelieProposal>(`/api/atelie/proposals/${id}/deposit`, {
+    method: 'PATCH', body: JSON.stringify(input),
+  })
+}
+
 // ---- Status ----
 
 export function updateProposalStatus(id: string, newStatus: AtelieProposalStatusId): Promise<AtelieProposal> {

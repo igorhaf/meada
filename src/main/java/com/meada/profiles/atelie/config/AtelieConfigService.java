@@ -32,8 +32,9 @@ public class AtelieConfigService {
     }
 
     @Transactional
-    public AtelieConfig update(UUID companyId, UUID userId, String businessName, String notes) {
-        AtelieConfig saved = repository.upsert(companyId, businessName, notes);
+    public AtelieConfig update(UUID companyId, UUID userId, String businessName, String notes,
+                               boolean fittingReminderEnabled) {
+        AtelieConfig saved = repository.upsert(companyId, businessName, notes, fittingReminderEnabled);
         auditLogger.log(companyId, userId, "atelie_config_updated", "atelie_config", companyId, Map.of());
         contextCache.invalidate(companyId);
         return saved;

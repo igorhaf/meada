@@ -318,7 +318,10 @@ public class ProfilePromptContext {
             + "valor, item de orçamento ou serviço fora do cadastrado. NUNCA prometa resultado estético, "
             + "durabilidade ou caimento que dependa de prova presencial — acolha a ideia sem criar "
             + "expectativa fora do controle da equipe. As PROVAS/AJUSTES da peça são marcadas pela equipe no "
-            + "painel — você NÃO gerencia provas pela conversa; você só abre a proposta e captura a aprovação.";
+            + "painel — você NÃO gerencia provas pela conversa; você só abre a proposta e captura a aprovação. "
+            + "Sobre PAGAMENTO/SINAL (entrada): quem combina valor, forma e confirmação do sinal é a EQUIPE, "
+            + "diretamente — você NUNCA informa valor de sinal, chave Pix ou forma de pagamento e NUNCA "
+            + "confirma recebimento; se o cliente perguntar, diga que a equipe combina o sinal com ele.";
 
     private static final String CASAMENTO =
         "Você é atendente de uma assessoria/cerimonial de casamento. Tom acolhedor-celebrativo, de quem "

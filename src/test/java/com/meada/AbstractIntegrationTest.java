@@ -142,7 +142,8 @@ public abstract class AbstractIntegrationTest {
         "db/migrations/77_academia_coupons.sql",
         "db/migrations/78_academia_loyalty.sql",
         "db/migrations/79_academia_aniversario.sql",
-        "db/migrations/80_adega_coupons_loyalty.sql"
+        "db/migrations/80_adega_coupons_loyalty.sql",
+        "db/migrations/81_atelie_lembrete_sinal.sql"
     };
 
     /**
