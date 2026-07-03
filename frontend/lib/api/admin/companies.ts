@@ -139,6 +139,11 @@ export async function impersonateCompany(id: string): Promise<ImpersonateResult>
   return apiFetch<ImpersonateResult>(`/admin/companies/${id}/impersonate`, { method: 'POST' })
 }
 
+/** GET /admin/companies/{id}/admin-email — email determinístico do tenant-admin (login do tenant). */
+export async function getCompanyAdminEmail(id: string): Promise<{ adminEmail: string }> {
+  return apiFetch<{ adminEmail: string }>(`/admin/companies/${id}/admin-email`)
+}
+
 /** GET /admin/companies/{id}/notes — notas internas, mais recentes primeiro. */
 export async function listNotes(id: string): Promise<AdminNote[]> {
   return apiFetch<AdminNote[]>(`/admin/companies/${id}/notes`)

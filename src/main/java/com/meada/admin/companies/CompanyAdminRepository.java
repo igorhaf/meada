@@ -81,4 +81,23 @@ public class CompanyAdminRepository {
                 companyId)
             .stream().findFirst().orElse(null);
     }
+
+    /** Token curto da empresa (compõe o email do tenant-admin). null se a empresa não existe. */
+    public String findAdminToken(UUID companyId) {
+        return jdbcTemplate.query("select admin_token from companies where id = ?",
+                (rs, rn) -> rs.getString("admin_token"), companyId)
+            .stream().findFirst().orElse(null);
+    }
+
+    /**
+     * Insere a linha em public.users do tenant-admin recém-provisionado (id = uuid do Auth).
+     * role 'admin'; palette_id usa o default da tabela (meada-default). Idempotente por (id).
+     */
+    public void insertTenantAdmin(UUID userId, UUID companyId, String email) {
+        jdbcTemplate.update(
+            "insert into public.users (id, company_id, email, role) values (?, ?, ?, 'admin') "
+                + "on conflict (id) do update set company_id = excluded.company_id, "
+                + "role = 'admin', email = excluded.email, updated_at = now()",
+            userId, companyId, email);
+    }
 }

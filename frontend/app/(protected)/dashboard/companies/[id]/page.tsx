@@ -17,6 +17,7 @@ import {
   deleteCompany,
   deleteNote,
   getCompany,
+  getCompanyAdminEmail,
   impersonateCompany,
   listNotes,
   reactivateCompany,
@@ -24,6 +25,7 @@ import {
   type AdminNote,
   type CompanyDetail,
 } from '@/lib/api/admin/companies'
+import { getUsers } from '@/lib/api/admin/users'
 
 /** Formata um Instant ISO (ou null) em pt-BR; "—" quando ausente. */
 function fmtDate(iso: string | null): string {
@@ -54,6 +56,18 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
   const { data, isPending, isError, error } = useQuery({
     queryKey: ['company', id],
     queryFn: () => getCompany(id),
+  })
+
+  // email determinístico do tenant-admin (meada_{slug}_{token}@…) — login do tenant, pro root copiar.
+  const adminEmailQuery = useQuery({
+    queryKey: ['company-admin-email', id],
+    queryFn: () => getCompanyAdminEmail(id),
+  })
+
+  // usuários (admins/operadores) desta empresa — lista no detalhe (endpoint /admin/users?companyId).
+  const usersQuery = useQuery({
+    queryKey: ['company-users', id],
+    queryFn: () => getUsers({ companyId: id, pageSize: 100 }),
   })
 
   const suspendMut = useMutation({
@@ -198,6 +212,16 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
                 {impersonateMut.isPending ? 'Abrindo…' : 'Acessar admin'}
               </Button>
             )}
+            {adminEmailQuery.data?.adminEmail && (
+              <span
+                className="self-center text-xs text-muted-foreground"
+                title="Login do tenant-admin (clique para copiar)"
+                onClick={() => navigator.clipboard?.writeText(adminEmailQuery.data!.adminEmail)}
+                role="button"
+              >
+                👤 {adminEmailQuery.data.adminEmail}
+              </span>
+            )}
             {isActive ? (
               <Button variant="outline" onClick={() => setSuspendOpen(true)}>
                 Suspender
@@ -255,6 +279,46 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
             </dl>
           ) : (
             <p className="text-sm text-muted-foreground">Nenhum owner definido.</p>
+          )}
+        </Section>
+      </Card>
+
+      {/* Usuários da empresa (admins/operadores). Lista via /admin/users?companyId. */}
+      <Card>
+        <Section title="Usuários" description="Admins e operadores com acesso ao painel desta empresa.">
+          {usersQuery.isPending ? (
+            <p className="text-sm text-muted-foreground">Carregando…</p>
+          ) : usersQuery.isError ? (
+            <p className="text-sm text-destructive">Erro ao carregar os usuários.</p>
+          ) : (usersQuery.data?.items.length ?? 0) === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhum usuário cadastrado nesta empresa.</p>
+          ) : (
+            <div className="divide-y divide-border rounded-lg border border-border">
+              {usersQuery.data!.items.map((u) => (
+                <div key={u.id} className="flex flex-wrap items-center gap-3 px-4 py-3 text-sm">
+                  <span
+                    className="min-w-0 flex-1 truncate font-medium"
+                    title="Clique para copiar o email"
+                    role="button"
+                    onClick={() => navigator.clipboard?.writeText(u.email)}
+                  >
+                    {u.email}
+                  </span>
+                  <Badge variant="muted">{u.role}</Badge>
+                  <Badge variant={u.suspended ? 'danger' : 'success'}>
+                    {u.suspended ? 'suspenso' : 'ativo'}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    {u.lastLoginAt
+                      ? `último acesso ${new Date(u.lastLoginAt).toLocaleDateString('pt-BR')}`
+                      : 'nunca acessou'}
+                  </span>
+                  <Link href={`/dashboard/users/${u.id}`} className="text-xs text-primary hover:underline">
+                    ver
+                  </Link>
+                </div>
+              ))}
+            </div>
           )}
         </Section>
       </Card>

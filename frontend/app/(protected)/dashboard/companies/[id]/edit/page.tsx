@@ -15,6 +15,7 @@ import { Card, Section } from '@/components/ui/card'
 import { ApiError } from '@/lib/api/client'
 import { getCompany, updateCompany, type UpdateCompanyPayload } from '@/lib/api/admin/companies'
 import { getProfiles } from '@/lib/api/admin/profiles'
+import { getProfile } from '@/lib/profiles/profile-type'
 
 /**
  * Edição de empresa (camada 6.1). Identidade (name/slug/paleta) + limites do plano. O zod
@@ -225,7 +226,15 @@ export default function CompanyEditPage({ params }: { params: Promise<{ id: stri
                 <select
                   id="profileId"
                   className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                  {...register('profileId')}
+                  value={profileId}
+                  onChange={(e) => {
+                    const newProfile = e.target.value
+                    setValue('profileId', newProfile, { shouldValidate: true })
+                    // ao trocar o nicho, a paleta acompanha o padrão do perfil (o root pode
+                    // sobrescrever depois no seletor de paleta). Evita tudo cair no verde-Meada.
+                    const def = getProfile(newProfile)?.defaultPaletteId
+                    if (def) setValue('paletteId', def, { shouldValidate: true })
+                  }}
                 >
                   {(profilesData?.items ?? []).map((p) => (
                     <option key={p.id} value={p.id}>

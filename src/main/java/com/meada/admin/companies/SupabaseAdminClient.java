@@ -37,6 +37,31 @@ public class SupabaseAdminClient {
     }
 
     /**
+     * Cria um usuário no GoTrue (Auth) via Admin API e devolve o {@code id} (uuid) gerado — usado
+     * pra provisionar o tenant-admin de uma empresa nova com o email determinístico
+     * {@code meada_{slug}_{token}@meadadigital.com}. {@code email_confirm:true} marca o email como
+     * confirmado (não dispara email de verificação). Lança se a Admin API não está habilitada ou a
+     * resposta não traz o id.
+     */
+    @SuppressWarnings("unchecked")
+    public String createUser(String email, String password) {
+        if (!enabled()) {
+            throw new IllegalStateException("supabase admin api disabled");
+        }
+        Map<String, Object> resp = http.post()
+            .uri("/auth/v1/admin/users")
+            .header("apikey", serviceRoleKey)
+            .header("Authorization", "Bearer " + serviceRoleKey)
+            .body(Map.of("email", email, "password", password, "email_confirm", true))
+            .retrieve()
+            .body(Map.class);
+        if (resp == null || !(resp.get("id") instanceof String id) || id.isBlank()) {
+            throw new IllegalStateException("admin/users response missing id");
+        }
+        return id;
+    }
+
+    /**
      * Gera um magic link para o email e devolve o {@code hashed_token} (o que a nova aba
      * usa em /auth/confirm). Lança se a Admin API não está habilitada ou a resposta não
      * traz o token.
