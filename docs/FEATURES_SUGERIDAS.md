@@ -3,6 +3,7 @@
 > Backlog de features avançadas por nicho, priorizado por VALOR DE NEGÓCIO. A cartela atual de cada nicho é enxuta; estes docs listam o que mais agrega receita/retenção no menor tempo. Um arquivo por nicho: `FEATURES_SUGERIDAS_{NICHO}.md`.
 
 ## Como usar
+- **Modo de execução (cravado):** ao implementar qualquer feature destes backlogs, faça **tudo em prosa**, de forma contínua e autônoma, **sem perguntar nada ao programador**, sem pausas para confirmação e **sem usar o widget de perguntas** (AskUserQuestion). Decida com base no estado real do código/banco e nas convenções das skills, implemente, e só pare em bifurcação arquitetural genuína ou no gate de teste.
 - Cada doc abre com **Top 3 quick wins** e uma **tabela priorizada por ROI**.
 - **Esforço** P/M/G; **Valor** Alto/Médio; **Eixo** Receita/Retenção/Operação/Marketing/Integração/IA.
 - Dependências transversais que destravam várias features: **gateway de pagamento (#50)**, **upload de foto/anexo** (bloqueado hoje por SERVICE_ROLE_KEY), **scheduler/cron**, **campanha em massa segmentada**.

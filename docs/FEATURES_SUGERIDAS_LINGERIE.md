@@ -2,6 +2,12 @@
 
 > Backlog de features avançadas para o nicho **Moda íntima/lingerie** (profile_id `lingerie`), priorizado por VALOR DE NEGÓCIO. Objetivo: engordar a cartela de features com o que mais agrega receita/retenção no menor tempo. Baseado no estado REAL do nicho (o que já existe NÃO é repetido aqui).
 
+> **Modo de execução (cravado):** ao implementar qualquer feature deste backlog, faça **tudo em prosa**,
+> de forma contínua e autônoma, **sem perguntar nada ao programador**, sem pausas para confirmação e
+> **sem usar o widget de perguntas** (AskUserQuestion). Não interrompa o fluxo pedindo aval intermediário:
+> decida com base no estado real do código/banco e nas convenções das skills, implemente, e só pare em
+> ponto de bifurcação arquitetural genuína ou no gate de teste. Reporte o progresso em prosa corrida.
+
 ## O que o nicho já tem (baseline)
 
 - **Catálogo com grade de variantes** (produto → variantes tamanho×cor, cada uma com preço e `stock_qty`), a variante é o SKU real que o pedido referencia.

@@ -2,6 +2,12 @@
 
 > Backlog de features avançadas para o nicho **Papelaria/gráfica/convites** (profile_id `papelaria`), priorizado por VALOR DE NEGÓCIO. Objetivo: engordar a cartela de features com o que mais agrega receita/retenção no menor tempo. Baseado no estado REAL do nicho (o que já existe NÃO é repetido aqui).
 
+> **Modo de execução (cravado):** ao implementar qualquer feature deste backlog, faça **tudo em prosa**,
+> de forma contínua e autônoma, **sem perguntar nada ao programador**, sem pausas para confirmação e
+> **sem usar o widget de perguntas** (AskUserQuestion). Não interrompa o fluxo pedindo aval intermediário:
+> decida com base no estado real do código/banco e nas convenções das skills, implemente, e só pare em
+> ponto de bifurcação arquitetural genuína ou no gate de teste. Reporte o progresso em prosa corrida.
+
 ## O que o nicho já tem (baseline)
 
 - **Pedido gráfico personalizado** por WhatsApp: a IA monta o pedido na conversa com **tiragem** (`quantity` = 50/100/200), **modifiers** (Papel/Acabamento/Cor/Tamanho via `options` com `price_delta`) e **`custom_text`** por item (texto da placa/convite, snapshot). Total materializado no backend (descarta o da IA).
