@@ -1,13 +1,14 @@
 'use client'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import { PageHeader } from '@/components/layout/page-header'
 import { ApiError } from '@/lib/api/client'
 import { Button } from '@/components/ui/button'
 import { Card, Section } from '@/components/ui/card'
 import { getConfig, updateConfig } from '@/lib/api/pousada/config'
+import { useSyncedForm } from '@/lib/use-synced-form'
 
 type FormState = { checkInTime: string; checkOutTime: string; cancellationPolicy: string }
 
@@ -21,7 +22,6 @@ function hhmm(t: string): string {
  */
 export default function PousadaSettingsPage() {
   const qc = useQueryClient()
-  const [form, setForm] = useState<FormState | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
 
@@ -30,15 +30,11 @@ export default function PousadaSettingsPage() {
     queryFn: () => getConfig(),
   })
 
-  useEffect(() => {
-    if (data) {
-      setForm({
-        checkInTime: hhmm(data.checkInTime),
-        checkOutTime: hhmm(data.checkOutTime),
-        cancellationPolicy: data.cancellationPolicy ?? '',
-      })
-    }
-  }, [data])
+  const [form, setForm] = useSyncedForm(data, (d): FormState => ({
+    checkInTime: hhmm(d.checkInTime),
+    checkOutTime: hhmm(d.checkOutTime),
+    cancellationPolicy: d.cancellationPolicy ?? '',
+  }))
 
   const saveMutation = useMutation({
     mutationFn: () => {

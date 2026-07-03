@@ -1,12 +1,13 @@
 'use client'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
 import { Card, Section } from '@/components/ui/card'
 import { getConfig, updateConfig } from '@/lib/api/viagens/config'
+import { useSyncedForm } from '@/lib/use-synced-form'
 
 type FormState = { businessName: string; notes: string }
 
@@ -16,7 +17,6 @@ type FormState = { businessName: string; notes: string }
  */
 export default function ViagensSettingsPage() {
   const qc = useQueryClient()
-  const [form, setForm] = useState<FormState | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
 
@@ -25,11 +25,7 @@ export default function ViagensSettingsPage() {
     queryFn: () => getConfig(),
   })
 
-  useEffect(() => {
-    if (data) {
-      setForm({ businessName: data.businessName ?? '', notes: data.notes ?? '' })
-    }
-  }, [data])
+  const [form, setForm] = useSyncedForm(data, (d): FormState => ({ businessName: d.businessName ?? '', notes: d.notes ?? '' }))
 
   const saveMutation = useMutation({
     mutationFn: () => {
