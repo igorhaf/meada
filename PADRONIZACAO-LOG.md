@@ -28,11 +28,31 @@ Backend não tem lint configurado (gate = `mvn -B clean test`, 1848 verdes na ba
 
 - Lote S1: `.claude/skills/{frontend-components,tailwind-styling,nextjs-data-fetching,spring-controllers,spring-error-handling,docker-infra}/SKILL.md` + seção "Padrões de código" no CLAUDE.md.
   Arquivos: 7 (.md apenas — sem impacto em lint/test/build; gates da baseline seguem valendo).
-  Commit: (preenchido abaixo)
+  Commit: a7bc539
 
 ## Fase 3 — Lotes aplicados
 
-(preenchido por lote: escopo, arquivos, validação lint/test/build, hash)
+- **Lote F1** — `type` no lugar de `interface` (cms-block-schemas ×2, data-table ×2 incl. props
+  interno) + imports relativos→`@/` (page-templates ×2). Arquivos: 3 (frontend).
+  Validação: eslint 86 (= baseline, não piorou) · `next build` ✓ · backend intocado (mvn n/a).
+  Commit: 0f44324
+- **Lote F2** — achados seguros do ESLint: aspas escapadas em texto JSX (academia-checkins/
+  memberships/waitlist), imports/types não usados removidos (cms, concessionaria-reports,
+  nutri-plans, cms-render) e ternário-expressão → if/else equivalente (cms). Arquivos: 7 (frontend).
+  Validação: eslint 86→75 (nenhum erro novo) · `next build` ✓ · backend intocado (mvn n/a).
+  Commit: fe94d52
+- **Backend/Infra** — auditoria não encontrou desvios do cânone (0 @Autowired, 0 System.out,
+  DTOs records, catch local + GlobalExceptionHandler, Dockerfiles já multi-stage): NENHUM lote
+  necessário. mvn -B clean test da baseline: 1848 verdes.
+
+## Resumo final
+
+- Lotes executados: **3** (S1 skills+CLAUDE.md · F1 types/imports · F2 eslint seguro) — **3 passaram,
+  0 revertidos**.
+- ESLint: 86 → 75 problemas (só restam os comportamentais listados em Pendências).
+- Backend: sem desvios; nenhum arquivo Java alterado pela padronização.
+- Sugestões que exigem lib/decisão: PADRONIZACAO-SUGESTOES.md (Prettier+plugin-tailwind, hook
+  useSyncedForm p/ zerar set-state-in-effect, Checkstyle/Spotless, unificação dos motores de cupom).
 
 ## Pendências (não aplicáveis sem risco de comportamento — Trava 2)
 
