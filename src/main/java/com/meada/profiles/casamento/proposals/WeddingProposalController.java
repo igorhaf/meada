@@ -5,7 +5,9 @@ import com.meada.admin.security.JwtAuthenticationFilter;
 import com.meada.profiles.casamento.CasamentoProfileGuard;
 import com.meada.profiles.casamento.CasamentoProfileGuard.WrongProfileException;
 import com.meada.profiles.casamento.proposals.WeddingProposalService.ChecklistTaskNotFoundException;
+import com.meada.profiles.casamento.proposals.WeddingProposalService.DepositRequiredException;
 import com.meada.profiles.casamento.proposals.WeddingProposalService.EmptyBudgetException;
+import com.meada.profiles.casamento.proposals.WeddingProposalService.InvalidProposalCouponException;
 import com.meada.profiles.casamento.proposals.WeddingProposalService.InactivePlannerException;
 import com.meada.profiles.casamento.proposals.WeddingProposalService.InvalidStatusException;
 import com.meada.profiles.casamento.proposals.WeddingProposalService.InvalidStatusTransitionException;
@@ -103,6 +105,8 @@ public class WeddingProposalController {
     public record ChecklistToggleRequest(boolean done) {}
 
     public record StatusRequest(String newStatus) {}
+
+    public record CouponRequest(String code) {}
 
     @GetMapping("/api/casamento/proposals")
     public ResponseEntity<Object> list(
@@ -468,6 +472,48 @@ public class WeddingProposalController {
         }
     }
 
+    // ---- Cupom na proposta (onda 1, backlog #10 — aplicado pelo painel) ----
+
+    @PatchMapping("/api/casamento/proposals/{id}/coupon")
+    public ResponseEntity<Object> applyCoupon(
+            @RequestAttribute(JwtAuthenticationFilter.AUTH_USER_ATTRIBUTE) AuthenticatedUser user,
+            @PathVariable UUID id, @RequestBody CouponRequest req) {
+        UUID companyId;
+        try {
+            companyId = profileGuard.requireCasamento(user);
+        } catch (WrongProfileException e) {
+            return error(403, "Forbidden", "forbidden_wrong_profile");
+        }
+        try {
+            return ResponseEntity.ok(service.applyCoupon(companyId, id, req.code()));
+        } catch (ProposalNotFoundException e) {
+            return error(404, "Not Found", "proposal_not_found");
+        } catch (InvalidProposalCouponException e) {
+            return error(400, "Bad Request", "invalid_coupon");
+        } catch (ProposalLockedException e) {
+            return error(409, "Conflict", "proposal_locked");
+        }
+    }
+
+    @DeleteMapping("/api/casamento/proposals/{id}/coupon")
+    public ResponseEntity<Object> removeCoupon(
+            @RequestAttribute(JwtAuthenticationFilter.AUTH_USER_ATTRIBUTE) AuthenticatedUser user,
+            @PathVariable UUID id) {
+        UUID companyId;
+        try {
+            companyId = profileGuard.requireCasamento(user);
+        } catch (WrongProfileException e) {
+            return error(403, "Forbidden", "forbidden_wrong_profile");
+        }
+        try {
+            return ResponseEntity.ok(service.removeCoupon(companyId, id));
+        } catch (ProposalNotFoundException e) {
+            return error(404, "Not Found", "proposal_not_found");
+        } catch (ProposalLockedException e) {
+            return error(409, "Conflict", "proposal_locked");
+        }
+    }
+
     // ---- Status ----
 
     @PatchMapping("/api/casamento/proposals/{id}/status")
@@ -488,6 +534,8 @@ public class WeddingProposalController {
             return error(400, "Bad Request", "empty_budget");
         } catch (ProposalNotFoundException e) {
             return error(404, "Not Found", "proposal_not_found");
+        } catch (DepositRequiredException e) {
+            return error(409, "Conflict", "deposit_required");
         } catch (InvalidStatusTransitionException e) {
             return error(409, "Conflict", "invalid_status_transition");
         }

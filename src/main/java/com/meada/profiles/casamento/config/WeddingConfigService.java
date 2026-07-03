@@ -32,8 +32,11 @@ public class WeddingConfigService {
     }
 
     @Transactional
-    public WeddingConfig update(UUID companyId, UUID userId, String businessName, String notes) {
-        WeddingConfig saved = repository.upsert(companyId, businessName, notes);
+    public WeddingConfig update(UUID companyId, UUID userId, String businessName, String notes,
+                                boolean checklistReminderEnabled, boolean paymentReminderEnabled,
+                                boolean autoCompleteEnabled, boolean anniversaryEnabled) {
+        WeddingConfig saved = repository.upsert(companyId, businessName, notes, checklistReminderEnabled,
+            paymentReminderEnabled, autoCompleteEnabled, anniversaryEnabled);
         auditLogger.log(companyId, userId, "wedding_config_updated", "wedding_config", companyId, Map.of());
         contextCache.invalidate(companyId);
         return saved;

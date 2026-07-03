@@ -30,7 +30,9 @@ public class WeddingConfigController {
         return ResponseEntity.status(status).body(Map.of("error", error, "reason", reason));
     }
 
-    public record ConfigRequest(String businessName, String notes) {}
+    public record ConfigRequest(String businessName, String notes, Boolean checklistReminderEnabled,
+                                Boolean paymentReminderEnabled, Boolean autoCompleteEnabled,
+                                Boolean anniversaryEnabled) {}
 
     @GetMapping("/api/casamento/config")
     public ResponseEntity<Object> get(
@@ -56,6 +58,11 @@ public class WeddingConfigController {
         }
         String businessName = req.businessName() == null || req.businessName().isBlank() ? null : req.businessName().trim();
         String notes = req.notes() == null || req.notes().isBlank() ? null : req.notes();
-        return ResponseEntity.ok(service.update(companyId, user.userId(), businessName, notes));
+        // ausente no payload = mantém o default LIGADO (toggles são opt-out).
+        return ResponseEntity.ok(service.update(companyId, user.userId(), businessName, notes,
+            req.checklistReminderEnabled() == null || req.checklistReminderEnabled(),
+            req.paymentReminderEnabled() == null || req.paymentReminderEnabled(),
+            req.autoCompleteEnabled() == null || req.autoCompleteEnabled(),
+            req.anniversaryEnabled() == null || req.anniversaryEnabled()));
     }
 }

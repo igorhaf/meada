@@ -1,7 +1,7 @@
 'use client'
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { PageHeader } from '@/components/layout/page-header'
 import { ApiError } from '@/lib/api/client'
@@ -11,16 +11,25 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Modal } from '@/components/ui/modal'
 import { listPlanners } from '@/lib/api/casamento/planners'
+import { listCatalog } from '@/lib/api/casamento/catalog'
+import {
+  createPayment,
+  deletePayment,
+  listPayments,
+  setPaymentPaid,
+} from '@/lib/api/casamento/payments'
 import {
   addChecklistTask,
   addItem,
   addTimelineItem,
+  applyCoupon,
   deleteChecklistTask,
   deleteItem,
   deleteTimelineItem,
   getProposal,
   listProposals,
   openProposal,
+  removeCoupon,
   toggleChecklistTask,
   updateProposalStatus,
 } from '@/lib/api/casamento/proposals'
@@ -66,6 +75,9 @@ const EMPTY_MARK: MarkForm = { startTime: '', title: '', description: '' }
 type TaskForm = { title: string; dueDate: string; description: string }
 const EMPTY_TASK: TaskForm = { title: '', dueDate: '', description: '' }
 
+type PaymentForm = { kind: 'sinal' | 'parcela'; label: string; dueDate: string; amount: string }
+const EMPTY_PAYMENT: PaymentForm = { kind: 'sinal', label: '', dueDate: '', amount: '' }
+
 /**
  * Propostas de casamento do CasamentoBot (camada 8.7). Clona o EventosBot: lista por status, abre
  * proposta (Modal), detalhe com TRÊS editores inline: (a) ORÇAMENTO (total recalculado pelo backend a
@@ -91,6 +103,10 @@ export default function CasamentoProposalsPage() {
   const [markError, setMarkError] = useState<string | null>(null)
   const [taskForm, setTaskForm] = useState<TaskForm>(EMPTY_TASK)
   const [taskError, setTaskError] = useState<string | null>(null)
+  const [couponCode, setCouponCode] = useState('')
+  const [couponError, setCouponError] = useState<string | null>(null)
+  const [paymentForm, setPaymentForm] = useState<PaymentForm>(EMPTY_PAYMENT)
+  const [paymentError, setPaymentError] = useState<string | null>(null)
   const [statusTarget, setStatusTarget] = useState<WeddingProposalStatusId | null>(null)
   const [statusError, setStatusError] = useState<string | null>(null)
 
@@ -102,9 +118,17 @@ export default function CasamentoProposalsPage() {
 
   const planners = useQuery({ queryKey: ['casamento-planners-all'], queryFn: () => listPlanners({ onlyActive: true }) })
 
+  const catalog = useQuery({ queryKey: ['casamento-catalog-active'], queryFn: () => listCatalog({ onlyActive: true }) })
+
   const detail = useQuery({
     queryKey: ['casamento-proposal', detailId],
     queryFn: () => getProposal(detailId as string),
+    enabled: detailId !== null,
+  })
+
+  const payments = useQuery({
+    queryKey: ['casamento-payments', detailId],
+    queryFn: () => listPayments(detailId as string),
     enabled: detailId !== null,
   })
 
@@ -229,6 +253,79 @@ export default function CasamentoProposalsPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['casamento-proposal', detailId] }),
   })
 
+  const applyCouponMutation = useMutation({
+    mutationFn: () => {
+      if (!detailId) throw new Error('sem proposta')
+      return applyCoupon(detailId, couponCode.trim())
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['casamento-proposal', detailId] })
+      qc.invalidateQueries({ queryKey: ['casamento-proposals'] })
+      qc.invalidateQueries({ queryKey: ['casamento-coupons'] })
+      setCouponCode(''); setCouponError(null)
+    },
+    onError: (e) => {
+      if (e instanceof ApiError && e.reason === 'invalid_coupon') setCouponError('Cupom inválido (inexistente, inativo, vencido, esgotado ou abaixo do orçamento mínimo).')
+      else if (e instanceof ApiError && e.reason === 'proposal_locked') setCouponError('Esta proposta não aceita mais alteração de cupom.')
+      else setCouponError('Erro ao aplicar o cupom.')
+    },
+  })
+
+  const removeCouponMutation = useMutation({
+    mutationFn: () => {
+      if (!detailId) throw new Error('sem proposta')
+      return removeCoupon(detailId)
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['casamento-proposal', detailId] })
+      qc.invalidateQueries({ queryKey: ['casamento-proposals'] })
+      qc.invalidateQueries({ queryKey: ['casamento-coupons'] })
+      setCouponError(null)
+    },
+    onError: () => setCouponError('Erro ao remover o cupom.'),
+  })
+
+  const addPaymentMutation = useMutation({
+    mutationFn: () => {
+      if (!detailId) throw new Error('sem proposta')
+      return createPayment(detailId, {
+        kind: paymentForm.kind,
+        label: paymentForm.label.trim() || null,
+        dueDate: paymentForm.dueDate,
+        amountCents: Math.round(Number(paymentForm.amount || 0) * 100),
+      })
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['casamento-payments', detailId] })
+      setPaymentForm(EMPTY_PAYMENT); setPaymentError(null)
+    },
+    onError: (e) => {
+      if (e instanceof ApiError && e.reason === 'invalid_payment') setPaymentError('Parcela inválida (valor > 0 e vencimento obrigatórios).')
+      else if (e instanceof ApiError && e.reason === 'proposal_locked') setPaymentError('Proposta recusada/cancelada não aceita plano de pagamento.')
+      else setPaymentError('Erro ao adicionar a parcela.')
+    },
+  })
+
+  const setPaidMutation = useMutation({
+    mutationFn: (args: { paymentId: string; paid: boolean }) => {
+      if (!detailId) throw new Error('sem proposta')
+      return setPaymentPaid(detailId, args.paymentId, args.paid)
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['casamento-payments', detailId] })
+      setPaymentError(null)
+    },
+    onError: () => setPaymentError('Erro ao atualizar o pagamento.'),
+  })
+
+  const deletePaymentMutation = useMutation({
+    mutationFn: (paymentId: string) => {
+      if (!detailId) throw new Error('sem proposta')
+      return deletePayment(detailId, paymentId)
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['casamento-payments', detailId] }),
+  })
+
   const statusMutation = useMutation({
     mutationFn: (newStatus: WeddingProposalStatusId) => {
       if (!detailId) throw new Error('sem proposta')
@@ -242,6 +339,7 @@ export default function CasamentoProposalsPage() {
     onError: (e) => {
       setStatusTarget(null)
       if (e instanceof ApiError && e.reason === 'empty_budget') setStatusError('Adicione ao menos um item de orçamento antes de orçar.')
+      else if (e instanceof ApiError && e.reason === 'deposit_required') setStatusError('O plano tem SINAL em aberto — marque o sinal como pago antes de fechar o contrato.')
       else if (e instanceof ApiError && e.reason === 'invalid_status_transition') setStatusError('Transição de status inválida.')
       else setStatusError('Erro ao mudar o status.')
     },
@@ -252,6 +350,17 @@ export default function CasamentoProposalsPage() {
   const totalPages = Math.max(1, Math.ceil(total / 50))
   const p = detail.data
   const locked = p ? ITEMS_LOCKED[p.status] : true
+  // plano de pagamento segue editável após fechada (parcelas vencem até o casamento);
+  // só recusada/cancelada travam.
+  const paymentsLocked = p ? p.status === 'recusada' || p.status === 'cancelada' : true
+
+  // reseta forms locais ao trocar de proposta (não a cada refetch — preserva digitação).
+  const pId = p?.id
+  useEffect(() => {
+    setCouponCode(''); setCouponError(null)
+    setPaymentForm(EMPTY_PAYMENT); setPaymentError(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pId])
 
   return (
     <div className="space-y-6">
@@ -296,9 +405,12 @@ export default function CasamentoProposalsPage() {
                   {prop.guestCount != null ? ` · ${prop.guestCount} convidados` : ''}
                 </p>
               </div>
-              <div className="shrink-0 text-right">
-                <div className="text-sm font-medium">{formatBrl(prop.totalCents)}</div>
-                <div className="text-xs text-muted-foreground">{formatDate(prop.openedAt)}</div>
+              <div className="flex shrink-0 items-center gap-2">
+                {prop.dateBusy && <Badge variant="danger">Data ocupada</Badge>}
+                <div className="text-right">
+                  <div className="text-sm font-medium">{formatBrl(prop.totalCents - prop.discountCents)}</div>
+                  <div className="text-xs text-muted-foreground">{formatDate(prop.openedAt)}</div>
+                </div>
               </div>
             </button>
           ))}
@@ -390,7 +502,13 @@ export default function CasamentoProposalsPage() {
             <Card>
               <dl className="grid grid-cols-2 gap-3 text-sm">
                 <div><dt className="text-xs text-muted-foreground">Telefone</dt><dd>{p.customerPhone ?? '—'}</dd></div>
-                <div><dt className="text-xs text-muted-foreground">Data</dt><dd>{p.weddingDate ? formatDate(p.weddingDate) : '—'}</dd></div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Data</dt>
+                  <dd className={p.dateBusy ? 'font-medium text-red-600' : ''}>
+                    {p.weddingDate ? formatDate(p.weddingDate) : '—'}
+                    {p.dateBusy && ' · já há casamento nesta data'}
+                  </dd>
+                </div>
                 <div><dt className="text-xs text-muted-foreground">Convidados</dt><dd>{p.guestCount ?? '—'}</dd></div>
                 <div><dt className="text-xs text-muted-foreground">Origem</dt><dd>{p.conversationId ? 'WhatsApp' : 'Manual'}</dd></div>
                 {p.briefing && <div className="col-span-2"><dt className="text-xs text-muted-foreground">Briefing</dt><dd>{p.briefing}</dd></div>}
@@ -402,7 +520,14 @@ export default function CasamentoProposalsPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold">Orçamento</h3>
-                <span className="text-sm font-medium">Total: {formatBrl(p.totalCents)}</span>
+                <span className="text-sm font-medium">
+                  Total: {formatBrl(p.totalCents - p.discountCents)}
+                  {p.discountCents > 0 && (
+                    <span className="ml-2 text-xs font-normal text-muted-foreground">
+                      ({formatBrl(p.totalCents)} − {formatBrl(p.discountCents)} de desconto)
+                    </span>
+                  )}
+                </span>
               </div>
               {p.items.length === 0 ? (
                 <p className="text-xs text-muted-foreground">Nenhum item de orçamento ainda.</p>
@@ -433,6 +558,24 @@ export default function CasamentoProposalsPage() {
               {!locked && (
                 <form className="flex flex-wrap items-end gap-2 rounded-lg border border-dashed border-border p-3"
                   onSubmit={(e) => { e.preventDefault(); addItemMutation.mutate() }}>
+                  {(catalog.data?.items ?? []).length > 0 && (
+                    <div className="w-full">
+                      <label className="mb-1 block text-xs font-medium text-muted-foreground">Do catálogo (autofill, opcional)</label>
+                      <select value="" onChange={(e) => {
+                        const item = (catalog.data?.items ?? []).find((c) => c.id === e.target.value)
+                        if (item) {
+                          setItemForm((f) => ({ ...f, description: item.name, price: String(item.priceCents / 100) }))
+                        }
+                      }} className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm">
+                        <option value="">Preencher com um pacote/adicional do catálogo…</option>
+                        {(catalog.data?.items ?? []).map((c) => (
+                          <option key={c.id} value={c.id}>
+                            [{c.kind === 'pacote' ? 'Pacote' : 'Adicional'}] {c.name} — {formatBrl(c.priceCents)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   <div className="flex-1 min-w-[8rem]">
                     <label className="mb-1 block text-xs font-medium text-muted-foreground">Descrição</label>
                     <input value={itemForm.description} onChange={(e) => setItemForm((f) => ({ ...f, description: e.target.value }))} required
@@ -455,6 +598,37 @@ export default function CasamentoProposalsPage() {
                 </form>
               )}
               {itemError && <p className="text-sm text-destructive">{itemError}</p>}
+
+              {/* Cupom (onda 1, backlog #10 — aplicado pelo painel; a IA não negocia preço) */}
+              {p.couponCodeSnapshot ? (
+                <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm">
+                  <span>
+                    Cupom <span className="font-mono font-medium">{p.couponCodeSnapshot}</span> aplicado
+                    <span className="ml-1 text-xs text-muted-foreground">(−{formatBrl(p.discountCents)})</span>
+                  </span>
+                  {!locked && (
+                    <Button variant="outline" className="h-7 px-2 text-xs"
+                      disabled={removeCouponMutation.isPending} onClick={() => removeCouponMutation.mutate()}>
+                      Remover cupom
+                    </Button>
+                  )}
+                </div>
+              ) : !locked && (
+                <form className="flex flex-wrap items-end gap-2"
+                  onSubmit={(e) => { e.preventDefault(); applyCouponMutation.mutate() }}>
+                  <div className="w-44">
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Cupom (opcional)</label>
+                    <input value={couponCode} maxLength={40} placeholder="CÓDIGO"
+                      onChange={(e) => setCouponCode(e.target.value)}
+                      className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm uppercase" />
+                  </div>
+                  <Button type="submit" variant="outline" className="h-8 px-3 text-xs"
+                    disabled={applyCouponMutation.isPending || !couponCode.trim()}>
+                    Aplicar
+                  </Button>
+                </form>
+              )}
+              {couponError && <p className="text-sm text-destructive">{couponError}</p>}
             </div>
 
             {/* Cronograma (NÃO entra no total) */}
@@ -561,6 +735,86 @@ export default function CasamentoProposalsPage() {
                 </form>
               )}
               {taskError && <p className="text-sm text-destructive">{taskError}</p>}
+            </div>
+
+            {/* Plano de pagamento (onda 1, backlog #1 — manual até o gateway #50) */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold">Plano de pagamento</h3>
+                <span className="text-xs text-muted-foreground">
+                  sinal em aberto bloqueia o fechamento
+                </span>
+              </div>
+              {(payments.data?.items ?? []).length === 0 ? (
+                <p className="text-xs text-muted-foreground">Nenhum sinal/parcela registrado ainda.</p>
+              ) : (
+                <div className="divide-y divide-border rounded-lg border border-border">
+                  {(payments.data?.items ?? []).map((pay) => (
+                    <div key={pay.id} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <input type="checkbox" checked={pay.paid}
+                          disabled={paymentsLocked || setPaidMutation.isPending}
+                          onChange={() => setPaidMutation.mutate({ paymentId: pay.id, paid: !pay.paid })} />
+                        <div className="min-w-0">
+                          <span className={`font-medium ${pay.paid ? 'text-muted-foreground line-through' : ''}`}>
+                            {pay.label || (pay.kind === 'sinal' ? 'Sinal' : 'Parcela')}
+                          </span>
+                          <span className="ml-2 text-xs text-muted-foreground">vence {formatDate(pay.dueDate)}</span>
+                          {pay.kind === 'sinal' && <Badge variant={pay.paid ? 'success' : 'warning'}>{pay.paid ? 'Sinal pago' : 'Sinal em aberto'}</Badge>}
+                        </div>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <span className="tabular-nums">{formatBrl(pay.amountCents)}</span>
+                        {!paymentsLocked && (
+                          <Button variant="outline" className="h-6 px-2 text-xs"
+                            disabled={deletePaymentMutation.isPending} onClick={() => deletePaymentMutation.mutate(pay.id)}>
+                            Remover
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {!paymentsLocked && (
+                <form className="flex flex-wrap items-end gap-2 rounded-lg border border-dashed border-border p-3"
+                  onSubmit={(e) => { e.preventDefault(); addPaymentMutation.mutate() }}>
+                  <div className="w-28">
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Tipo</label>
+                    <select value={paymentForm.kind}
+                      onChange={(e) => setPaymentForm((f) => ({ ...f, kind: e.target.value as 'sinal' | 'parcela' }))}
+                      className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm">
+                      <option value="sinal">Sinal</option>
+                      <option value="parcela">Parcela</option>
+                    </select>
+                  </div>
+                  <div className="flex-1 min-w-[7rem]">
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Rótulo (opcional)</label>
+                    <input value={paymentForm.label} maxLength={100} placeholder="Parcela 2/6…"
+                      onChange={(e) => setPaymentForm((f) => ({ ...f, label: e.target.value }))}
+                      className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm" />
+                  </div>
+                  <div className="w-36">
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Vencimento</label>
+                    <input type="date" value={paymentForm.dueDate} required
+                      onChange={(e) => setPaymentForm((f) => ({ ...f, dueDate: e.target.value }))}
+                      className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm" />
+                  </div>
+                  <div className="w-24">
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Valor (R$)</label>
+                    <input type="number" min="0.01" step="0.01" value={paymentForm.amount} required
+                      onChange={(e) => setPaymentForm((f) => ({ ...f, amount: e.target.value }))}
+                      className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm" />
+                  </div>
+                  <Button type="submit" className="h-8 px-3 text-xs" disabled={addPaymentMutation.isPending}>Adicionar</Button>
+                  <p className="w-full text-xs text-muted-foreground">
+                    Pagamento é confirmado À MÃO pela equipe (Pix conferido) até o pagamento online chegar.
+                    O lembrete automático avisa o casal 3 dias antes de cada vencimento (configurável).
+                  </p>
+                </form>
+              )}
+              {paymentError && <p className="text-sm text-destructive">{paymentError}</p>}
             </div>
 
             {/* Status */}

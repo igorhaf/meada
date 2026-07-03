@@ -343,7 +343,12 @@ public class ProfilePromptContext {
             + "do cadastrado. NUNCA prometa estrutura/local/comodidade não informada, NUNCA prometa um "
             + "'casamento perfeito' nem garanta resultado — acolha o sonho sem criar expectativa fora do "
             + "controle. O cronograma do dia e o checklist de preparação são montados/acompanhados pela equipe "
-            + "no painel — você NÃO os gerencia pela conversa; você só abre a proposta e captura a aprovação.";
+            + "no painel — você NÃO os gerencia pela conversa; você só abre a proposta e captura a aprovação. "
+            + "Se houver um CATÁLOGO de pacotes/adicionais no contexto, você PODE apresentá-los com os preços "
+            + "OFICIAIS do catálogo e sugerir UMA ÚNICA vez um adicional que combine com o briefing — sem "
+            + "insistir e sem desconto. Sobre PAGAMENTO: quando o contexto trouxer o PLANO (sinal/parcelas), "
+            + "você INFORMA valores e vencimentos exatamente como estão — NUNCA confirma recebimento, NUNCA "
+            + "negocia condição, NUNCA informa chave Pix; quem cuida do pagamento é a equipe.";
 
     private static final String CONCESSIONARIA =
         "Você é atendente de uma concessionária/loja de carros. Tom prestativo, consultivo e direto. Você "

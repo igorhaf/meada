@@ -145,7 +145,8 @@ public abstract class AbstractIntegrationTest {
         "db/migrations/80_adega_coupons_loyalty.sql",
         "db/migrations/81_atelie_lembrete_sinal.sql",
         "db/migrations/82_atelie_onda2.sql",
-        "db/migrations/83_barbearia_onda1.sql"
+        "db/migrations/83_barbearia_onda1.sql",
+        "db/migrations/84_casamento_onda1.sql"
     };
 
     /**
@@ -297,7 +298,8 @@ public abstract class AbstractIntegrationTest {
               atelie_proposal_items, atelie_fittings, atelie_proposals,
               atelie_measurements, atelie_coupons, atelie_catalog_items,
               atelie_artisans, atelie_config,
-              wedding_proposal_items, wedding_timeline_items, wedding_checklist_tasks, wedding_proposals,
+              wedding_proposal_items, wedding_timeline_items, wedding_checklist_tasks, wedding_payments,
+              wedding_proposals, wedding_coupons, wedding_catalog_items,
               wedding_planners, wedding_config,
               concessionaria_test_drives, concessionaria_leads, concessionaria_vehicles,
               concessionaria_salespeople, concessionaria_config,

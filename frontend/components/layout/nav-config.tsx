@@ -490,6 +490,9 @@ const CASAMENTO_GROUP: NavGroup = {
   items: [
     { label: 'Assessores', href: '/dashboard/casamento-planners', icon: Gem },
     { label: 'Propostas', href: '/dashboard/casamento-proposals', icon: FileText },
+    { label: 'Catálogo', href: '/dashboard/casamento-catalog', icon: Package },
+    { label: 'Cupons', href: '/dashboard/casamento-coupons', icon: Ticket },
+    { label: 'Relatórios', href: '/dashboard/casamento-reports', icon: BarChart3 },
     { label: 'Configurações', href: '/dashboard/casamento-settings', icon: Settings },
   ],
 }

@@ -2,6 +2,10 @@ package com.meada.profiles.casamento;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.meada.profiles.casamento.catalog.WeddingCatalogItem;
+import com.meada.profiles.casamento.catalog.WeddingCatalogRepository;
+import com.meada.profiles.casamento.payments.WeddingPayment;
+import com.meada.profiles.casamento.payments.WeddingPaymentRepository;
 import com.meada.profiles.casamento.planners.WeddingPlanner;
 import com.meada.profiles.casamento.planners.WeddingPlannerRepository;
 import com.meada.profiles.casamento.proposals.WeddingProposal;
@@ -9,6 +13,7 @@ import com.meada.profiles.casamento.proposals.WeddingProposalRepository;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
@@ -28,14 +33,22 @@ import java.util.UUID;
 @Component
 public class CasamentoContextCache {
 
+    private static final DateTimeFormatter DAY_MONTH = DateTimeFormatter.ofPattern("dd/MM");
+
     private final WeddingPlannerRepository plannerRepository;
     private final WeddingProposalRepository proposalRepository;
+    private final WeddingCatalogRepository catalogRepository;
+    private final WeddingPaymentRepository paymentRepository;
     private final Cache<String, String> cache;
 
     public CasamentoContextCache(WeddingPlannerRepository plannerRepository,
-                                 WeddingProposalRepository proposalRepository) {
+                                 WeddingProposalRepository proposalRepository,
+                                 WeddingCatalogRepository catalogRepository,
+                                 WeddingPaymentRepository paymentRepository) {
         this.plannerRepository = plannerRepository;
         this.proposalRepository = proposalRepository;
+        this.catalogRepository = catalogRepository;
+        this.paymentRepository = paymentRepository;
         this.cache = Caffeine.newBuilder()
             .expireAfterWrite(Duration.ofSeconds(20))
             .maximumSize(1000)
@@ -76,17 +89,56 @@ public class CasamentoContextCache {
             sb.append("\n");
         }
 
+        // --- CATÁLOGO DE PACOTES + ADICIONAIS (onda 1, backlog #3) — preço DO CATÁLOGO ---
+        List<WeddingCatalogItem> catalog = catalogRepository.listByCompany(companyId, true);
+        if (!catalog.isEmpty()) {
+            sb.append("PACOTES E ADICIONAIS DO CATÁLOGO (preços OFICIAIS do catálogo — apresente-os "
+                + "quando fizer sentido no briefing; quem fecha o orçamento é a equipe):\n");
+            for (WeddingCatalogItem item : catalog) {
+                sb.append("- [").append("pacote".equals(item.kind()) ? "PACOTE" : "ADICIONAL").append("] ")
+                    .append(item.name()).append(": ").append(brl(item.priceCents()));
+                if (item.description() != null && !item.description().isBlank()) {
+                    sb.append(" — ").append(item.description());
+                }
+                sb.append("\n");
+            }
+            sb.append("Você PODE sugerir NO MÁXIMO UMA VEZ um ADICIONAL desta lista quando combinar com o "
+                + "briefing (sem insistir se recusarem). NUNCA cite pacote/valor fora do catálogo, NUNCA dê "
+                + "desconto.\n\n");
+        }
+
         // --- PROPOSTAS DO CLIENTE EM ABERTO (pra capturar aprovação) ---
         if (contactId != null) {
             List<WeddingProposal> openProposals = proposalRepository.listByCompany(companyId, null, null,
                 contactId, null, null, 20, 0);
             StringBuilder block = new StringBuilder();
             for (WeddingProposal p : openProposals) {
+                // plano de pagamento (#1): a IA INFORMA valor/vencimento/status — nunca inventa condição.
+                if ("aprovada".equals(p.status()) || "fechada".equals(p.status())) {
+                    List<WeddingPayment> plan = paymentRepository.listByProposal(companyId, p.id());
+                    if (!plan.isEmpty()) {
+                        block.append("- ").append(p.id())
+                            .append(" · ").append(p.weddingStyle() == null ? "casamento" : p.weddingStyle())
+                            .append(p.weddingDate() == null ? "" : " em " + p.weddingDate())
+                            .append(" · ").append(p.status().toUpperCase()).append(" · PLANO DE PAGAMENTO:\n");
+                        for (WeddingPayment pay : plan) {
+                            block.append("    · ")
+                                .append(pay.label() != null && !pay.label().isBlank() ? pay.label()
+                                    : ("sinal".equals(pay.kind()) ? "Sinal" : "Parcela"))
+                                .append(" — ").append(brl(pay.amountCents()))
+                                .append(" — vence ").append(DAY_MONTH.format(pay.dueDate()))
+                                .append(pay.paid() ? " — PAGO" : " — em aberto").append("\n");
+                        }
+                        block.append("  Se perguntarem, INFORME estes valores/vencimentos exatamente como "
+                            + "estão. Você NÃO confirma pagamento nem negocia condição — a equipe cuida "
+                            + "disso.\n");
+                    }
+                }
                 if ("orcada".equals(p.status())) {
                     block.append("- ").append(p.id())
                         .append(" · ").append(p.weddingStyle() == null ? "casamento" : p.weddingStyle())
                         .append(p.weddingDate() == null ? "" : " em " + p.weddingDate())
-                        .append(" · ORÇADA · total ").append(brl(p.totalCents()))
+                        .append(" · ORÇADA · total ").append(brl(p.totalCents() - p.discountCents()))
                         .append(" (aguardando aprovação dos noivos)\n");
                 } else if ("rascunho".equals(p.status())) {
                     block.append("- ").append(p.id())

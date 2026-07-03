@@ -69,7 +69,11 @@ public class WeddingProposalRepository {
     private static final String PROPOSAL_SELECT =
         "select p.id, p.contact_id, p.planner_id, p.conversation_id, p.customer_name, p.customer_phone, "
             + "pl.name as planner_name, p.wedding_style, p.wedding_date, p.guest_count, p.briefing, "
-            + "p.total_cents, p.status, p.notes, p.opened_at, p.closed_at, p.status_updated_at "
+            + "p.total_cents, p.discount_cents, p.coupon_id, p.coupon_code_snapshot, "
+            + "exists(select 1 from wedding_proposals w2 where w2.company_id = p.company_id "
+            + "  and w2.id <> p.id and w2.wedding_date = p.wedding_date "
+            + "  and w2.status in ('aprovada','fechada','realizada')) as date_busy, "
+            + "p.status, p.notes, p.opened_at, p.closed_at, p.status_updated_at "
             + "from wedding_proposals p left join wedding_planners pl on pl.id = p.planner_id ";
 
     private WeddingProposal mapProposal(java.sql.ResultSet rs, List<WeddingProposalItem> items,
@@ -92,6 +96,10 @@ public class WeddingProposalRepository {
             guestCount,
             rs.getString("briefing"),
             rs.getInt("total_cents"),
+            rs.getInt("discount_cents"),
+            (UUID) rs.getObject("coupon_id"),
+            rs.getString("coupon_code_snapshot"),
+            rs.getBoolean("date_busy"),
             rs.getString("status"),
             rs.getString("notes"),
             rs.getTimestamp("opened_at").toInstant(),
@@ -174,7 +182,8 @@ public class WeddingProposalRepository {
     private WeddingProposal withChildren(WeddingProposal p) {
         return new WeddingProposal(p.id(), p.contactId(), p.plannerId(), p.conversationId(),
             p.customerName(), p.customerPhone(), p.plannerName(), p.weddingStyle(), p.weddingDate(),
-            p.guestCount(), p.briefing(), p.totalCents(), p.status(), p.notes(),
+            p.guestCount(), p.briefing(), p.totalCents(),
+            p.discountCents(), p.couponId(), p.couponCodeSnapshot(), p.dateBusy(), p.status(), p.notes(),
             p.openedAt(), p.closedAt(), p.statusUpdatedAt(),
             listItems(p.id()), listTimeline(p.id()), listChecklist(p.id()));
     }
@@ -307,13 +316,50 @@ public class WeddingProposalRepository {
         return true;
     }
 
-    /** Re-soma o total da proposta a partir das linhas de ORÇAMENTO (materializa o derivado). */
+    /**
+     * Re-soma o total da proposta a partir das linhas de ORÇAMENTO (materializa o derivado) e
+     * RE-DERIVA o desconto do cupom aplicado, se houver (onda 1, backlog #10) — percent recalcula
+     * sobre o novo total; fixed é clampado. Tudo na MESMA transação da mutação do item.
+     */
     private void recalcTotal(UUID companyId, UUID proposalId) {
         jdbcTemplate.update(
             "update wedding_proposals set total_cents = coalesce("
                 + "(select sum(line_total_cents) from wedding_proposal_items where proposal_id = ?), 0), "
                 + "updated_at = now() where company_id = ? and id = ?",
             proposalId, companyId, proposalId);
+        recomputeDiscount(companyId, proposalId);
+    }
+
+    /** Re-deriva discount_cents a partir do cupom aplicado e do total_cents ATUAL (clampado). */
+    private void recomputeDiscount(UUID companyId, UUID proposalId) {
+        jdbcTemplate.update(
+            "update wedding_proposals p set discount_cents = coalesce("
+                + "(select least(case when c.kind = 'percent' "
+                + "  then (p.total_cents::bigint * c.value / 100)::integer else c.value end, p.total_cents) "
+                + " from wedding_coupons c where c.id = p.coupon_id), 0) "
+                + "where p.company_id = ? and p.id = ?",
+            companyId, proposalId);
+    }
+
+    /**
+     * Aplica o cupom na proposta (onda 1, backlog #10): grava coupon_id + snapshot do code e
+     * re-deriva o desconto. O service já validou (active/validade/mínimo/max_uses) e incrementa
+     * uses na MESMA transação.
+     */
+    public void applyCoupon(UUID companyId, UUID proposalId, UUID couponId, String codeSnapshot) {
+        jdbcTemplate.update(
+            "update wedding_proposals set coupon_id = ?, coupon_code_snapshot = ?, updated_at = now() "
+                + "where company_id = ? and id = ?",
+            couponId, codeSnapshot, companyId, proposalId);
+        recomputeDiscount(companyId, proposalId);
+    }
+
+    /** Remove o cupom da proposta (zera desconto + vínculo). O service decrementa uses na transação. */
+    public void removeCoupon(UUID companyId, UUID proposalId) {
+        jdbcTemplate.update(
+            "update wedding_proposals set coupon_id = null, coupon_code_snapshot = null, "
+                + "discount_cents = 0, updated_at = now() where company_id = ? and id = ?",
+            companyId, proposalId);
     }
 
     // -------------------------------------------------------------------------

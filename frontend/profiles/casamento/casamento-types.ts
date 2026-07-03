@@ -12,10 +12,14 @@ export type WeddingPlanner = {
   updatedAt: string
 }
 
-/** Config do tenant casamento (espelha WeddingConfig). Nome do negócio + notas (SEM horário). */
+/** Config do tenant casamento (espelha WeddingConfig). Nome do negócio + notas + toggles da onda 1. */
 export type WeddingConfig = {
   businessName: string | null
   notes: string | null
+  checklistReminderEnabled: boolean
+  paymentReminderEnabled: boolean
+  autoCompleteEnabled: boolean
+  anniversaryEnabled: boolean
 }
 
 /** Item de ORÇAMENTO de uma proposta (espelha WeddingProposalItem). lineTotalCents materializado. */
@@ -65,6 +69,10 @@ export type WeddingProposal = {
   guestCount: number | null
   briefing: string | null
   totalCents: number
+  discountCents: number
+  couponId: string | null
+  couponCodeSnapshot: string | null
+  dateBusy: boolean
   status: WeddingProposalStatusId
   notes: string | null
   openedAt: string
@@ -73,6 +81,69 @@ export type WeddingProposal = {
   items: WeddingProposalItem[]
   timeline: WeddingTimelineItem[]
   checklist: WeddingChecklistTask[]
+}
+
+/** Item do catálogo: PACOTE (Prata/Ouro/Diamante) ou ADICIONAL (onda 1, backlog #3). */
+export type WeddingCatalogItem = {
+  id: string
+  companyId: string
+  name: string
+  kind: 'pacote' | 'adicional'
+  description: string | null
+  priceCents: number
+  active: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+/** Cupom de desconto (onda 1, backlog #10 — clone do motor atelie). */
+export type WeddingCoupon = {
+  id: string
+  companyId: string
+  code: string
+  kind: 'percent' | 'fixed'
+  value: number
+  minOrderCents: number
+  maxUses: number | null
+  uses: number
+  validUntil: string | null
+  active: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+/** Linha do plano de pagamento do contrato (onda 1, backlog #1). paid é marcação manual da equipe. */
+export type WeddingPayment = {
+  id: string
+  companyId: string
+  proposalId: string
+  kind: 'sinal' | 'parcela'
+  label: string | null
+  dueDate: string
+  amountCents: number
+  paid: boolean
+  paidAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+/** Linha agregada do dashboard comercial (onda 1, backlog #14). */
+export type WeddingReportRow = {
+  month?: string
+  plannerName?: string | null
+  status?: string
+  count: number
+  totalCents: number
+}
+
+export type WeddingReportSummary = {
+  months: number
+  totalCount: number
+  totalCents: number
+  byMonth: WeddingReportRow[]
+  upcomingByMonth: WeddingReportRow[]
+  byPlanner: WeddingReportRow[]
+  funnel: WeddingReportRow[]
 }
 
 /** Formata centavos em R$ pt-BR. */

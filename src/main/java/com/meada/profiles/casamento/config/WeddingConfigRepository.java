@@ -6,9 +6,9 @@ import org.springframework.stereotype.Repository;
 import java.util.UUID;
 
 /**
- * Acesso a {@code wedding_config} (camada 8.7). 1:1 com company. Apenas nome da assessoria + notas
- * (SEM horário/slot — não há agenda). Ausente → defaults (vazios). service_role. Espelho do
- * EventConfigRepository.
+ * Acesso a {@code wedding_config} (camada 8.7). 1:1 com company. Nome da assessoria + notas + toggles
+ * da onda 1 (lembretes/auto-realizada/aniversário). Ausente → defaults (vazios, toggles ligados).
+ * service_role. Espelho do EventConfigRepository.
  */
 @Repository
 public class WeddingConfigRepository {
@@ -21,18 +21,29 @@ public class WeddingConfigRepository {
 
     public WeddingConfig findByCompany(UUID companyId) {
         return jdbcTemplate.query(
-                "select business_name, notes from wedding_config where company_id = ?",
-                (rs, rn) -> new WeddingConfig(companyId, rs.getString("business_name"), rs.getString("notes")),
+                "select business_name, notes, checklist_reminder_enabled, payment_reminder_enabled, "
+                    + "auto_complete_enabled, anniversary_enabled from wedding_config where company_id = ?",
+                (rs, rn) -> new WeddingConfig(companyId, rs.getString("business_name"), rs.getString("notes"),
+                    rs.getBoolean("checklist_reminder_enabled"), rs.getBoolean("payment_reminder_enabled"),
+                    rs.getBoolean("auto_complete_enabled"), rs.getBoolean("anniversary_enabled")),
                 companyId)
             .stream().findFirst().orElse(WeddingConfig.defaultFor(companyId));
     }
 
-    public WeddingConfig upsert(UUID companyId, String businessName, String notes) {
+    public WeddingConfig upsert(UUID companyId, String businessName, String notes,
+                                boolean checklistReminderEnabled, boolean paymentReminderEnabled,
+                                boolean autoCompleteEnabled, boolean anniversaryEnabled) {
         jdbcTemplate.update(
-            "insert into wedding_config (company_id, business_name, notes) values (?, ?, ?) "
+            "insert into wedding_config (company_id, business_name, notes, checklist_reminder_enabled, "
+                + "payment_reminder_enabled, auto_complete_enabled, anniversary_enabled) "
+                + "values (?, ?, ?, ?, ?, ?, ?) "
                 + "on conflict (company_id) do update set business_name = excluded.business_name, "
-                + "notes = excluded.notes, updated_at = now()",
-            companyId, businessName, notes);
+                + "notes = excluded.notes, checklist_reminder_enabled = excluded.checklist_reminder_enabled, "
+                + "payment_reminder_enabled = excluded.payment_reminder_enabled, "
+                + "auto_complete_enabled = excluded.auto_complete_enabled, "
+                + "anniversary_enabled = excluded.anniversary_enabled, updated_at = now()",
+            companyId, businessName, notes, checklistReminderEnabled, paymentReminderEnabled,
+            autoCompleteEnabled, anniversaryEnabled);
         return findByCompany(companyId);
     }
 }

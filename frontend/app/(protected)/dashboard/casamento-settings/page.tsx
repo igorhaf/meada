@@ -8,7 +8,14 @@ import { Button } from '@/components/ui/button'
 import { Card, Section } from '@/components/ui/card'
 import { getConfig, updateConfig } from '@/lib/api/casamento/config'
 
-type FormState = { businessName: string; notes: string }
+type FormState = {
+  businessName: string
+  notes: string
+  checklistReminderEnabled: boolean
+  paymentReminderEnabled: boolean
+  autoCompleteEnabled: boolean
+  anniversaryEnabled: boolean
+}
 
 /**
  * Configurações do CasamentoBot (camada 8.7): nome da assessoria + notas. SEM horário/slot — a
@@ -27,14 +34,28 @@ export default function CasamentoSettingsPage() {
 
   useEffect(() => {
     if (data) {
-      setForm({ businessName: data.businessName ?? '', notes: data.notes ?? '' })
+      setForm({
+        businessName: data.businessName ?? '',
+        notes: data.notes ?? '',
+        checklistReminderEnabled: data.checklistReminderEnabled ?? true,
+        paymentReminderEnabled: data.paymentReminderEnabled ?? true,
+        autoCompleteEnabled: data.autoCompleteEnabled ?? true,
+        anniversaryEnabled: data.anniversaryEnabled ?? true,
+      })
     }
   }, [data])
 
   const saveMutation = useMutation({
     mutationFn: () => {
       if (!form) throw new Error('form não carregado')
-      return updateConfig({ businessName: form.businessName || null, notes: form.notes || null })
+      return updateConfig({
+        businessName: form.businessName || null,
+        notes: form.notes || null,
+        checklistReminderEnabled: form.checklistReminderEnabled,
+        paymentReminderEnabled: form.paymentReminderEnabled,
+        autoCompleteEnabled: form.autoCompleteEnabled,
+        anniversaryEnabled: form.anniversaryEnabled,
+      })
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['casamento-config'] })
@@ -72,6 +93,43 @@ export default function CasamentoSettingsPage() {
                     onChange={(e) => setForm((f) => f && { ...f, notes: e.target.value })}
                     rows={3} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
                 </div>
+              </div>
+            </Section>
+
+            <Section title="Automações (onda 1 do backlog)">
+              <div className="space-y-3 text-sm">
+                <label className="flex items-start gap-2">
+                  <input type="checkbox" checked={form.checklistReminderEnabled} className="mt-0.5"
+                    onChange={(e) => setForm((f) => f && { ...f, checklistReminderEnabled: e.target.checked })} />
+                  <span>
+                    Lembrar o casal <strong>3 dias antes</strong> do prazo de cada tarefa do checklist
+                    <span className="block text-xs text-muted-foreground">Mensagem fixa (não passa pela IA), 1x por tarefa/prazo.</span>
+                  </span>
+                </label>
+                <label className="flex items-start gap-2">
+                  <input type="checkbox" checked={form.paymentReminderEnabled} className="mt-0.5"
+                    onChange={(e) => setForm((f) => f && { ...f, paymentReminderEnabled: e.target.checked })} />
+                  <span>
+                    Lembrar o casal <strong>3 dias antes</strong> do vencimento de cada parcela/sinal
+                    <span className="block text-xs text-muted-foreground">Só parcelas em aberto do plano de pagamento.</span>
+                  </span>
+                </label>
+                <label className="flex items-start gap-2">
+                  <input type="checkbox" checked={form.autoCompleteEnabled} className="mt-0.5"
+                    onChange={(e) => setForm((f) => f && { ...f, autoCompleteEnabled: e.target.checked })} />
+                  <span>
+                    Marcar proposta <strong>fechada</strong> como <strong>realizada</strong> após a data do casamento
+                    <span className="block text-xs text-muted-foreground">Automático e silencioso (ninguém é notificado).</span>
+                  </span>
+                </label>
+                <label className="flex items-start gap-2">
+                  <input type="checkbox" checked={form.anniversaryEnabled} className="mt-0.5"
+                    onChange={(e) => setForm((f) => f && { ...f, anniversaryEnabled: e.target.checked })} />
+                  <span>
+                    Parabenizar o casal no <strong>aniversário de casamento</strong> (1x por ano)
+                    <span className="block text-xs text-muted-foreground">Pós-venda de longo prazo — mensagem calorosa, sem oferta agressiva.</span>
+                  </span>
+                </label>
               </div>
             </Section>
 

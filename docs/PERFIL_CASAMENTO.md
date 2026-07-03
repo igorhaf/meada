@@ -15,8 +15,11 @@ de tarefas pré-casamento com prazo** (`wedding_checklist_tasks`).
 | Tela | Rota | O que faz |
 |------|------|-----------|
 | Assessores | `/dashboard/casamento-planners` | CRUD de assessores/cerimonialistas (catálogo simples, sem agenda; desativar preferido a excluir). |
-| Propostas | `/dashboard/casamento-proposals` | Lista por status; detalhe com TRÊS editores: ORÇAMENTO (total recalculado) + CRONOGRAMA (ordenado por horário) + CHECKLIST (ordenado por prazo, toggle concluída). |
-| Configurações | `/dashboard/casamento-settings` | Nome da assessoria + notas (sem horário). |
+| Propostas | `/dashboard/casamento-proposals` | Lista por status + alerta "Data ocupada"; detalhe com os TRÊS editores (ORÇAMENTO com autofill do catálogo + cupom, CRONOGRAMA, CHECKLIST) e o PLANO DE PAGAMENTO (sinal + parcelas). |
+| Catálogo | `/dashboard/casamento-catalog` | Pacotes (Prata/Ouro/Diamante) e adicionais com preço oficial — autofill do orçamento + vitrine da IA. |
+| Cupons | `/dashboard/casamento-coupons` | Cupons percent/fixed que a EQUIPE aplica na proposta (feira de noivas, low-season). |
+| Relatórios | `/dashboard/casamento-reports` | Receita realizada (líquida) por mês/assessor + receita prevista dos contratos fechados + funil. |
+| Configurações | `/dashboard/casamento-settings` | Nome da assessoria + notas + toggles (lembrete de checklist/parcela, auto-realizada, aniversário). |
 
 ## ESCAPADA — TRÊS sub-itens no mesmo artefato
 
@@ -56,10 +59,64 @@ rascunho → orcada → aprovada → fechada → realizada
 - Notificam (texto defensivo, SEM "casamento perfeito"): **orcada** (com total + estilo),
   **aprovada**, **fechada**, **recusada**. rascunho/realizada/cancelada silenciosos.
 
+## Onda 1 do backlog (docs/FEATURES_SUGERIDAS_CASAMENTO.md #1/#2/#3/#4/#10/#14/#15/#16 — migration 84)
+
+### #1 — Sinal + parcelas do contrato (`wedding_payments`, manual até o gateway #50)
+
+O vazamento nº1 do nicho é o intervalo `aprovada→fechada`. A equipe monta o PLANO no detalhe da
+proposta (sinal + N parcelas com vencimento) e marca **pago à mão** (Pix conferido). **GATE:** com
+'sinal' NÃO pago no plano, `aprovada→fechada` → 409 `deposit_required` ("fechada = sinal recebido");
+sem sinal no plano, fechamento livre. DIFERENTE dos sub-itens (itemsLocked em fechada), o plano segue
+MUTÁVEL depois de fechada — parcelas vencem até o casamento; só recusada/cancelada travam. A IA
+recebe o plano no contexto e **INFORMA** valor/vencimento/status exatamente como estão — nunca
+inventa condição, nunca confirma recebimento.
+
+### #2 — Lembretes de checklist e parcela (`WeddingReminderJob`)
+
+Cron diário avisa o casal **D-3** do prazo de tarefa não concluída e do vencimento de parcela não
+paga (texto fixo, não passa pela IA; proposta viva). Idempotência por (linha, data):
+`reminded_due_date` — remarcar rearma. Toggles por tenant (`checklist_reminder_enabled` /
+`payment_reminder_enabled`, default ligados). Sem canal → marca sem enviar.
+
+### #3 — Catálogo de pacotes + adicionais (`wedding_catalog_items`)
+
+Pacotes e adicionais com preço oficial, CRUD em `/api/casamento/catalog` + tela "Catálogo". É o
+**autofill** do editor de orçamento (item da proposta continua snapshot texto) e a IA os APRESENTA
+com o preço DO CATÁLOGO, podendo sugerir **UMA vez** um adicional compatível (upsell controlado, sem
+desconto, sem insistir).
+
+### #4/#16 — Auto-transição + aniversário (`WeddingAutoTransitionJob`)
+
+Diário: proposta FECHADA com `wedding_date` passado vira REALIZADA (silencioso; toggle
+`auto_complete_enabled`); no dia/mês do casamento de proposta REALIZADA (1+ ano), parabeniza o casal
+1x/ano (`anniversary_notified_year`; toggle `anniversary_enabled`) — pós-venda de longo prazo.
+
+### #10 — Cupom na proposta (`wedding_coupons` — clone do motor atelie)
+
+Aplicado PELO PAINEL (PATCH/DELETE `/api/casamento/proposals/{id}/coupon`); desconto MATERIALIZADO
+(`discount_cents` + snapshot) e RE-DERIVADO a cada mutação de item; `uses` devolve ao remover/trocar;
+notificação de orcada usa o total LÍQUIDO; `empty_budget` segue sobre o total bruto.
+
+### #14 — Dashboard comercial
+
+GET `/api/casamento/reports/summary` + tela "Relatórios": receita REALIZADA (líquida) por mês
+(`closed_at`) e por assessor, receita PREVISTA (fechadas por mês do `wedding_date`) e FUNIL por
+status. Sem DDL.
+
+### #15 — Alerta de data ocupada (`dateBusy`, derivado)
+
+Sem coluna nova: `dateBusy` é um EXISTS na leitura — outra proposta aprovada/fechada/realizada na
+MESMA `wedding_date` → badge "Data ocupada" na lista e alerta no detalhe. INFORMATIVO (sem 409): a
+decisão de aceitar 2 eventos na data continua da equipe.
+
 ## O que a IA faz
 
 - Abre uma **proposta** a partir do briefing (data prevista, nº de convidados, estilo, o que sonham).
 - **Captura a aprovação/recusa** quando a proposta já está **orçada** (gate de 2 fases).
+- **Apresenta pacotes/adicionais com o preço DO CATÁLOGO** e pode sugerir UMA vez um adicional
+  (onda 1, backlog #3).
+- **Informa o plano de pagamento** (sinal/parcelas, valores e vencimentos) exatamente como está no
+  painel (onda 1, backlog #1).
 
 ## O que a IA NÃO faz
 
@@ -70,6 +127,8 @@ rascunho → orcada → aprovada → fechada → realizada
   resultado.
 - **NUNCA gerencia o cronograma do dia NEM o checklist pela conversa** — ambos são montados/acompanhados
   pela equipe no painel. A IA só abre a proposta e captura a aprovação.
+- **NUNCA confirma pagamento, negocia condição ou informa chave Pix** — informa o plano como está e
+  encaminha o acerto à equipe (onda 1, backlog #1).
 
 ## Tags
 
@@ -93,11 +152,13 @@ outras. O `OutboundService` remove a tag antes de enviar ao cliente.
 
 ## O que NÃO existe nesta fase
 
-- **Conflito de agenda/data** (a data é campo livre — a assessoria coordena ~1 casamento por data).
-- **Catálogo de pacotes pré-cadastrados** (orçamento ad-hoc — a equipe digita os itens).
-- **Contrato e-sign** (o "contrato" é o estado `fechada`); **pagamento/sinal/parcelas** (Stripe #50).
+- **Conflito DURO de agenda/data** (o `dateBusy` da onda 1 é alerta INFORMATIVO; 409 de data não
+  existe — a assessoria decide).
+- **Contrato e-sign** (o "contrato" é o estado `fechada`); **cobrança ONLINE do sinal/parcelas**
+  (Stripe #50 — o REGISTRO manual + gate + lembrete já existem, onda 1 #1/#2).
 - **Fornecedores externos** como pool com agenda própria; **lista de convidados / RSVP / mesa**.
-- **Lembrete automático** de prazo do checklist (o due_date é informativo; scheduler é fase futura).
+- **Indicação com recompensa / NPS pós-casamento / reativação de lead frio** (motor de campanha da
+  Onda 3).
 - **Foto/mood board** (bloqueador SERVICE_ROLE_KEY).
 
 ## Notas técnicas
@@ -117,5 +178,8 @@ outras. O `OutboundService` remove a tag antes de enviar ao cliente.
 - Contexto da IA via `CasamentoContextCache` (Caffeine TTL 20s, keyed por (companyId, contactId) —
   assessores + propostas do contato em aberto; **NÃO injeta cronograma nem checklist**), invalidado em
   toda mutação.
+- Migration `84_casamento_onda1.sql` (onda 1 do backlog): `wedding_catalog_items` +
+  `wedding_coupons` + `wedding_payments` + desconto/`anniversary_notified_year` na proposta +
+  `reminded_due_date` no checklist + 4 toggles na config.
 - Guard `/api/casamento/**` → 403 `forbidden_wrong_profile`. Paleta `trigo`.
 - Tenant de teste: `igorhaf18` (Casamento Modelo).

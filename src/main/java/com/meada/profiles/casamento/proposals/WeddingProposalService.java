@@ -2,6 +2,9 @@ package com.meada.profiles.casamento.proposals;
 
 import com.meada.profiles.casamento.CasamentoContextCache;
 import com.meada.profiles.casamento.WeddingProposalStatus;
+import com.meada.profiles.casamento.coupons.WeddingCoupon;
+import com.meada.profiles.casamento.coupons.WeddingCouponRepository;
+import com.meada.profiles.casamento.payments.WeddingPaymentRepository;
 import com.meada.profiles.casamento.planners.WeddingPlanner;
 import com.meada.profiles.casamento.planners.WeddingPlannerRepository;
 import org.springframework.stereotype.Service;
@@ -9,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -31,17 +35,25 @@ import java.util.UUID;
 @Service
 public class WeddingProposalService {
 
+    private static final ZoneId TENANT_ZONE = ZoneId.of("America/Sao_Paulo");
+
     private final WeddingProposalRepository repository;
     private final WeddingPlannerRepository plannerRepository;
+    private final WeddingCouponRepository couponRepository;
+    private final WeddingPaymentRepository paymentRepository;
     private final WeddingProposalNotifier notifier;
     private final CasamentoContextCache contextCache;
 
     public WeddingProposalService(WeddingProposalRepository repository,
                                   WeddingPlannerRepository plannerRepository,
+                                  WeddingCouponRepository couponRepository,
+                                  WeddingPaymentRepository paymentRepository,
                                   WeddingProposalNotifier notifier,
                                   CasamentoContextCache contextCache) {
         this.repository = repository;
         this.plannerRepository = plannerRepository;
+        this.couponRepository = couponRepository;
+        this.paymentRepository = paymentRepository;
         this.notifier = notifier;
         this.contextCache = contextCache;
     }
@@ -56,6 +68,8 @@ public class WeddingProposalService {
     public static class EmptyBudgetException extends RuntimeException {}
     public static class InvalidStatusException extends RuntimeException {}
     public static class InvalidStatusTransitionException extends RuntimeException {}
+    public static class InvalidProposalCouponException extends RuntimeException {}
+    public static class DepositRequiredException extends RuntimeException {}
 
     /** Abre uma proposta (status rascunho, total 0). Snapshot de cliente (do contact). */
     @Transactional
@@ -232,6 +246,50 @@ public class WeddingProposalService {
     }
 
     // -------------------------------------------------------------------------
+    // CUPOM NA PROPOSTA (onda 1, backlog #10) — aplicado PELO PAINEL; a IA não negocia preço.
+    // -------------------------------------------------------------------------
+
+    /**
+     * Aplica um cupom pelo code (case-insensitive): valida active + validade + mínimo (sobre o
+     * total do orçamento) + max_uses, grava o vínculo + snapshot, re-deriva o desconto e incrementa
+     * uses — tudo na MESMA transação. Cupom inválido → 400 invalid_coupon. Proposta com cupom já
+     * aplicado troca de cupom (o anterior tem o uso devolvido). Espelho do applyCoupon do ateliê.
+     */
+    @Transactional
+    public WeddingProposal applyCoupon(UUID companyId, UUID proposalId, String code) {
+        requireMutableProposal(companyId, proposalId);
+        WeddingProposal current = repository.findById(companyId, proposalId).orElseThrow(ProposalNotFoundException::new);
+        WeddingCoupon coupon = couponRepository.findByCode(companyId, code)
+            .orElseThrow(InvalidProposalCouponException::new);
+        boolean expired = coupon.validUntil() != null && coupon.validUntil().isBefore(LocalDate.now(TENANT_ZONE));
+        boolean maxedOut = coupon.maxUses() != null && coupon.uses() >= coupon.maxUses();
+        boolean belowMin = current.totalCents() < coupon.minOrderCents();
+        if (!coupon.active() || expired || maxedOut || belowMin) {
+            throw new InvalidProposalCouponException();
+        }
+        if (current.couponId() != null) {
+            couponRepository.decrementUses(companyId, current.couponId());
+        }
+        repository.applyCoupon(companyId, proposalId, coupon.id(), coupon.code());
+        couponRepository.incrementUses(companyId, coupon.id());
+        contextCache.invalidate(companyId);
+        return repository.findById(companyId, proposalId).orElseThrow(ProposalNotFoundException::new);
+    }
+
+    /** Remove o cupom da proposta (zera desconto) e devolve o uso ao cupom. */
+    @Transactional
+    public WeddingProposal removeCoupon(UUID companyId, UUID proposalId) {
+        requireMutableProposal(companyId, proposalId);
+        WeddingProposal current = repository.findById(companyId, proposalId).orElseThrow(ProposalNotFoundException::new);
+        if (current.couponId() != null) {
+            couponRepository.decrementUses(companyId, current.couponId());
+        }
+        repository.removeCoupon(companyId, proposalId);
+        contextCache.invalidate(companyId);
+        return repository.findById(companyId, proposalId).orElseThrow(ProposalNotFoundException::new);
+    }
+
+    // -------------------------------------------------------------------------
     // STATUS
     // -------------------------------------------------------------------------
 
@@ -248,10 +306,17 @@ public class WeddingProposalService {
         if (newStatus == WeddingProposalStatus.ORCADA && current.totalCents() <= 0) {
             throw new EmptyBudgetException();
         }
+        // GATE DE SINAL (onda 1, backlog #1): com plano de pagamento contendo 'sinal' NÃO pago, o
+        // fechamento é bloqueado — "fechada = sinal recebido". Sem sinal no plano, fechamento livre.
+        if (newStatus == WeddingProposalStatus.FECHADA && paymentRepository.existsUnpaidSinal(companyId, id)) {
+            throw new DepositRequiredException();
+        }
 
         repository.updateStatus(companyId, id, newStatus.id(), newStatus.isTerminal());
 
-        String text = newStatus.notificationText(styleLabel(current), brl(current.totalCents()));
+        // total LÍQUIDO na notificação (cupom aplicado pelo painel — onda 1, backlog #10).
+        String text = newStatus.notificationText(styleLabel(current),
+            brl(current.totalCents() - current.discountCents()));
         notifier.notifyStatus(companyId, current.conversationId(), text);
 
         contextCache.invalidate(companyId);

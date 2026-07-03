@@ -136,6 +136,18 @@ export function toggleChecklistTask(proposalId: string, taskId: string, done: bo
   })
 }
 
+// ---- Cupom na proposta (onda 1, backlog #10 — aplicado pelo painel) ----
+
+export function applyCoupon(id: string, code: string): Promise<WeddingProposal> {
+  return apiFetch<WeddingProposal>(`/api/casamento/proposals/${id}/coupon`, {
+    method: 'PATCH', body: JSON.stringify({ code }),
+  })
+}
+
+export function removeCoupon(id: string): Promise<WeddingProposal> {
+  return apiFetch<WeddingProposal>(`/api/casamento/proposals/${id}/coupon`, { method: 'DELETE' })
+}
+
 // ---- Status ----
 
 export function updateProposalStatus(id: string, newStatus: WeddingProposalStatusId): Promise<WeddingProposal> {

@@ -4,6 +4,10 @@ import type { WeddingConfig } from '@/profiles/casamento/casamento-types'
 export type UpdateConfigInput = {
   businessName?: string | null
   notes?: string | null
+  checklistReminderEnabled?: boolean
+  paymentReminderEnabled?: boolean
+  autoCompleteEnabled?: boolean
+  anniversaryEnabled?: boolean
 }
 
 export function getConfig(): Promise<WeddingConfig> {

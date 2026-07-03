@@ -253,6 +253,79 @@ class WeddingProposalServiceTest extends AbstractIntegrationTest {
             .isInstanceOf(ProposalLockedException.class);
     }
 
+    // -------------------------------------------------------------------------
+    // CUPOM NA PROPOSTA (onda 1, backlog #10) + DATA OCUPADA (#15).
+    // -------------------------------------------------------------------------
+
+    private UUID seedCoupon(String code, String kind, int value) {
+        UUID id = UUID.randomUUID();
+        jdbcTemplate.update(
+            "insert into wedding_coupons (id, company_id, code, kind, value) values (?, ?, ?, ?, ?)",
+            id, COMPANY, code, kind, value);
+        return id;
+    }
+
+    @Test
+    @DisplayName("applyCoupon aplica desconto re-derivado + notificação de orcada usa total LÍQUIDO")
+    void coupon_applyAndNetNotification() {
+        WeddingProposal p = openProposal();
+        service.addItem(COMPANY, p.id(), "Assessoria", 1, 1000000);
+        UUID coupon = seedCoupon("FEIRA10", "percent", 10);
+
+        WeddingProposal withCoupon = service.applyCoupon(COMPANY, p.id(), "feira10");   // case-insensitive
+        assertThat(withCoupon.discountCents()).isEqualTo(100000);
+        assertThat(withCoupon.couponCodeSnapshot()).isEqualTo("FEIRA10");
+        assertThat(jdbcTemplate.queryForObject("select uses from wedding_coupons where id = ?",
+            Integer.class, coupon)).isEqualTo(1);
+
+        // mutação de item RE-DERIVA o desconto (percent recalcula).
+        service.addItem(COMPANY, p.id(), "Decoração", 1, 500000);
+        assertThat(service.get(COMPANY, p.id()).orElseThrow().discountCents()).isEqualTo(150000);
+
+        service.updateStatus(COMPANY, p.id(), "orcada");
+        assertThat(fakeEvolution.sent()).hasSize(1);
+        assertThat(fakeEvolution.sent().get(0).text()).contains("R$ 13500,00");
+
+        // remoção devolve o uso e zera o desconto.
+        WeddingProposal removed = service.removeCoupon(COMPANY, p.id());
+        assertThat(removed.discountCents()).isZero();
+        assertThat(jdbcTemplate.queryForObject("select uses from wedding_coupons where id = ?",
+            Integer.class, coupon)).isZero();
+    }
+
+    @Test
+    @DisplayName("cupom inexistente/inativo → InvalidProposalCouponException")
+    void coupon_invalid() {
+        WeddingProposal p = openProposal();
+        service.addItem(COMPANY, p.id(), "Assessoria", 1, 100000);
+        UUID off = seedCoupon("OFF", "percent", 10);
+        jdbcTemplate.update("update wedding_coupons set active = false where id = ?", off);
+
+        assertThatThrownBy(() -> service.applyCoupon(COMPANY, p.id(), "OFF"))
+            .isInstanceOf(WeddingProposalService.InvalidProposalCouponException.class);
+        assertThatThrownBy(() -> service.applyCoupon(COMPANY, p.id(), "NAOEXISTE"))
+            .isInstanceOf(WeddingProposalService.InvalidProposalCouponException.class);
+    }
+
+    @Test
+    @DisplayName("dateBusy (#15): outra proposta aprovada/fechada/realizada na MESMA data → alerta derivado")
+    void dateBusy_derived() {
+        java.time.LocalDate date = java.time.LocalDate.now().plusMonths(2);
+        WeddingProposal a = service.open(COMPANY, contactId, null, null, conversationId,
+            "clássico", date, 100, "b", null);
+        assertThat(service.get(COMPANY, a.id()).orElseThrow().dateBusy()).isFalse();
+
+        // outra proposta na MESMA data em rascunho ainda não ocupa a data...
+        WeddingProposal b = service.open(COMPANY, contactId, null, null, conversationId,
+            "praia", date, 80, "b2", null);
+        assertThat(service.get(COMPANY, a.id()).orElseThrow().dateBusy()).isFalse();
+
+        // ...mas ao virar aprovada, a data fica OCUPADA para as demais (e a própria não se auto-marca).
+        jdbcTemplate.update("update wedding_proposals set status = 'aprovada' where id = ?", b.id());
+        assertThat(service.get(COMPANY, a.id()).orElseThrow().dateBusy()).isTrue();
+        assertThat(service.get(COMPANY, b.id()).orElseThrow().dateBusy()).isFalse();
+    }
+
     record SentMessage(String instanceName, String token, String number, String text) {}
 
     static class FakeEvolutionSender implements EvolutionSender {
