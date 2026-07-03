@@ -95,6 +95,51 @@ export type Config = {
   opensAt: string
   closesAt: string
   notes: string | null
+  followupEnabled: boolean
+  followupDays: number
+  testdriveReminderEnabled: boolean
+  autoCompleteEnabled: boolean
+}
+
+/** Desejo de carro (onda 1, backlog #1 — espelha ConcessionariaWishlist). ONE-SHOT ao notificar. */
+export type ConcessionariaWishlist = {
+  id: string
+  companyId: string
+  contactId: string
+  conversationId: string | null
+  contactName: string | null
+  brand: string | null
+  model: string | null
+  maxPriceCents: number | null
+  minYear: number | null
+  notes: string | null
+  active: boolean
+  notifiedAt: string | null
+  notifiedVehicleId: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+/** Linhas agregadas do dashboard comercial (onda 1, backlog #10). */
+export type ConcessionariaReportRow = {
+  status?: string
+  month?: string
+  salesperson?: string
+  count?: number
+  totalCents?: number
+  closedLeads?: number
+  closedCents?: number
+  testDrives?: number
+}
+
+export type ConcessionariaReportSummary = {
+  months: number
+  leadsCreated: number
+  leadsClosed: number
+  funnel: ConcessionariaReportRow[]
+  bySalesperson: ConcessionariaReportRow[]
+  salesByMonth: ConcessionariaReportRow[]
+  testDrivesByStatus: ConcessionariaReportRow[]
 }
 
 /** Detalhe do conflito no 409 conflict_slot (test-drive). */

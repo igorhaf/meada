@@ -147,7 +147,8 @@ public abstract class AbstractIntegrationTest {
         "db/migrations/82_atelie_onda2.sql",
         "db/migrations/83_barbearia_onda1.sql",
         "db/migrations/84_casamento_onda1.sql",
-        "db/migrations/85_comida_onda1.sql"
+        "db/migrations/85_comida_onda1.sql",
+        "db/migrations/86_concessionaria_onda1.sql"
     };
 
     /**
@@ -303,7 +304,7 @@ public abstract class AbstractIntegrationTest {
               wedding_proposal_items, wedding_timeline_items, wedding_checklist_tasks, wedding_payments,
               wedding_proposals, wedding_coupons, wedding_catalog_items,
               wedding_planners, wedding_config,
-              concessionaria_test_drives, concessionaria_leads, concessionaria_vehicles,
+              concessionaria_test_drives, concessionaria_leads, concessionaria_wishlists, concessionaria_vehicles,
               concessionaria_salespeople, concessionaria_config,
               lavanderia_order_item_options, lavanderia_order_items, lavanderia_orders,
               lavanderia_service_options, lavanderia_services, lavanderia_config,

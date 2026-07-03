@@ -58,6 +58,32 @@ novo→em_negociacao→fechado/perdido. A IA cria o lead em **'novo'** e NÃO mo
 **Preço = SNAPSHOT do catálogo** (`vehicle_price_cents`) — a IA NUNCA carrega preço na tag; o backend
 sempre usa o preço do catálogo. **Só de veículo 'disponivel'** → 422 `vehicle_not_available`.
 
+## Onda 1 do backlog (docs/FEATURES_SUGERIDAS_CONCESSIONARIA.md #1/#2/#3/#9/#10 — migration 86)
+
+- **#1 Lista de desejos + alerta de estoque (`concessionaria_wishlists`)**: quando a vitrine não tem
+  o carro, a IA registra o interesse via tag `<desejo_carro>` (brand/model — pelo menos um —, teto de
+  preço e ano mínimo QUE O CLIENTE declarou). Quando um veículo DISPONÍVEL entra/volta ao estoque e
+  casa (ILIKE + teto + ano), o contato é avisado automaticamente (texto fixo) e o desejo desativa
+  (ONE-SHOT: `notified_at` + `notified_vehicle_id`). Tela "Desejos"; hooks no create/update/
+  updateStatus do veículo.
+- **#2 Follow-up de lead parado (`ConcessionariaAutoTransitionJob`)**: lead novo/em_negociacao sem
+  movimento há `followup_days` (config, default 3) recebe reengajamento gentil 1x por janela
+  (`followup_sent_at` re-arma quando o lead volta a se mover). Sem fechar preço — trava preservada.
+- **#3 Lembrete + confirmação de test-drive (`ConcessionariaReminderJob` + tag
+  `<confirmacao_testdrive>`)**: test-drive 'agendado' nas próximas 24h recebe "confirma? SIM ou
+  CANCELAR" (`reminded_24h`); a resposta muda o status pela tag (BARREIRA DE CONTATO; confirmar só
+  de agendado, cancelar de agendado/confirmado — cancelar libera vendedor e veículo na hora).
+- **#9 Auto-realizado**: test-drive confirmado com `end_at` passado (2h de graça) vira realizado
+  (silencioso; toggle `auto_complete_enabled`).
+- **#10 Dashboard comercial (sem DDL)**: GET `/api/concessionaria/reports/summary` + tela
+  "Relatórios" — funil de leads (snapshot), conversão na janela, desempenho por vendedor (test-drives
+  realizados + leads fechados) e vendas por mês (veículos 'vendido').
+- Config ganhou 4 campos (`followup_enabled`/`followup_days`/`testdrive_reminder_enabled`/
+  `auto_complete_enabled`) editáveis em Configurações. ADIADOS: reserva com sinal (gateway #50),
+  trade-in, campanha/NPS/indicação (motor Onda 3), financiamento (integração), fotos reais (upload),
+  multi-loja (fase própria). As tags novas têm namespace próprio; o OutboundService as remove antes
+  de enviar (maybeProcessDesejoCarro + maybeProcessConfirmacaoTestDrive).
+
 ## A TRAVA (o coração da SM)
 
 A IA SÓ: mostra estoque disponível, agenda test-drive, registra lead. **NUNCA** fecha preço/desconto/

@@ -44,6 +44,7 @@ import {
   Scissors,
   ScrollText,
   Settings,
+  Star,
   Shirt,
   ShoppingBag,
   Award,
@@ -510,6 +511,8 @@ const CONCESSIONARIA_GROUP: NavGroup = {
     { label: 'Vendedores', href: '/dashboard/concessionaria-salespeople', icon: Users },
     { label: 'Test-drives', href: '/dashboard/concessionaria-testdrives', icon: CalendarCheck },
     { label: 'Leads', href: '/dashboard/concessionaria-leads', icon: Megaphone },
+    { label: 'Desejos', href: '/dashboard/concessionaria-wishlists', icon: Star },
+    { label: 'Relatórios', href: '/dashboard/concessionaria-reports', icon: BarChart3 },
     { label: 'Configurações', href: '/dashboard/concessionaria-settings', icon: Settings },
   ],
 }

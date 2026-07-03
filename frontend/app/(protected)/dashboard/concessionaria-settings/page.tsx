@@ -16,6 +16,10 @@ type FormState = {
   opensAt: string
   closesAt: string
   notes: string
+  followupEnabled: boolean
+  followupDays: number
+  testdriveReminderEnabled: boolean
+  autoCompleteEnabled: boolean
 }
 
 function hhmm(t: string): string {
@@ -46,6 +50,10 @@ export default function ConcessionariaSettingsPage() {
         opensAt: hhmm(data.opensAt),
         closesAt: hhmm(data.closesAt),
         notes: data.notes ?? '',
+        followupEnabled: data.followupEnabled ?? true,
+        followupDays: data.followupDays ?? 3,
+        testdriveReminderEnabled: data.testdriveReminderEnabled ?? true,
+        autoCompleteEnabled: data.autoCompleteEnabled ?? true,
       })
     }
   }, [data])
@@ -60,6 +68,10 @@ export default function ConcessionariaSettingsPage() {
         opensAt: form.opensAt,
         closesAt: form.closesAt,
         notes: form.notes || null,
+        followupEnabled: form.followupEnabled,
+        followupDays: Math.max(1, Math.round(form.followupDays || 3)),
+        testdriveReminderEnabled: form.testdriveReminderEnabled,
+        autoCompleteEnabled: form.autoCompleteEnabled,
       })
     },
     onSuccess: () => {
@@ -151,6 +163,39 @@ export default function ConcessionariaSettingsPage() {
               Mudanças afetam apenas test-drives <strong>futuros</strong> — os já agendados mantêm a
               duração do momento em que foram criados.
             </p>
+
+            <Section title="Automações (onda 1 do backlog)">
+              <div className="space-y-3 text-sm">
+                <label className="flex items-start gap-2">
+                  <input type="checkbox" checked={form.testdriveReminderEnabled} className="mt-0.5"
+                    onChange={(e) => setForm((f) => f && { ...f, testdriveReminderEnabled: e.target.checked })} />
+                  <span>
+                    Lembrar o cliente do <strong>test-drive</strong> nas 24h anteriores (confirma? SIM/CANCELAR)
+                    <span className="block text-xs text-muted-foreground">A resposta confirma ou libera o horário automaticamente.</span>
+                  </span>
+                </label>
+                <label className="flex items-start gap-2">
+                  <input type="checkbox" checked={form.followupEnabled} className="mt-0.5"
+                    onChange={(e) => setForm((f) => f && { ...f, followupEnabled: e.target.checked })} />
+                  <span>
+                    Follow-up automático de <strong>lead parado</strong> após
+                    <input type="number" min="1" value={form.followupDays}
+                      onChange={(e) => setForm((f) => f && { ...f, followupDays: Number(e.target.value) })}
+                      className="mx-1 w-14 rounded-md border border-border bg-background px-1 py-0.5 text-sm" />
+                    dia(s) sem movimento
+                    <span className="block text-xs text-muted-foreground">Reengaja sem fechar preço — o vendedor assume a conversa.</span>
+                  </span>
+                </label>
+                <label className="flex items-start gap-2">
+                  <input type="checkbox" checked={form.autoCompleteEnabled} className="mt-0.5"
+                    onChange={(e) => setForm((f) => f && { ...f, autoCompleteEnabled: e.target.checked })} />
+                  <span>
+                    Marcar test-drive <strong>confirmado</strong> como <strong>realizado</strong> após o horário
+                    <span className="block text-xs text-muted-foreground">Automático e silencioso (2h de tolerância).</span>
+                  </span>
+                </label>
+              </div>
+            </Section>
 
             {error && <p className="text-sm text-destructive">{error}</p>}
             {saved && <p className="text-sm text-emerald-600">Configurações salvas.</p>}

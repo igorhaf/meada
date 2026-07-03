@@ -8,6 +8,10 @@ export type UpdateConfigInput = {
   opensAt: string // "HH:MM"
   closesAt: string // "HH:MM"
   notes?: string | null
+  followupEnabled?: boolean
+  followupDays?: number
+  testdriveReminderEnabled?: boolean
+  autoCompleteEnabled?: boolean
 }
 
 export function getConfig(): Promise<Config> {

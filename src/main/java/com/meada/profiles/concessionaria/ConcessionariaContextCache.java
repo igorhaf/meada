@@ -139,6 +139,28 @@ public class ConcessionariaContextCache {
         }
         sb.append("\n");
 
+        // --- TEST-DRIVES FUTUROS DO CLIENTE (onda 1 #3 — pra fechar o loop do lembrete) ---
+        if (contactId != null) {
+            List<ConcessionariaTestDrive> upcoming =
+                testDriveRepository.listUpcomingByContact(companyId, contactId, 5);
+            if (!upcoming.isEmpty()) {
+                sb.append("TEST-DRIVES FUTUROS DESTE CLIENTE:\n");
+                for (ConcessionariaTestDrive t : upcoming) {
+                    ZonedDateTime z = t.startAt().atZone(TENANT_ZONE);
+                    sb.append("- id ").append(t.id()).append(": ").append(t.vehicleBrand()).append(" ")
+                        .append(t.vehicleModel()).append(" em ").append(DATE_FMT.format(z))
+                        .append(" às ").append(TIME_FMT.format(z))
+                        .append(" · status ").append(t.status()).append("\n");
+                }
+                sb.append("Quando o cliente RESPONDER a um lembrete confirmando (SIM) ou pedindo pra "
+                    + "desmarcar, você só REFLETE a decisão dele — termine a mensagem com a tag:\n")
+                    .append("<confirmacao_testdrive>{\"test_drive_id\":\"<id>\",\"decisao\":"
+                        + "\"confirmado|cancelado\"}</confirmacao_testdrive>\n")
+                    .append("Confirmar só vale para test-drive 'agendado'; cancelar vale para agendado/"
+                        + "confirmado. NUNCA confirme ou cancele sem o cliente pedir.\n\n");
+            }
+        }
+
         // --- INSTRUÇÕES (2 tags) ---
         sb.append("INSTRUÇÕES:\n")
             .append("Você só MOSTRA o estoque disponível, AGENDA test-drive e REGISTRA interesse de "
@@ -156,7 +178,15 @@ public class ConcessionariaContextCache {
             .append("<lead_carro>{\"vehicle_id\":\"<id>\",\"payment_condition\":\"avista|financiado\","
                 + "\"notes\":\"...|null\"}</lead_carro>\n")
             .append("Use sempre o id exato do veículo/vendedor da lista acima. NUNCA invente preço — o "
-                + "preço do lead é sempre o do estoque.\n\n");
+                + "preço do lead é sempre o do estoque.\n")
+            .append("LISTA DE DESEJOS (quando a vitrine NÃO tem o que o cliente procura): ofereça "
+                + "registrar o interesse pra loja avisar assim que chegar — colete marca/modelo (pelo "
+                + "menos um), opcionalmente o teto de preço e o ano mínimo QUE O CLIENTE DECLAROU, e "
+                + "termine a mensagem com a tag:\n")
+            .append("<desejo_carro>{\"brand\":\"...|null\",\"model\":\"...|null\","
+                + "\"max_price_cents\":N|null,\"min_year\":N|null,\"notes\":\"...|null\"}</desejo_carro>\n")
+            .append("NUNCA prometa quando o carro chega nem reserve por conta própria — o aviso é "
+                + "automático quando um veículo compatível entrar no estoque.\n\n");
 
         return sb.toString();
     }

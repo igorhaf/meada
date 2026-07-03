@@ -49,7 +49,11 @@ public class ConcessionariaConfigController {
         @Min(0) int bufferMinutes,
         @NotBlank String opensAt,
         @NotBlank String closesAt,
-        String notes) {}
+        String notes,
+        Boolean followupEnabled,
+        Integer followupDays,
+        Boolean testdriveReminderEnabled,
+        Boolean autoCompleteEnabled) {}
 
     @GetMapping("/api/concessionaria/config")
     public ResponseEntity<Object> get(
@@ -82,9 +86,14 @@ public class ConcessionariaConfigController {
             return error(400, "Bad Request", "invalid_time");
         }
         try {
+            // toggles ausentes no payload = mantém o default LIGADO (opt-out).
             return ResponseEntity.ok(service.update(
                 companyId, user.userId(), req.businessName(), req.durationMinutes(),
-                req.bufferMinutes(), opensAt, closesAt, req.notes()));
+                req.bufferMinutes(), opensAt, closesAt, req.notes(),
+                req.followupEnabled() == null || req.followupEnabled(),
+                req.followupDays() == null ? 3 : req.followupDays(),
+                req.testdriveReminderEnabled() == null || req.testdriveReminderEnabled(),
+                req.autoCompleteEnabled() == null || req.autoCompleteEnabled()));
         } catch (InvalidHoursException e) {
             return error(400, "Bad Request", "invalid_hours");
         }

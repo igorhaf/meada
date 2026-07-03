@@ -104,6 +104,15 @@ public class ConcessionariaTestDriveRepository {
             .stream().findFirst();
     }
 
+    /** Test-drives FUTUROS ativos do CONTATO — p/ a IA referenciar o test_drive_id na tag de confirmação (onda 1 #3). */
+    public List<ConcessionariaTestDrive> listUpcomingByContact(UUID companyId, UUID contactId, int limit) {
+        return jdbcTemplate.query(
+            "select " + COLS + " from concessionaria_test_drives where company_id = ? "
+                + "and contact_id = ? and status in ('agendado','confirmado') and end_at > now() "
+                + "order by start_at asc limit ?",
+            MAPPER, companyId, contactId, limit);
+    }
+
     /** Test-drives ATIVOS (agendado/confirmado) de UM VENDEDOR na janela [from,to) — p/ o contexto IA. */
     public List<ConcessionariaTestDrive> listActiveBySalesperson(UUID companyId, UUID salespersonId,
                                                                  Instant from, Instant to) {

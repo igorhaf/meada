@@ -22,7 +22,8 @@ public class ConcessionariaConfigRepository {
 
     public ConcessionariaConfig findByCompany(UUID companyId) {
         return jdbcTemplate.query(
-                "select business_name, duration_minutes, buffer_minutes, opens_at, closes_at, notes "
+                "select business_name, duration_minutes, buffer_minutes, opens_at, closes_at, notes, "
+                    + "followup_enabled, followup_days, testdrive_reminder_enabled, auto_complete_enabled "
                     + "from concessionaria_config where company_id = ?",
                 (rs, rn) -> new ConcessionariaConfig(
                     companyId,
@@ -31,7 +32,11 @@ public class ConcessionariaConfigRepository {
                     rs.getInt("buffer_minutes"),
                     rs.getObject("opens_at", LocalTime.class),
                     rs.getObject("closes_at", LocalTime.class),
-                    rs.getString("notes")),
+                    rs.getString("notes"),
+                    rs.getBoolean("followup_enabled"),
+                    rs.getInt("followup_days"),
+                    rs.getBoolean("testdrive_reminder_enabled"),
+                    rs.getBoolean("auto_complete_enabled")),
                 companyId)
             .stream().findFirst().orElse(ConcessionariaConfig.defaultFor(companyId));
     }
@@ -39,19 +44,27 @@ public class ConcessionariaConfigRepository {
     /** Upsert (INSERT … ON CONFLICT) — cria ou atualiza a config 1:1 do tenant. */
     public ConcessionariaConfig upsert(UUID companyId, String businessName, int durationMinutes,
                                        int bufferMinutes, LocalTime opensAt, LocalTime closesAt,
-                                       String notes) {
+                                       String notes, boolean followupEnabled, int followupDays,
+                                       boolean testdriveReminderEnabled, boolean autoCompleteEnabled) {
         jdbcTemplate.update(
             "insert into concessionaria_config "
-                + "(company_id, business_name, duration_minutes, buffer_minutes, opens_at, closes_at, notes) "
-                + "values (?, ?, ?, ?, ?, ?, ?) "
+                + "(company_id, business_name, duration_minutes, buffer_minutes, opens_at, closes_at, notes, "
+                + "followup_enabled, followup_days, testdrive_reminder_enabled, auto_complete_enabled) "
+                + "values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
                 + "on conflict (company_id) do update set "
                 + "business_name = excluded.business_name, "
                 + "duration_minutes = excluded.duration_minutes, "
                 + "buffer_minutes = excluded.buffer_minutes, "
                 + "opens_at = excluded.opens_at, closes_at = excluded.closes_at, "
-                + "notes = excluded.notes, updated_at = now()",
+                + "notes = excluded.notes, "
+                + "followup_enabled = excluded.followup_enabled, "
+                + "followup_days = excluded.followup_days, "
+                + "testdrive_reminder_enabled = excluded.testdrive_reminder_enabled, "
+                + "auto_complete_enabled = excluded.auto_complete_enabled, "
+                + "updated_at = now()",
             companyId, businessName, durationMinutes, bufferMinutes,
-            Time.valueOf(opensAt), Time.valueOf(closesAt), notes);
+            Time.valueOf(opensAt), Time.valueOf(closesAt), notes,
+            followupEnabled, followupDays, testdriveReminderEnabled, autoCompleteEnabled);
         return findByCompany(companyId);
     }
 }

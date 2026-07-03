@@ -26,11 +26,15 @@ public class ConcessionariaVehicleService {
     private final AuditLogger auditLogger;
     private final ConcessionariaContextCache contextCache;
 
+    private final com.meada.profiles.concessionaria.wishlists.ConcessionariaWishlistService wishlistService;
+
     public ConcessionariaVehicleService(ConcessionariaVehicleRepository repository, AuditLogger auditLogger,
-                                        ConcessionariaContextCache contextCache) {
+                                        ConcessionariaContextCache contextCache,
+                                        com.meada.profiles.concessionaria.wishlists.ConcessionariaWishlistService wishlistService) {
         this.repository = repository;
         this.auditLogger = auditLogger;
         this.contextCache = contextCache;
+        this.wishlistService = wishlistService;
     }
 
     public static class VehicleNotFoundException extends RuntimeException {}
@@ -48,6 +52,8 @@ public class ConcessionariaVehicleService {
         auditLogger.log(companyId, userId, "concessionaria_vehicle_created", "concessionaria_vehicle",
             created.id(), Map.of("brand", created.brand(), "model", created.model()));
         contextCache.invalidate(companyId);
+        // ALERTA de lista de desejos (onda 1, backlog #1): veículo novo DISPONÍVEL pode casar.
+        wishlistService.matchAndNotify(companyId, created);
         return created;
     }
 
@@ -63,6 +69,8 @@ public class ConcessionariaVehicleService {
             .orElseThrow(VehicleNotFoundException::new);
         auditLogger.log(companyId, userId, "concessionaria_vehicle_updated", "concessionaria_vehicle", id, Map.of());
         contextCache.invalidate(companyId);
+        // Edição pode passar a casar com um desejo (preço baixou, ano corrigido) — re-checa (#1).
+        wishlistService.matchAndNotify(companyId, updated);
         return updated;
     }
 
@@ -80,6 +88,8 @@ public class ConcessionariaVehicleService {
         auditLogger.log(companyId, userId, "concessionaria_vehicle_status_updated", "concessionaria_vehicle",
             id, Map.of("status", newStatus.id()));
         contextCache.invalidate(companyId);
+        // Reserva desfeita (→ disponivel) pode casar com um desejo (#1).
+        wishlistService.matchAndNotify(companyId, updated);
         return updated;
     }
 

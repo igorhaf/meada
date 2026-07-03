@@ -141,6 +141,10 @@ public class OutboundService {
     // <lead_carro> registra interesse de compra (funil). Só agem p/ profile_id='concessionaria'.
     private final com.meada.profiles.concessionaria.testdrives.TestDriveConfirmHandler testDriveConfirmHandler;
     private final com.meada.profiles.concessionaria.leads.LeadCarroConfirmHandler leadCarroConfirmHandler;
+    // Onda 1 do backlog concessionária: <desejo_carro> registra a lista de desejos (#1) e
+    // <confirmacao_testdrive> fecha o loop do lembrete SIM/CANCELAR (#3).
+    private final com.meada.profiles.concessionaria.wishlists.DesejoCarroConfirmHandler desejoCarroConfirmHandler;
+    private final com.meada.profiles.concessionaria.testdrives.ConfirmacaoTestDriveHandler confirmacaoTestDriveHandler;
     // Camada 8.10 (perfil lavanderia): <pedido_lavanderia> cria o pedido (nasce 'aguardando'; 2 datas
     // coleta+entrega com turnaround). Só age p/ profile_id='lavanderia'.
     private final com.meada.profiles.lavanderia.orders.PedidoLavanderiaConfirmHandler pedidoLavanderiaConfirmHandler;
@@ -256,6 +260,8 @@ public class OutboundService {
                            com.meada.profiles.casamento.proposals.AprovacaoCasamentoHandler aprovacaoCasamentoHandler,
                            com.meada.profiles.concessionaria.testdrives.TestDriveConfirmHandler testDriveConfirmHandler,
                            com.meada.profiles.concessionaria.leads.LeadCarroConfirmHandler leadCarroConfirmHandler,
+                           com.meada.profiles.concessionaria.wishlists.DesejoCarroConfirmHandler desejoCarroConfirmHandler,
+                           com.meada.profiles.concessionaria.testdrives.ConfirmacaoTestDriveHandler confirmacaoTestDriveHandler,
                            com.meada.profiles.lavanderia.orders.PedidoLavanderiaConfirmHandler pedidoLavanderiaConfirmHandler,
                            com.meada.profiles.dermatologia.appointments.AgendamentoDermaConfirmHandler agendamentoDermaConfirmHandler,
                            com.meada.profiles.dermatologia.appointments.EntregaPreparoHandler entregaPreparoHandler,
@@ -321,6 +327,8 @@ public class OutboundService {
         this.aprovacaoCasamentoHandler = aprovacaoCasamentoHandler;
         this.testDriveConfirmHandler = testDriveConfirmHandler;
         this.leadCarroConfirmHandler = leadCarroConfirmHandler;
+        this.desejoCarroConfirmHandler = desejoCarroConfirmHandler;
+        this.confirmacaoTestDriveHandler = confirmacaoTestDriveHandler;
         this.pedidoLavanderiaConfirmHandler = pedidoLavanderiaConfirmHandler;
         this.agendamentoDermaConfirmHandler = agendamentoDermaConfirmHandler;
         this.entregaPreparoHandler = entregaPreparoHandler;
@@ -493,6 +501,8 @@ public class OutboundService {
         // Encadeados após os demais (perfil único; só um age). Removem a tag antes de enviar.
         toSend = maybeProcessTestDrive(event, conversationId, toSend);
         toSend = maybeProcessLeadCarro(event, conversationId, toSend);
+        toSend = maybeProcessDesejoCarro(event, conversationId, toSend);
+        toSend = maybeProcessConfirmacaoTestDrive(event, conversationId, toSend);
         // Camada 8.10 (perfil lavanderia): <pedido_lavanderia> cria o pedido de lavagem (2 datas).
         toSend = maybeProcessPedidoLavanderia(event, conversationId, toSend);
         // Camada 8.11 (perfil dermatologia): <consulta_derma> agenda; <entrega_preparo> entrega preparo.
@@ -1343,6 +1353,55 @@ public class OutboundService {
      * resolve o contato, valida veículo disponível, conflito por vendedor, materializa end_at) e devolve
      * um AiResponse SEM a tag. Best-effort; só age se profile_id='concessionaria'.
      */
+    /**
+     * Onda 1 do backlog concessionária (#1): se a resposta da IA contém a tag {@code <desejo_carro>},
+     * registra a lista de desejos do contato (DesejoCarroConfirmHandler) e devolve a resposta SEM a
+     * tag. O alerta dispara depois, quando um veículo disponível casar. Best-effort.
+     */
+    private AiResponse maybeProcessDesejoCarro(MessageInboundProcessedEvent event,
+                                               UUID conversationId, AiResponse aiResponse) {
+        String reply = aiResponse.reply();
+        if (reply == null || !desejoCarroConfirmHandler.hasDesejoTag(reply)) {
+            return aiResponse;
+        }
+        if (!"concessionaria".equals(companyProfileRepository.findProfileId(event.companyId()))) {
+            return aiResponse;
+        }
+        Optional<UUID> contactId = conversationRepository.findContactIdByConversation(conversationId);
+        if (contactId.isPresent()) {
+            desejoCarroConfirmHandler.parseAndCreate(event.companyId(), conversationId, contactId.get(), reply);
+        }
+        String stripped = desejoCarroConfirmHandler.stripDesejoTag(reply);
+        return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
+            aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
+            aiResponse.schedulingIntent(), aiResponse.insights());
+    }
+
+    /**
+     * Onda 1 do backlog concessionária (#3): se a resposta da IA contém a tag
+     * {@code <confirmacao_testdrive>}, aplica a DECISÃO DO CLIENTE ao test-drive (confirmado/cancelado
+     * — ConfirmacaoTestDriveHandler valida barreira de contato + máquina de status; fecha o loop do
+     * lembrete "confirma? SIM/CANCELAR") e devolve a resposta SEM a tag. Best-effort.
+     */
+    private AiResponse maybeProcessConfirmacaoTestDrive(MessageInboundProcessedEvent event,
+                                                        UUID conversationId, AiResponse aiResponse) {
+        String reply = aiResponse.reply();
+        if (reply == null || !confirmacaoTestDriveHandler.hasConfirmacaoTag(reply)) {
+            return aiResponse;
+        }
+        if (!"concessionaria".equals(companyProfileRepository.findProfileId(event.companyId()))) {
+            return aiResponse;
+        }
+        Optional<UUID> contactId = conversationRepository.findContactIdByConversation(conversationId);
+        if (contactId.isPresent()) {
+            confirmacaoTestDriveHandler.parseAndApply(event.companyId(), conversationId, contactId.get(), reply);
+        }
+        String stripped = confirmacaoTestDriveHandler.stripConfirmacaoTag(reply);
+        return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
+            aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
+            aiResponse.schedulingIntent(), aiResponse.insights());
+    }
+
     private AiResponse maybeProcessTestDrive(MessageInboundProcessedEvent event,
                                              UUID conversationId, AiResponse aiResponse) {
         String reply = aiResponse.reply();

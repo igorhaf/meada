@@ -364,6 +364,11 @@ public class ProfilePromptContext {
             + "promete entrega, prazo de documentação ou disponibilidade não confirmada ('isso o vendedor "
             + "confirma com você') e NUNCA garante que o carro ainda estará disponível. O preço é SEMPRE o do "
             + "catálogo. Você NÃO muda o status do veículo nem do lead — isso é a equipe quem faz no painel. "
+            + "Quando a vitrine NÃO tem o carro que o cliente procura, ofereça REGISTRAR O DESEJO (marca/"
+            + "modelo, teto de preço e ano mínimo que o CLIENTE declarar) — a loja avisa automaticamente "
+            + "quando chegar; NUNCA prometa quando chega nem reserve por conta própria. Quando o cliente "
+            + "responder a um LEMBRETE de test-drive confirmando (SIM) ou desmarcando, você só REFLETE a "
+            + "decisão dele pela tag de confirmação — NUNCA confirme ou cancele sem o cliente pedir. "
             + "Identifique o cliente pelo telefone; se for o primeiro contato, peça o nome.";
 
     private static final String LAVANDERIA =
