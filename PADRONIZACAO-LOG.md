@@ -65,13 +65,43 @@ Backend não tem lint configurado (gate = `mvn -B clean test`, 1848 verdes na ba
   hidratação SSR/localStorage/modal (login, theme-toggle, theme-mode-provider, sidebar-context,
   global-search ×2). Arquivos: 8. Validação: eslint 0 erros no repo · `next build` ✓. Commit: 8a0514e
 
+## Fase 4 — Formatação mecanizada + skills v2 (2026-07-03, autorização explícita do Igor: "tudo")
+
+O Igor autorizou a exceção à trava "sem dependências novas" para as libs de formatação, e pediu
+skills mais ricas. Lotes:
+
+- **P0 `[REVISAR]`** — devDependencies: prettier, prettier-plugin-tailwindcss (ordem canônica de
+  classes) e @ianvs/prettier-plugin-sort-imports. Config `.prettierrc.json` espelhando o estilo
+  MAJORITÁRIO (sem semi, aspas simples, printWidth 100, blocos de import third-party/`@/`/relativo);
+  `.prettierignore` poupa `public/` (widget ES5); scripts `format`/`format:check`.
+  Arquivos: 4 (package.json, package-lock.json — regenerado por comando —, 2 configs).
+  Commit: 2f107e0
+- **P1 `[REVISAR]`** — `prettier --write` em `app/(protected)` (184 arquivos).
+  Validação: eslint 0 erros no lote · `next build` ✓. Commit: 793867b
+- **P2 `[REVISAR]`** — resto de `app/` (auth, p/, layout) + configs raiz (14 arquivos).
+  Validação: eslint 0 erros · `next build` ✓. Commit: dd05b00
+- **P3 `[REVISAR]`** — `components/` (30 arquivos). Validação: eslint 0 erros · build ✓.
+  Commit: 383f217
+- **P4 `[REVISAR]`** — `lib/` + `profiles/` (182 arquivos). Validação: eslint 0 erros · build ✓
+  · `npx prettier --check .` limpo no frontend INTEIRO. Commit: 8f33e5e
+- **Skills v2** — as 6 skills crescem de ~430 p/ ~707 linhas (cânone completo: esqueleto de tela,
+  hooks de sync, taxonomia de queryKey, padrões estruturais dos nichos, handlers de tag, mapa
+  HTTP→reason, best-effort, gotchas cravados, portas). CLAUDE.md ganha `npm run format` e o estado
+  real do lint (0 erros). Arquivos: 7. Commit: da1e6d0
+
+Total da fase: 410 arquivos reformatados em 4 lotes `[REVISAR]` + 1 lote de deps + 1 de docs.
+Reformatação é puramente mecânica (formatação, ordem de classes Tailwind, ordem de imports) —
+sem mudança semântica; cada lote validado com eslint (0 erros) + `next build` limpo.
+
 ## Resumo final
 
-- Lotes executados: **9** (S1 skills+CLAUDE.md · F1 types/imports · F2 eslint seguro ·
-  F3/F4/F5 useSyncedForm 36 telas · hooks auxiliares · F6 casos especiais · F7 resto do lint) —
-  **9 passaram, 0 revertidos**.
+- Lotes executados: **15** (S1 skills+CLAUDE.md · F1 types/imports · F2 eslint seguro ·
+  F3/F4/F5 useSyncedForm 36 telas · hooks auxiliares · F6 casos especiais · F7 resto do lint ·
+  P0 deps Prettier · P1–P4 reformatação 410 arquivos · skills v2) — **15 passaram, 0 revertidos**.
 - ESLint: **86 problemas → 0 erros + 3 warnings** (`react-hooks/incompatible-library` —
   React Compiler pula componentes com react-hook-form; informativo, causado pela lib).
+- Prettier: frontend 100% formatado (`npm run format:check` limpo); ordem de classes Tailwind e
+  de imports agora são MECÂNICAS (plugin), não convenção manual.
 - set-state-in-effect: 60 achados zerados SEM mudança de comportamento observável — o padrão
   useEffect-sync virou sync durante o render (useSyncedForm/useOnSync/useResetWhen em
   `frontend/lib/use-synced-form.ts`, sem dependência nova); os 6 efeitos legítimos de hidratação

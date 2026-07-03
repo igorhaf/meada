@@ -2,9 +2,10 @@
 
 Registradas conforme a trava "sem dependências novas"; nada aqui foi instalado ou alterado.
 
-1. **Prettier + prettier-plugin-tailwindcss** — hoje a ordem de classes Tailwind é convenção manual
-   (documentada na skill `tailwind-styling`). O plugin ordenaria mecanicamente e travaria o padrão
-   no CI. Exige devDependency nova.
+1. **Prettier + prettier-plugin-tailwindcss** — ✅ FEITO em 2026-07-03 com autorização explícita do
+   Igor (lotes P0–P4, ver PADRONIZACAO-LOG.md): prettier + plugin-tailwindcss + sort-imports
+   instalados, frontend inteiro (410 arquivos) reformatado, `npm run format`/`format:check`.
+   Resta a decisão de pôr `format:check` como gate de CI.
 2. **ESLint no CI** — ✅ a parte executável foi feita (lotes F3–F7, ver PADRONIZACAO-LOG.md): o hook
    `useSyncedForm`/`useOnSync`/`useResetWhen` (`frontend/lib/use-synced-form.ts`, sem lib nova) zerou
    as 60 ocorrências de `set-state-in-effect` e o lint fechou em 0 erros. Resta a decisão de rodar
