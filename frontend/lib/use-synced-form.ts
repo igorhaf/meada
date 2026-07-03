@@ -23,3 +23,31 @@ export function useSyncedForm<D, F>(
   }
   return [form, setForm]
 }
+
+/**
+ * Variante multi-setter do {@link useSyncedForm}: executa {@code onSync} DURANTE o render quando
+ * {@code value} muda de referência (e não é null/undefined). Para telas que sincronizam vários
+ * estados independentes a partir de um dado assíncrono. Os setters chamados devem ser do PRÓPRIO
+ * componente (regra do setState-durante-render do React).
+ */
+export function useOnSync<D>(value: D | null | undefined, onSync: (value: D) => void): void {
+  const [synced, setSynced] = useState<D | null | undefined>(undefined)
+  if (value != null && value !== synced) {
+    setSynced(value)
+    onSync(value)
+  }
+}
+
+/**
+ * Reset de formulário de DIÁLOGO sem useEffect: dispara {@code reset} durante o render quando
+ * {@code trigger} MUDA para um valor truthy (abertura, ou troca do registro em edição com o
+ * diálogo aberto). Substitui o antigo `useEffect(() => { if (open) reset() }, [open, ...])`.
+ * Use um trigger que codifique o "episódio" de abertura — ex.: {@code open ? (editing?.id ?? 'new') : null}.
+ */
+export function useResetWhen(trigger: unknown, reset: () => void): void {
+  const [prev, setPrev] = useState<unknown>(undefined)
+  if (trigger !== prev) {
+    setPrev(trigger)
+    if (trigger) reset()
+  }
+}
