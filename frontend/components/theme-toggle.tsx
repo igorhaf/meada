@@ -3,8 +3,8 @@
 import { Moon, Sun } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
-import { Button } from '@/components/ui/button'
 import { useThemeMode } from '@/components/theme-mode-provider'
+import { Button } from '@/components/ui/button'
 
 /**
  * Botão de alternância do modo de tema. Alterna SOMENTE claro ↔ escuro (o modo 'system' foi

@@ -1,5 +1,4 @@
 'use client'
-import { useResetWhen } from '@/lib/use-synced-form'
 
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
@@ -7,6 +6,7 @@ import { useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
 import { uploadDocument } from '@/lib/supabase/knowledge'
+import { useResetWhen } from '@/lib/use-synced-form'
 
 const MAX_BYTES = 5 * 1024 * 1024 // 5MB — espelha o limite do backend (MAX_BYTES / yml)
 
@@ -19,13 +19,7 @@ const MAX_BYTES = 5 * 1024 * 1024 // 5MB — espelha o limite do backend (MAX_BY
  * 20-40s. Durante a mutation, o botão mostra "Processando…" e os campos ficam travados —
  * o usuário não fecha o modal nem reenvia. Sucesso → invalida a lista e fecha.
  */
-export function KnowledgeUploadDialog({
-  open,
-  onClose,
-}: {
-  open: boolean
-  onClose: () => void
-}) {
+export function KnowledgeUploadDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const queryClient = useQueryClient()
   const fileRef = useRef<HTMLInputElement>(null)
   const [title, setTitle] = useState('')
@@ -35,11 +29,11 @@ export function KnowledgeUploadDialog({
 
   // Limpa o form sempre que abre (sem estado stale entre aberturas).
   useResetWhen(open, () => {
-      setTitle('')
-      setFile(null)
-      setValidationError(null)
-      setServerError(null)
-      if (fileRef.current) fileRef.current.value = ''
+    setTitle('')
+    setFile(null)
+    setValidationError(null)
+    setServerError(null)
+    if (fileRef.current) fileRef.current.value = ''
   })
 
   const mutation = useMutation({

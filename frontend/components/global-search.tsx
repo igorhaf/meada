@@ -91,9 +91,7 @@ export function GlobalSearch() {
   }
 
   const hasResults =
-    results.contacts.length > 0 ||
-    results.conversations.length > 0 ||
-    results.messages.length > 0
+    results.contacts.length > 0 || results.conversations.length > 0 || results.messages.length > 0
 
   return (
     <Modal open={open} onClose={() => setOpen(false)} title="Buscar" size="lg">
@@ -102,7 +100,7 @@ export function GlobalSearch() {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Buscar contatos, conversas, mensagens…"
-        className="w-full rounded-md border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+        className="w-full rounded-md border border-border px-3 py-2 text-sm focus:ring-2 focus:ring-ring focus:outline-none"
       />
 
       <div className="mt-4 space-y-4">
@@ -116,7 +114,7 @@ export function GlobalSearch() {
 
         {results.contacts.length > 0 && (
           <div>
-            <h3 className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <h3 className="mb-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
               Contatos
             </h3>
             <ul className="space-y-1">
@@ -137,7 +135,7 @@ export function GlobalSearch() {
 
         {results.conversations.length > 0 && (
           <div>
-            <h3 className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <h3 className="mb-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
               Conversas
             </h3>
             <ul className="space-y-1">
@@ -158,7 +156,7 @@ export function GlobalSearch() {
 
         {results.messages.length > 0 && (
           <div>
-            <h3 className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <h3 className="mb-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
               Mensagens
             </h3>
             <ul className="space-y-1">

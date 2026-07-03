@@ -1,6 +1,14 @@
 'use client'
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react'
 
 /**
  * Estado do sidebar colapsável global (desktop), modo PUSH único: a aba-balão é CLIQUE-TOGGLE; o
