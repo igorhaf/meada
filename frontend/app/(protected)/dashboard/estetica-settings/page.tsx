@@ -1,13 +1,14 @@
 'use client'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import { PageHeader } from '@/components/layout/page-header'
 import { ApiError } from '@/lib/api/client'
 import { Button } from '@/components/ui/button'
 import { Card, Section } from '@/components/ui/card'
 import { getConfig, updateConfig } from '@/lib/api/estetica/config'
+import { useSyncedForm } from '@/lib/use-synced-form'
 
 type FormState = { opensAt: string; closesAt: string; slotMinutes: string }
 
@@ -18,7 +19,6 @@ function hhmm(t: string): string {
 /** Configurações do EsteticaBot (camada 8.3): horário de funcionamento + granularidade de slot. */
 export default function EsteticaSettingsPage() {
   const qc = useQueryClient()
-  const [form, setForm] = useState<FormState | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
 
@@ -27,11 +27,7 @@ export default function EsteticaSettingsPage() {
     queryFn: () => getConfig(),
   })
 
-  useEffect(() => {
-    if (data) {
-      setForm({ opensAt: hhmm(data.opensAt), closesAt: hhmm(data.closesAt), slotMinutes: String(data.slotMinutes) })
-    }
-  }, [data])
+  const [form, setForm] = useSyncedForm(data, (d): FormState => ({ opensAt: hhmm(d.opensAt), closesAt: hhmm(d.closesAt), slotMinutes: String(d.slotMinutes) }))
 
   const saveMutation = useMutation({
     mutationFn: () => {

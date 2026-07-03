@@ -1,13 +1,14 @@
 'use client'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import { PageHeader } from '@/components/layout/page-header'
 import { ApiError } from '@/lib/api/client'
 import { Button } from '@/components/ui/button'
 import { Card, Section } from '@/components/ui/card'
 import { getConfig, updateConfig } from '@/lib/api/padaria/config'
+import { useSyncedForm } from '@/lib/use-synced-form'
 
 type FormState = { deliveryFee: string; minOrder: string; leadTimeDefault: string } // reais + dias
 
@@ -17,7 +18,6 @@ type FormState = { deliveryFee: string; minOrder: string; leadTimeDefault: strin
  */
 export default function PadariaSettingsPage() {
   const qc = useQueryClient()
-  const [form, setForm] = useState<FormState | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
 
@@ -26,15 +26,11 @@ export default function PadariaSettingsPage() {
     queryFn: () => getConfig(),
   })
 
-  useEffect(() => {
-    if (data) {
-      setForm({
-        deliveryFee: String(data.deliveryFeeCents / 100),
-        minOrder: String(data.minOrderCents / 100),
-        leadTimeDefault: String(data.leadTimeDaysDefault),
-      })
-    }
-  }, [data])
+  const [form, setForm] = useSyncedForm(data, (d): FormState => ({
+    deliveryFee: String(d.deliveryFeeCents / 100),
+    minOrder: String(d.minOrderCents / 100),
+    leadTimeDefault: String(d.leadTimeDaysDefault),
+  }))
 
   const saveMutation = useMutation({
     mutationFn: () => {

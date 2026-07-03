@@ -1,13 +1,14 @@
 'use client'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import { PageHeader } from '@/components/layout/page-header'
 import { ApiError } from '@/lib/api/client'
 import { Button } from '@/components/ui/button'
 import { Card, Section } from '@/components/ui/card'
 import { getConfig, updateConfig } from '@/lib/api/escola/config'
+import { useSyncedForm } from '@/lib/use-synced-form'
 
 type FormState = { businessName: string; opensAt: string; closesAt: string; notes: string }
 
@@ -20,7 +21,6 @@ function hhmm(t: string): string {
  */
 export default function EscolaSettingsPage() {
   const qc = useQueryClient()
-  const [form, setForm] = useState<FormState | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
 
@@ -29,16 +29,12 @@ export default function EscolaSettingsPage() {
     queryFn: () => getConfig(),
   })
 
-  useEffect(() => {
-    if (data) {
-      setForm({
-        businessName: data.businessName ?? '',
-        opensAt: hhmm(data.opensAt),
-        closesAt: hhmm(data.closesAt),
-        notes: data.notes ?? '',
-      })
-    }
-  }, [data])
+  const [form, setForm] = useSyncedForm(data, (d): FormState => ({
+    businessName: d.businessName ?? '',
+    opensAt: hhmm(d.opensAt),
+    closesAt: hhmm(d.closesAt),
+    notes: d.notes ?? '',
+  }))
 
   const saveMutation = useMutation({
     mutationFn: () => {

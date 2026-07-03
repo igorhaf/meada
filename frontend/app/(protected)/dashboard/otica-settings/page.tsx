@@ -1,13 +1,14 @@
 'use client'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import { PageHeader } from '@/components/layout/page-header'
 import { ApiError } from '@/lib/api/client'
 import { Button } from '@/components/ui/button'
 import { Card, Section } from '@/components/ui/card'
 import { getConfig, updateConfig } from '@/lib/api/otica/config'
+import { useSyncedForm } from '@/lib/use-synced-form'
 
 type FormState = {
   opensAt: string
@@ -28,7 +29,6 @@ function hhmm(t: string): string {
  */
 export default function OticaSettingsPage() {
   const qc = useQueryClient()
-  const [form, setForm] = useState<FormState | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
 
@@ -37,17 +37,13 @@ export default function OticaSettingsPage() {
     queryFn: () => getConfig(),
   })
 
-  useEffect(() => {
-    if (data) {
-      setForm({
-        opensAt: hhmm(data.opensAt),
-        closesAt: hhmm(data.closesAt),
-        examDurationMinutes: data.examDurationMinutes,
-        minOrder: String(data.minOrderCents / 100),
-        leadTimeDaysDefault: data.leadTimeDaysDefault,
-      })
-    }
-  }, [data])
+  const [form, setForm] = useSyncedForm(data, (d): FormState => ({
+    opensAt: hhmm(d.opensAt),
+    closesAt: hhmm(d.closesAt),
+    examDurationMinutes: d.examDurationMinutes,
+    minOrder: String(d.minOrderCents / 100),
+    leadTimeDaysDefault: d.leadTimeDaysDefault,
+  }))
 
   const saveMutation = useMutation({
     mutationFn: () => {
