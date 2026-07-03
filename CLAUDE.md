@@ -158,9 +158,14 @@ CLAUDE.md guarda só o resumo:
 | `spring-error-handling` | contrato `{error, reason}`, exceções nested por domínio + GlobalExceptionHandler genérico, best-effort nos handlers de tag |
 | `docker-infra` | Dockerfiles multi-stage (dev/builder/prod), compose, estrutura de env (nunca valores) |
 
-- **Lint frontend:** `cd frontend && npm run lint` (ESLint 9 flat config). Baseline conhecida:
-  há avisos históricos de `react-hooks/set-state-in-effect` (padrão de sync de formulário) —
-  não introduzir NOVOS erros; a lista pendente vive em `PADRONIZACAO-LOG.md`.
+- **Lint frontend:** `cd frontend && npm run lint` (ESLint 9 flat config). Estado desde a
+  padronização 2026-07: **0 erros** (os 60 `set-state-in-effect` viraram sync no render via
+  `lib/use-synced-form.ts`); só restam 3 warnings `react-hooks/incompatible-library`
+  (react-hook-form × React Compiler — informativos). NÃO reintroduzir erro.
+- **Formatação frontend:** `cd frontend && npm run format` (Prettier + plugin-tailwindcss +
+  sort-imports; config `.prettierrc.json` espelha o estilo do projeto). Ordem de classes
+  Tailwind e ordem de imports são MECÂNICAS — rodar o comando, não corrigir na mão.
+  `npm run format:check` verifica sem escrever.
 - Não há lint configurado no backend — o gate é `mvn -B clean test` + convenções das skills.
 
 ## DevX local (Docker — fase 0.5)
