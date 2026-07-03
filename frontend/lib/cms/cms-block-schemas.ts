@@ -13,7 +13,7 @@ import type { CmsBlockTypeId } from './cms-block-type'
 
 export type FieldType = 'text' | 'textarea' | 'url' | 'number' | 'color' | 'select' | 'checkbox' | 'repeater'
 
-export interface FieldDef {
+export type FieldDef = {
   key: string
   label: string
   type: FieldType
@@ -24,7 +24,7 @@ export interface FieldDef {
   itemLabel?: string // rótulo do botão "adicionar item"
 }
 
-export interface BlockSchema {
+export type BlockSchema = {
   type: CmsBlockTypeId
   label: string
   description: string

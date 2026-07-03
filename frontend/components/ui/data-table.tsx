@@ -4,14 +4,14 @@ import { useState } from 'react';
 import { Button } from './button';
 import { Skeleton } from './skeleton';
 
-export interface Column<T> {
+export type Column<T> = {
   key: string;
   header: string;
   render?: (row: T) => React.ReactNode;
   className?: string;
 }
 
-interface DataTableProps<T extends { id: string }> {
+type DataTableProps<T extends { id: string }> = {
   data: T[];
   columns: Column<T>[];
   loading?: boolean;

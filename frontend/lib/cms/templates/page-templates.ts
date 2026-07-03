@@ -11,8 +11,8 @@
  * sobrescreve o conteúdo de exemplo. O seletor agrupa por categoria e destaca os afins ao nicho.
  */
 
-import { defaultProps } from '../cms-block-type'
-import type { CmsBlock, CmsBlockTypeId, CmsRow, CmsRowProps } from '../cms-block-type'
+import { defaultProps } from '@/lib/cms/cms-block-type'
+import type { CmsBlock, CmsBlockTypeId, CmsRow, CmsRowProps } from '@/lib/cms/cms-block-type'
 
 let _seq = 0
 function uid(prefix: string): string {
