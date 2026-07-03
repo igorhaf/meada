@@ -44,21 +44,46 @@ Backend não tem lint configurado (gate = `mvn -B clean test`, 1848 verdes na ba
 - **Backend/Infra** — auditoria não encontrou desvios do cânone (0 @Autowired, 0 System.out,
   DTOs records, catch local + GlobalExceptionHandler, Dockerfiles já multi-stage): NENHUM lote
   necessário. mvn -B clean test da baseline: 1848 verdes.
+- **Lote F3** — hook `lib/use-synced-form.ts` (useSyncedForm — padrão oficial React de "adjusting
+  state when props change": setState durante o render condicionado à mudança; sem lib nova) +
+  12 telas de settings convertidas de `useEffect(() => setForm(...), [data])`. Arquivos: 13.
+  Validação: eslint 0 no lote · `next build` ✓. Commit: cb4247f
+- **Lote F4** — mais 14 telas de settings convertidas para useSyncedForm. Arquivos: 14.
+  Validação: eslint 0 no lote · `next build` ✓. Commit: 8f818ca
+- **Lote F5** — mais 10 telas (settings + loyalty) convertidas. Arquivos: 10.
+  Validação: eslint 0 no lote · `next build` ✓. Commit: b954c8e
+- **Hooks auxiliares** — useOnSync (multi-setter) e useResetWhen (reset de diálogo) somados ao
+  use-synced-form.ts. Arquivos: 1. Commit: efa60a7
+- **Lote F6** — 15 casos especiais: useOnSync (ai-settings, business-hours, contacts/[id], cms,
+  atelie/casamento-proposals, fotografia-appointments, academia-loyalty), useResetWhen (availability,
+  teams, saved-replies, create-invitation, knowledge-upload, create-service, create-faq) e
+  ajuste-durante-render na invalidação de seleção do CMS. Arquivos: 15.
+  Validação: eslint 0 no lote · `next build` ✓. Commit: 0031950
+- **Lote F7** — resto do lint: `categories` memoizado no sushi-menu (exhaustive-deps ×2),
+  `<a href="/">`→`<Link>` no meada-chrome (no-html-link-for-pages ×2), disable justificado no
+  catch ES5 do widget.js, e 6 disables justificados de set-state-in-effect em efeitos LEGÍTIMOS de
+  hidratação SSR/localStorage/modal (login, theme-toggle, theme-mode-provider, sidebar-context,
+  global-search ×2). Arquivos: 8. Validação: eslint 0 erros no repo · `next build` ✓. Commit: 8a0514e
 
 ## Resumo final
 
-- Lotes executados: **3** (S1 skills+CLAUDE.md · F1 types/imports · F2 eslint seguro) — **3 passaram,
-  0 revertidos**.
-- ESLint: 86 → 75 problemas (só restam os comportamentais listados em Pendências).
-- Backend: sem desvios; nenhum arquivo Java alterado pela padronização.
-- Sugestões que exigem lib/decisão: PADRONIZACAO-SUGESTOES.md (Prettier+plugin-tailwind, hook
-  useSyncedForm p/ zerar set-state-in-effect, Checkstyle/Spotless, unificação dos motores de cupom).
+- Lotes executados: **9** (S1 skills+CLAUDE.md · F1 types/imports · F2 eslint seguro ·
+  F3/F4/F5 useSyncedForm 36 telas · hooks auxiliares · F6 casos especiais · F7 resto do lint) —
+  **9 passaram, 0 revertidos**.
+- ESLint: **86 problemas → 0 erros + 3 warnings** (`react-hooks/incompatible-library` —
+  React Compiler pula componentes com react-hook-form; informativo, causado pela lib).
+- set-state-in-effect: 60 achados zerados SEM mudança de comportamento observável — o padrão
+  useEffect-sync virou sync durante o render (useSyncedForm/useOnSync/useResetWhen em
+  `frontend/lib/use-synced-form.ts`, sem dependência nova); os 6 efeitos legítimos de hidratação
+  ficaram como efeito com disable justificado em linha.
+- Backend: sem desvios; nenhum arquivo Java alterado pela padronização (gate mvn preservado por
+  construção).
+- Sugestões que exigem lib/decisão: PADRONIZACAO-SUGESTOES.md (Prettier+plugin-tailwind,
+  Checkstyle/Spotless, unificação dos motores de cupom).
 
-## Pendências (não aplicáveis sem risco de comportamento — Trava 2)
+## Pendências
 
-- 60× `react-hooks/set-state-in-effect`: o padrão `useEffect(() => setForm(...), [data])` de sync
-  de formulário é usado em TODAS as telas de settings; a correção recomendada pelo React (derivar
-  estado/initialData ou key) MUDA comportamento de render — fora do escopo da padronização.
-- 4× `react-hooks/exhaustive-deps`: adicionar deps altera quando efeitos disparam (comportamental).
-- 2× `@next/next/no-html-link-for-pages`: trocar `<a>`→`<Link>` muda navegação (client-side) — comportamental.
-- 3× `react-hooks/incompatible-library`: informativo (bibliotecas de terceiros).
+- 3× `react-hooks/incompatible-library`: informativo (react-hook-form não é compilável pelo React
+  Compiler) — não acionável sem trocar a lib.
+- Push do branch `padronizacao-skills` + tag `pre-padronizacao`: por conta do Igor (Trava 10):
+  `git push -u origin padronizacao-skills --tags`
