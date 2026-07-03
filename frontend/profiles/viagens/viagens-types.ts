@@ -16,6 +16,9 @@ export type Config = {
   companyId: string
   businessName: string | null
   notes: string | null
+  tripReminderEnabled: boolean
+  quoteFollowupEnabled: boolean
+  quoteFollowupDays: number
 }
 
 /**
@@ -87,6 +90,9 @@ export type Proposal = {
   openedAt: string
   closedAt: string | null
   statusUpdatedAt: string
+  depositCents: number | null
+  depositPaid: boolean
+  depositPaidAt: string | null
   items: ProposalItem[]
   itinerary: ItineraryDay[]
 }

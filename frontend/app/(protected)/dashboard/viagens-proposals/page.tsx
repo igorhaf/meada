@@ -20,8 +20,10 @@ import {
   listProposals,
   openProposal,
   reorderItineraryDays,
+  updateDeposit,
   updateProposalStatus,
 } from '@/lib/api/viagens/proposals'
+import { useOnSync } from '@/lib/use-synced-form'
 import {
   ALLOWED_NEXT,
   ITEMS_LOCKED,
@@ -107,6 +109,11 @@ export default function ViagensProposalsPage() {
   const [dayError, setDayError] = useState<string | null>(null)
   const [statusTarget, setStatusTarget] = useState<TravelProposalStatusId | null>(null)
   const [statusError, setStatusError] = useState<string | null>(null)
+  const [depositForm, setDepositForm] = useState<{ value: string; paid: boolean }>({
+    value: '',
+    paid: false,
+  })
+  const [depositError, setDepositError] = useState<string | null>(null)
 
   const { data, isPending, isError } = useQuery({
     queryKey: ['viagens-proposals', status, page],
@@ -231,6 +238,26 @@ export default function ViagensProposalsPage() {
     },
   })
 
+  const depositMutation = useMutation({
+    mutationFn: () => {
+      if (!detailId) throw new Error('sem proposta')
+      const cents = depositForm.value === '' ? null : Math.round(Number(depositForm.value) * 100)
+      return updateDeposit(detailId, { depositCents: cents, depositPaid: depositForm.paid })
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['viagens-proposal', detailId] })
+      qc.invalidateQueries({ queryKey: ['viagens-proposals'] })
+      setDepositError(null)
+    },
+    onError: (e) => {
+      if (e instanceof ApiError && e.reason === 'invalid_deposit')
+        setDepositError('Para marcar como recebido, informe um valor de sinal maior que zero.')
+      else if (e instanceof ApiError && e.reason === 'proposal_locked')
+        setDepositError('Esta proposta não aceita mais alteração do sinal.')
+      else setDepositError('Erro ao salvar o sinal.')
+    },
+  })
+
   const statusMutation = useMutation({
     mutationFn: (newStatus: TravelProposalStatusId) => {
       if (!detailId) throw new Error('sem proposta')
@@ -246,6 +273,8 @@ export default function ViagensProposalsPage() {
       setStatusTarget(null)
       if (e instanceof ApiError && e.reason === 'empty_budget')
         setStatusError('Adicione ao menos um item de cotação antes de orçar.')
+      else if (e instanceof ApiError && e.reason === 'deposit_required')
+        setStatusError('Sinal registrado e não recebido — confirme o recebimento antes de fechar.')
       else if (e instanceof ApiError && e.reason === 'invalid_status_transition')
         setStatusError('Transição de status inválida.')
       else setStatusError('Erro ao mudar o status.')
@@ -257,6 +286,15 @@ export default function ViagensProposalsPage() {
   const totalPages = Math.max(1, Math.ceil(total / 50))
   const p = detail.data
   const locked = p ? ITEMS_LOCKED[p.status] : true
+
+  useOnSync(p?.id, () => {
+    if (!p) return
+    setDepositForm({
+      value: p.depositCents != null ? String(p.depositCents / 100) : '',
+      paid: p.depositPaid,
+    })
+    setDepositError(null)
+  })
 
   /** Move o dia no índice `idx` para `idx+delta` e persiste a nova ordem (recomputa dayNumber). */
   function moveDay(days: ItineraryDay[], idx: number, delta: number) {
@@ -337,6 +375,9 @@ export default function ViagensProposalsPage() {
                     <span className="text-xs text-muted-foreground">{prop.destination}</span>
                   )}
                   <StatusBadge status={prop.status} />
+                  {prop.depositCents != null && prop.depositCents > 0 && !prop.depositPaid && (
+                    <Badge variant="warning">Sinal pendente</Badge>
+                  )}
                 </div>
                 <p className="truncate text-xs text-muted-foreground">
                   {prop.startDate ? formatDate(prop.startDate) : 'datas a definir'}
@@ -817,6 +858,68 @@ export default function ViagensProposalsPage() {
                 </form>
               )}
               {dayError && <p className="text-sm text-destructive">{dayError}</p>}
+            </div>
+
+            {/* Sinal/entrada (onda backlog #1 — registro manual até o gateway #50) */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold">Sinal / entrada</h3>
+                {p.depositCents != null && p.depositCents > 0 && (
+                  <Badge variant={p.depositPaid ? 'success' : 'warning'}>
+                    {p.depositPaid ? 'Sinal recebido' : 'Sinal pendente'}
+                  </Badge>
+                )}
+              </div>
+              {locked ? (
+                <p className="text-xs text-muted-foreground">
+                  {p.depositCents != null && p.depositCents > 0
+                    ? `Sinal de ${formatBrl(p.depositCents)} — ${p.depositPaid ? `recebido${p.depositPaidAt ? ` em ${formatDate(p.depositPaidAt)}` : ''}` : 'não recebido'}.`
+                    : 'Sem sinal registrado.'}
+                </p>
+              ) : (
+                <form
+                  className="flex flex-wrap items-end gap-2 rounded-lg border border-dashed border-border p-3"
+                  onSubmit={(e) => {
+                    e.preventDefault()
+                    depositMutation.mutate()
+                  }}
+                >
+                  <div className="w-28">
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                      Valor (R$)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={depositForm.value}
+                      onChange={(e) => setDepositForm((f) => ({ ...f, value: e.target.value }))}
+                      placeholder="0,00"
+                      className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+                    />
+                  </div>
+                  <label className="flex h-8 items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={depositForm.paid}
+                      onChange={(e) => setDepositForm((f) => ({ ...f, paid: e.target.checked }))}
+                    />
+                    Recebido
+                  </label>
+                  <Button
+                    type="submit"
+                    className="h-8 px-3 text-xs"
+                    disabled={depositMutation.isPending}
+                  >
+                    {depositMutation.isPending ? 'Salvando…' : 'Salvar sinal'}
+                  </Button>
+                  <p className="w-full text-xs text-muted-foreground">
+                    Com sinal registrado e não recebido, o fechamento fica bloqueado até a equipe
+                    confirmar o recebimento (Pix confirmado à mão até o pagamento online chegar).
+                  </p>
+                </form>
+              )}
+              {depositError && <p className="text-sm text-destructive">{depositError}</p>}
             </div>
 
             {/* Status */}

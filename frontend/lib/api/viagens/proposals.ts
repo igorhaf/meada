@@ -177,3 +177,16 @@ export function updateProposalStatus(
     body: JSON.stringify({ newStatus }),
   })
 }
+
+export type DepositInput = {
+  depositCents: number | null
+  depositPaid: boolean
+}
+
+/** Registra o sinal/entrada e/ou marca como recebido (onda #1 — manual até o gateway #50). */
+export function updateDeposit(id: string, input: DepositInput): Promise<Proposal> {
+  return apiFetch<Proposal>(`/api/viagens/proposals/${id}/deposit`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  })
+}

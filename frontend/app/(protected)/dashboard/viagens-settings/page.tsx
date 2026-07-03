@@ -9,7 +9,13 @@ import { Card, Section } from '@/components/ui/card'
 import { getConfig, updateConfig } from '@/lib/api/viagens/config'
 import { useSyncedForm } from '@/lib/use-synced-form'
 
-type FormState = { businessName: string; notes: string }
+type FormState = {
+  businessName: string
+  notes: string
+  tripReminderEnabled: boolean
+  quoteFollowupEnabled: boolean
+  quoteFollowupDays: string
+}
 
 /**
  * Configurações do ViagensBot (camada 8.18): nome da agência + notas. SEM horário/slot — a proposta
@@ -28,12 +34,21 @@ export default function ViagensSettingsPage() {
   const [form, setForm] = useSyncedForm(data, (d): FormState => ({
     businessName: d.businessName ?? '',
     notes: d.notes ?? '',
+    tripReminderEnabled: d.tripReminderEnabled ?? true,
+    quoteFollowupEnabled: d.quoteFollowupEnabled ?? true,
+    quoteFollowupDays: String(d.quoteFollowupDays ?? 2),
   }))
 
   const saveMutation = useMutation({
     mutationFn: () => {
       if (!form) throw new Error('form não carregado')
-      return updateConfig({ businessName: form.businessName || null, notes: form.notes || null })
+      return updateConfig({
+        businessName: form.businessName || null,
+        notes: form.notes || null,
+        tripReminderEnabled: form.tripReminderEnabled,
+        quoteFollowupEnabled: form.quoteFollowupEnabled,
+        quoteFollowupDays: Math.max(1, Math.min(30, Number(form.quoteFollowupDays) || 2)),
+      })
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['viagens-config'] })
@@ -85,6 +100,62 @@ export default function ViagensSettingsPage() {
                     value={form.notes}
                     onChange={(e) => setForm((f) => f && { ...f, notes: e.target.value })}
                     rows={3}
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+              </div>
+            </Section>
+
+            <Section title="Automações (lembretes e follow-up)">
+              <div className="space-y-4">
+                <label className="flex items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={form.tripReminderEnabled}
+                    className="mt-0.5"
+                    onChange={(e) =>
+                      setForm((f) => f && { ...f, tripReminderEnabled: e.target.checked })
+                    }
+                  />
+                  <span>
+                    Lembretes de viagem pelo WhatsApp (propostas <strong>fechadas</strong> com
+                    datas)
+                    <span className="block text-xs text-muted-foreground">
+                      D-7 checklist de documentos/bagagem · dia do embarque &quot;boa viagem&quot; ·
+                      2 dias após a volta pedido de avaliação/indicação. Mensagens fixas (não passam
+                      pela IA), 1x por proposta/data — remarcar a viagem reenvia.
+                    </span>
+                  </span>
+                </label>
+                <label className="flex items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={form.quoteFollowupEnabled}
+                    className="mt-0.5"
+                    onChange={(e) =>
+                      setForm((f) => f && { ...f, quoteFollowupEnabled: e.target.checked })
+                    }
+                  />
+                  <span>
+                    Follow-up automático de cotação sem resposta
+                    <span className="block text-xs text-muted-foreground">
+                      Cutuca com gentileza a proposta <strong>orçada</strong> parada, 1x por
+                      orçamento (re-orçar rearma).
+                    </span>
+                  </span>
+                </label>
+                <div className="w-40">
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                    Dias até o follow-up
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={30}
+                    value={form.quoteFollowupDays}
+                    onChange={(e) =>
+                      setForm((f) => f && { ...f, quoteFollowupDays: e.target.value })
+                    }
                     className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                   />
                 </div>
