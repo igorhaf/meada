@@ -144,6 +144,25 @@ paralelizar DENTRO da própria rodada, não de abrir sessões extras.
   Smoke E2E real: login via `POST {SUPABASE_URL}/auth/v1/token?grant_type=password` → token →
   bater no backend ou no PostgREST (`/rest/v1/...`).
 
+## Padrões de código (skills em .claude/skills/)
+
+O padrão canônico de cada camada vive em skills — consulte ANTES de criar/editar código; o
+CLAUDE.md guarda só o resumo:
+
+| Skill | Cobre |
+|-------|-------|
+| `frontend-components` | App Router, Server×Client, `type` (não interface), imports `@/`, nomenclatura, FormState |
+| `tailwind-styling` | tokens do tema (não cor crua), ordem de classes, template literal × `cn()`, primitivos de ui/ |
+| `nextjs-data-fetching` | TanStack Query (nunca fetch em useEffect), clients em lib/api, invalidação, erro por `reason` |
+| `spring-controllers` | pacote por feature, DI por construtor (zero @Autowired), records como DTO, guard de perfil, REST |
+| `spring-error-handling` | contrato `{error, reason}`, exceções nested por domínio + GlobalExceptionHandler genérico, best-effort nos handlers de tag |
+| `docker-infra` | Dockerfiles multi-stage (dev/builder/prod), compose, estrutura de env (nunca valores) |
+
+- **Lint frontend:** `cd frontend && npm run lint` (ESLint 9 flat config). Baseline conhecida:
+  há avisos históricos de `react-hooks/set-state-in-effect` (padrão de sync de formulário) —
+  não introduzir NOVOS erros; a lista pendente vive em `PADRONIZACAO-LOG.md`.
+- Não há lint configurado no backend — o gate é `mvn -B clean test` + convenções das skills.
+
 ## DevX local (Docker — fase 0.5)
 
 O dev local roda em **docker-compose** (a porta 80 era interceptada pelo Apache → 403 em
