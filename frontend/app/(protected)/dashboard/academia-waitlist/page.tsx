@@ -119,7 +119,7 @@ export default function AcademiaWaitlistPage() {
             <option value="">Selecione uma aula…</option>
             {classItems.map((c) => (
               <option key={c.id} value={c.id}>
-                {dayOfWeekLabel(c.dayOfWeek)} {formatTime(c.startTime)} · {c.modality} "{c.name}" — {c.remainingSlots} vaga(s)
+                {dayOfWeekLabel(c.dayOfWeek)} {formatTime(c.startTime)} · {c.modality} &quot;{c.name}&quot; — {c.remainingSlots} vaga(s)
               </option>
             ))}
           </select>

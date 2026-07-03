@@ -16,7 +16,6 @@ import type {
   ImageTextSplitProps,
   MapProps,
   MarqueeProps,
-  MeadaHeroProps,
   PackagesProps,
   QuoteProps,
   ServicesProps,

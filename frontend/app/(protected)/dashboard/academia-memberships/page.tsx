@@ -249,7 +249,7 @@ export default function AcademiaMembershipsPage() {
                   <label key={c.id} className={`flex items-center gap-2 rounded px-2 py-1 text-sm ${full ? 'opacity-50' : 'hover:bg-muted/40'}`}>
                     <input type="checkbox" disabled={full} checked={form.classIds.includes(c.id)}
                       onChange={() => toggleClassId(c.id)} />
-                    <span>{dayOfWeekLabel(c.dayOfWeek)} {formatTime(c.startTime)} · {c.modality} "{c.name}"</span>
+                    <span>{dayOfWeekLabel(c.dayOfWeek)} {formatTime(c.startTime)} · {c.modality} &quot;{c.name}&quot;</span>
                     <span className="ml-auto text-xs text-muted-foreground">{c.remainingSlots} vaga(s)</span>
                   </label>
                 )

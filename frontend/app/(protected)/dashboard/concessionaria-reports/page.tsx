@@ -8,10 +8,7 @@ import { Card, Section } from '@/components/ui/card'
 import { getReportSummary } from '@/lib/api/concessionaria/reports'
 import { LEAD_STATUSES } from '@/profiles/concessionaria/concessionaria-lead-status'
 import { TEST_DRIVE_STATUSES } from '@/profiles/concessionaria/concessionaria-test-drive-status'
-import {
-  formatBrl,
-  type ConcessionariaReportRow,
-} from '@/profiles/concessionaria/concessionaria-types'
+import { formatBrl } from '@/profiles/concessionaria/concessionaria-types'
 
 const WINDOWS = [3, 6, 12, 24]
 

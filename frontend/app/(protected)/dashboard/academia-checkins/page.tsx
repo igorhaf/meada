@@ -109,7 +109,7 @@ export default function AcademiaCheckinsPage() {
           <option value="">Todas as aulas</option>
           {classItems.map((c) => (
             <option key={c.id} value={c.id}>
-              {dayOfWeekLabel(c.dayOfWeek)} {formatTime(c.startTime)} · {c.modality} "{c.name}"
+              {dayOfWeekLabel(c.dayOfWeek)} {formatTime(c.startTime)} · {c.modality} &quot;{c.name}&quot;
             </option>
           ))}
         </select>

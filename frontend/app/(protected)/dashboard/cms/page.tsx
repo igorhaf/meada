@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
 import { Section } from '@/components/ui/card'
 import { FieldRenderer } from '@/components/cms/field-renderer'
-import { renderCmsBlock, cmsShellStyle, RowSection } from '@/components/cms/cms-render'
+import { cmsShellStyle, RowSection } from '@/components/cms/cms-render'
 import { getMe } from '@/lib/api/me'
 import { themesForProfile, recommendedArchetypes } from '@/lib/cms/themes/theme-catalog'
 import { pageTemplateById, templatesForProfile, TEMPLATE_CATEGORIES } from '@/lib/cms/templates/page-templates'
@@ -247,7 +247,7 @@ export default function CmsEditorPage() {
 
   // ---- ações da árvore (linha / coluna / bloco) ----
   function toggleRow(rowId: string) {
-    setExpanded((s) => { const next = new Set(s); next.has(rowId) ? next.delete(rowId) : next.add(rowId); return next })
+    setExpanded((s) => { const next = new Set(s); if (next.has(rowId)) next.delete(rowId); else next.add(rowId); return next })
   }
   function handleAddRow() {
     setTree((t) => {
