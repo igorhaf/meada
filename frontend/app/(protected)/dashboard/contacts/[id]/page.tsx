@@ -16,6 +16,7 @@ import {
   getContact,
   getContactConversations,
   setContactBlocked,
+  updateContactBirthDate,
   updateContactName,
 } from '@/lib/supabase/contacts'
 
@@ -32,6 +33,8 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
   const queryClient = useQueryClient()
   const [nameDraft, setNameDraft] = useState<string>('')
   const [nameSaved, setNameSaved] = useState(false)
+  const [birthDraft, setBirthDraft] = useState<string>('')
+  const [birthSaved, setBirthSaved] = useState(false)
   // LGPD (camada 5.24): diálogo de exclusão com confirmação por digitação.
   const [eraseOpen, setEraseOpen] = useState(false)
   const [eraseConfirm, setEraseConfirm] = useState('')
@@ -59,10 +62,11 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
     enabled: isTenant,
   })
 
-  // Sincroniza o rascunho do nome quando o contato carrega.
+  // Sincroniza os rascunhos (nome + nascimento) quando o contato carrega.
   useEffect(() => {
     if (contact) {
       setNameDraft(contact.name ?? '')
+      setBirthDraft(contact.birthDate ?? '')
     }
   }, [contact])
 
@@ -75,6 +79,16 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
       setTimeout(() => setNameSaved(false), 3000)
     },
     onError: (err) => console.error('updateContactName failed:', err),
+  })
+
+  const birthMutation = useMutation({
+    mutationFn: (birthDate: string | null) => updateContactBirthDate(id, birthDate),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contact', id] })
+      setBirthSaved(true)
+      setTimeout(() => setBirthSaved(false), 3000)
+    },
+    onError: (err) => console.error('updateContactBirthDate failed:', err),
   })
 
   const blockMutation = useMutation({
@@ -185,6 +199,33 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
           <div>
             <dt className="text-xs uppercase text-muted-foreground">Telefone</dt>
             <dd className="text-sm font-medium">{contact.phoneNumber}</dd>
+          </div>
+
+          {/* Data de nascimento (migration 79): opcional; hoje alimenta a saudação automática
+              de aniversário do perfil academia. Limpar o campo remove a data. */}
+          <div>
+            <label htmlFor="birth-date" className="mb-1 block text-sm font-medium">
+              Data de nascimento
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                id="birth-date"
+                type="date"
+                value={birthDraft}
+                onChange={(e) => {
+                  setBirthDraft(e.target.value)
+                  setBirthSaved(false)
+                }}
+                className="rounded-md border border-border px-3 py-2 text-sm"
+              />
+              <Button
+                onClick={() => birthMutation.mutate(birthDraft || null)}
+                disabled={birthMutation.isPending || birthDraft === (contact.birthDate ?? '')}
+              >
+                {birthMutation.isPending ? 'Salvando…' : 'Salvar'}
+              </Button>
+              {birthSaved && <span className="text-sm text-green-600">Salvo!</span>}
+            </div>
           </div>
 
           {/* Canais (#74 unificação multi-canal): mostra os canais em que o contato existe

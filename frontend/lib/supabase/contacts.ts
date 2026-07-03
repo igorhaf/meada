@@ -15,6 +15,9 @@ export type Contact = {
   // (ex.: { whatsapp: '+5511...', web: 'sess-abc' }). Opcional — só o detalhe (getContact) o
   // carrega; a lista e os mutators (rename/block) não, para não over-fetchar.
   channels?: Record<string, string> | null
+  // Data de nascimento "YYYY-MM-DD" (migration 79 — coluna core; hoje usada pela saudação de
+  // aniversário do perfil academia). Opcional — só o detalhe a carrega.
+  birthDate?: string | null
 }
 
 /** Conversa resumida de um contato (para a lista no detalhe). */
@@ -58,7 +61,7 @@ export async function getContact(id: string): Promise<Contact> {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('contacts')
-    .select('id, phone_number, name, blocked, created_at, channels')
+    .select('id, phone_number, name, blocked, created_at, channels, birth_date')
     .eq('id', id)
     .single()
 
@@ -73,6 +76,7 @@ export async function getContact(id: string): Promise<Contact> {
     blocked: data.blocked,
     createdAt: data.created_at,
     channels: (data.channels ?? null) as Record<string, string> | null,
+    birthDate: data.birth_date ?? null,
   }
 }
 
@@ -121,6 +125,22 @@ export async function updateContactName(id: string, name: string): Promise<Conta
     name: data.name,
     blocked: data.blocked,
     createdAt: data.created_at,
+  }
+}
+
+/**
+ * Edita a data de nascimento de um contato (migration 79). UPDATE { birth_date } via SDK + RLS.
+ * null limpa a data. Usada pela saudação de aniversário do perfil academia (1 mensagem por ano).
+ */
+export async function updateContactBirthDate(id: string, birthDate: string | null): Promise<void> {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('contacts')
+    .update({ birth_date: birthDate })
+    .eq('id', id)
+
+  if (error) {
+    throw error
   }
 }
 

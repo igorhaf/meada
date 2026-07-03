@@ -47,7 +47,11 @@ export function setArtUrl(id: string, artUrl: string): Promise<Order> {
   })
 }
 
-/** Marca a arte do pedido como aprovada (artApproved = true) — libera o avanço pra em_producao. */
+/** Marca a arte do pedido como aprovada (artApproved = true) — libera o avanço pra em_producao.
+ * O backend expõe a aprovação no MESMO endpoint /art, via { approve: true } (não há /art/approve). */
 export function approveArt(id: string): Promise<Order> {
-  return apiFetch<Order>(`/api/papelaria/orders/${id}/art/approve`, { method: 'PATCH' })
+  return apiFetch<Order>(`/api/papelaria/orders/${id}/art`, {
+    method: 'PATCH',
+    body: JSON.stringify({ approve: true }),
+  })
 }
