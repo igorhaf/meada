@@ -28,4 +28,19 @@ public class SushiRestaurantConfigRepository {
                 companyId)
             .stream().findFirst().orElse(SushiRestaurantConfig.ZERO);
     }
+
+    /** Upsert da config (insert ou update por company_id). Mantém updated_at. */
+    public SushiRestaurantConfig upsert(UUID companyId, int deliveryFeeCents, int minOrderCents,
+                                        boolean schedulingEnabled) {
+        jdbcTemplate.update(
+            "insert into sushi_restaurant_config "
+                + "(company_id, delivery_fee_cents, min_order_cents, scheduling_enabled) "
+                + "values (?, ?, ?, ?) "
+                + "on conflict (company_id) do update set "
+                + "delivery_fee_cents = excluded.delivery_fee_cents, "
+                + "min_order_cents = excluded.min_order_cents, "
+                + "scheduling_enabled = excluded.scheduling_enabled, updated_at = now()",
+            companyId, deliveryFeeCents, minOrderCents, schedulingEnabled);
+        return findByCompany(companyId);
+    }
 }
