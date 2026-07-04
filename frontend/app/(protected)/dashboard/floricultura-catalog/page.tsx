@@ -34,9 +34,16 @@ type FormState = {
   description: string
   price: string // reais
   category: FloriculturaCategoryId
+  suggestible: boolean
 }
 
-const EMPTY_FORM: FormState = { name: '', description: '', price: '', category: 'buques' }
+const EMPTY_FORM: FormState = {
+  name: '',
+  description: '',
+  price: '',
+  category: 'buques',
+  suggestible: false,
+}
 
 type OptionForm = { groupLabel: string; optionLabel: string; delta: string } // delta em reais
 const EMPTY_OPTION: OptionForm = { groupLabel: '', optionLabel: '', delta: '0' }
@@ -70,6 +77,7 @@ export default function FloriculturaCatalogPage() {
         description: form.description || null,
         priceCents: Math.round(Number(form.price) * 100),
         category: form.category,
+        suggestible: form.suggestible,
       }
       if (editing) return updateCatalogItem(editing.id, payload)
       return createCatalogItem(payload)
@@ -119,6 +127,7 @@ export default function FloriculturaCatalogPage() {
       description: it.description ?? '',
       price: String(it.priceCents / 100),
       category: it.category,
+      suggestible: it.suggestible,
     })
     setFormError(null)
     setModalOpen(true)
@@ -171,6 +180,7 @@ export default function FloriculturaCatalogPage() {
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
                             <span className="font-medium">{it.name}</span>
+                            {it.suggestible && <Badge variant="warning">sugerível pela IA</Badge>}
                             {!it.available && <Badge variant="muted">indisponível</Badge>}
                             {it.options.length > 0 && (
                               <Badge variant="info">{it.options.length} opç.</Badge>
@@ -295,6 +305,21 @@ export default function FloriculturaCatalogPage() {
               </select>
             </div>
           </div>
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={form.suggestible}
+              className="mt-0.5"
+              onChange={(e) => setForm((f) => ({ ...f, suggestible: e.target.checked }))}
+            />
+            <span>
+              Sugerível pela IA (upsell)
+              <span className="block text-xs text-muted-foreground">
+                A IA pode oferecer este item como adicional no fechamento do pedido (cartão
+                especial, chocolate, vaso) — sempre com o preço do catálogo.
+              </span>
+            </span>
+          </label>
           {formError && <p className="text-sm text-destructive">{formError}</p>}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>

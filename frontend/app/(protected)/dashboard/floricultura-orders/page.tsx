@@ -76,7 +76,23 @@ function OrderCard({
           ))}
         </ul>
         <p className="text-xs text-muted-foreground">{order.deliveryAddress}</p>
-        <p className="text-sm font-semibold tabular-nums">{formatBrl(order.totalCents)}</p>
+        {(order.anonymous || order.couponCode || order.loyaltyApplied) && (
+          <div className="flex flex-wrap gap-1 text-xs">
+            {order.anonymous && (
+              <Badge variant="warning">PRESENTE SURPRESA — não revelar remetente</Badge>
+            )}
+            {order.couponCode && <Badge variant="success">cupom {order.couponCode}</Badge>}
+            {order.loyaltyApplied && <Badge variant="success">fidelidade</Badge>}
+          </div>
+        )}
+        <p className="text-sm font-semibold tabular-nums">
+          {formatBrl(order.totalCents)}
+          {order.discountCents > 0 && (
+            <span className="ml-1 text-xs font-normal text-muted-foreground">
+              (−{formatBrl(order.discountCents)})
+            </span>
+          )}
+        </p>
         <div className="flex gap-1 pt-1">
           {awaiting ? (
             <>

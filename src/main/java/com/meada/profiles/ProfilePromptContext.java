@@ -715,9 +715,13 @@ public class ProfilePromptContext {
         }
         if ("floricultura".equals(profileId)) {
             // floricultura (8.5): persona + catálogo (itens + opções de cor/tamanho) + taxa/mínimo +
-            // instruções da tag <pedido_flor> (com data de entrega + destinatário + cartão). IGNORA
-            // conversationId (contexto é o catálogo). Pedido nasce 'aguardando' (gate de aceite humano).
-            return persona + floriculturaCatalogCache.catalogSegment(companyId);
+            // instruções da tag <pedido_flor> (com data de entrega + destinatário + cartão). ONDA 1
+            // do backlog: resolve o CONTATO da conversa pro histórico de destinatários (#3 —
+            // recompra), cupom (#7), upsell controlado (#4) e presente surpresa (#13). Pedido nasce
+            // 'aguardando' (gate de aceite humano).
+            UUID contactId = conversationId == null ? null
+                : conversationRepository.findContactIdByConversation(conversationId).orElse(null);
+            return persona + floriculturaCatalogCache.catalogSegment(companyId, contactId);
         }
         if ("lavanderia".equals(profileId)) {
             // lavanderia (8.10): persona + catálogo de serviços (com turnaround_days) + opções + taxa/

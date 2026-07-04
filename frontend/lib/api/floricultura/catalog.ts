@@ -8,12 +8,16 @@ export type CreateCatalogItemInput = {
   priceCents: number
   category: FloriculturaCategoryId
   available?: boolean
+  suggestible?: boolean
 }
 
-export type UpdateCatalogItemInput = Partial<CreateCatalogItemInput> & { available?: boolean }
+export type UpdateCatalogItemInput = Partial<CreateCatalogItemInput> & {
+  available?: boolean
+  suggestible?: boolean
+}
 
 export function listCatalog(
-  opts: { category?: string; available?: boolean } = {},
+  opts: { category?: string; available?: boolean; suggestible?: boolean } = {},
 ): Promise<{ items: CatalogItem[] }> {
   const p = new URLSearchParams()
   if (opts.category) p.set('category', opts.category)
@@ -60,7 +64,10 @@ export type CreateOptionInput = {
   sortOrder?: number
 }
 
-export type UpdateOptionInput = Partial<CreateOptionInput> & { available?: boolean }
+export type UpdateOptionInput = Partial<CreateOptionInput> & {
+  available?: boolean
+  suggestible?: boolean
+}
 
 export function listOptions(itemId: string): Promise<{ items: CatalogOption[] }> {
   return apiFetch<{ items: CatalogOption[] }>(`/api/floricultura/catalog/${itemId}/options`)

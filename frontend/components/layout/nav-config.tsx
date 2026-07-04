@@ -436,6 +436,8 @@ const FLORICULTURA_GROUP: NavGroup = {
   items: [
     { label: 'Catálogo', href: '/dashboard/floricultura-catalog', icon: Flower2 },
     { label: 'Pedidos', href: '/dashboard/floricultura-orders', icon: ClipboardList },
+    { label: 'Cupons', href: '/dashboard/floricultura-coupons', icon: Ticket },
+    { label: 'Fidelidade', href: '/dashboard/floricultura-loyalty', icon: Award },
     { label: 'Configurações', href: '/dashboard/floricultura-settings', icon: Settings },
   ],
 }

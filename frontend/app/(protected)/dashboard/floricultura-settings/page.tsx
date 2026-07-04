@@ -10,7 +10,11 @@ import { ApiError } from '@/lib/api/client'
 import { getConfig, updateConfig } from '@/lib/api/floricultura/config'
 import { useSyncedForm } from '@/lib/use-synced-form'
 
-type FormState = { deliveryFee: string; minOrder: string } // reais
+type FormState = {
+  deliveryFee: string // reais
+  minOrder: string // reais
+  deliveryReminderEnabled: boolean
+}
 
 /** Configurações do FloriculturaBot (delivery): taxa de entrega + valor mínimo do pedido (em R$). */
 export default function FloriculturaSettingsPage() {
@@ -26,6 +30,7 @@ export default function FloriculturaSettingsPage() {
   const [form, setForm] = useSyncedForm(data, (d): FormState => ({
     deliveryFee: String(d.deliveryFeeCents / 100),
     minOrder: String(d.minOrderCents / 100),
+    deliveryReminderEnabled: d.deliveryReminderEnabled ?? true,
   }))
 
   const saveMutation = useMutation({
@@ -34,6 +39,7 @@ export default function FloriculturaSettingsPage() {
       return updateConfig({
         deliveryFeeCents: Math.max(0, Math.round(Number(form.deliveryFee || 0) * 100)),
         minOrderCents: Math.max(0, Math.round(Number(form.minOrder || 0) * 100)),
+        deliveryReminderEnabled: form.deliveryReminderEnabled,
       })
     },
     onSuccess: () => {
@@ -97,6 +103,26 @@ export default function FloriculturaSettingsPage() {
                   />
                 </div>
               </div>
+            </Section>
+
+            <Section title="Automações">
+              <label className="flex items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={form.deliveryReminderEnabled}
+                  className="mt-0.5"
+                  onChange={(e) =>
+                    setForm((f) => f && { ...f, deliveryReminderEnabled: e.target.checked })
+                  }
+                />
+                <span>
+                  Confirmação de entrega na véspera
+                  <span className="block text-xs text-muted-foreground">
+                    O comprador recebe um aviso no dia anterior confirmando endereço e período —
+                    corta entrega furada.
+                  </span>
+                </span>
+              </label>
             </Section>
 
             {error && <p className="text-sm text-destructive">{error}</p>}
