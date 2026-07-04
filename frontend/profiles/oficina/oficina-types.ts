@@ -32,6 +32,8 @@ export type OficinaConfig = {
   companyId: string
   opensAt: string
   closesAt: string
+  returnReminderEnabled: boolean
+  returnReminderDays: number
 }
 
 /** Tipo de item da OS. */
@@ -100,4 +102,17 @@ export function formatDateTime(iso: string): string {
 
 export function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('pt-BR')
+}
+
+/** Item do catálogo de peças/serviços tabelados (onda Oficina 1, backlog #1 — espelha OficinaCatalogItem). */
+export type OficinaCatalogItem = {
+  id: string
+  companyId: string
+  name: string
+  category: string | null
+  unitPriceCents: number
+  active: boolean
+  notes: string | null
+  createdAt: string
+  updatedAt: string
 }

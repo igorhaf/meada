@@ -355,6 +355,7 @@ const OFICINA_GROUP: NavGroup = {
     { label: 'Mecânicos', href: '/dashboard/oficina-mechanics', icon: Wrench },
     { label: 'Veículos', href: '/dashboard/oficina-vehicles', icon: Car },
     { label: 'Ordens', href: '/dashboard/oficina-orders', icon: ClipboardCheck },
+    { label: 'Catálogo', href: '/dashboard/oficina-catalog', icon: Package },
     { label: 'Configurações', href: '/dashboard/oficina-settings', icon: Settings },
   ],
 }

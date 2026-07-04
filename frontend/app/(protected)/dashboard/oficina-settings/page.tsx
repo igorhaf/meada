@@ -10,7 +10,12 @@ import { ApiError } from '@/lib/api/client'
 import { getConfig, updateConfig } from '@/lib/api/oficina/config'
 import { useSyncedForm } from '@/lib/use-synced-form'
 
-type FormState = { opensAt: string; closesAt: string }
+type FormState = {
+  opensAt: string
+  closesAt: string
+  returnReminderEnabled: boolean
+  returnReminderDays: string
+}
 
 function hhmm(t: string): string {
   return t?.slice(0, 5) ?? ''
@@ -33,12 +38,18 @@ export default function OficinaSettingsPage() {
   const [form, setForm] = useSyncedForm(data, (d): FormState => ({
     opensAt: hhmm(d.opensAt),
     closesAt: hhmm(d.closesAt),
+    returnReminderEnabled: d.returnReminderEnabled ?? true,
+    returnReminderDays: String(d.returnReminderDays ?? 180),
   }))
 
   const saveMutation = useMutation({
     mutationFn: () => {
       if (!form) throw new Error('form não carregado')
-      return updateConfig(form)
+      return updateConfig({
+        ...form,
+        returnReminderEnabled: form.returnReminderEnabled,
+        returnReminderDays: Math.max(30, Math.min(730, Number(form.returnReminderDays) || 180)),
+      })
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['oficina-config'] })
@@ -108,6 +119,43 @@ export default function OficinaSettingsPage() {
               O horário é apenas <strong>informativo</strong> — a oficina trabalha por ordem de
               serviço, não por agendamento de horário.
             </p>
+
+            <Section title="Lembrete de retorno/revisão">
+              <div className="space-y-4">
+                <label className="flex items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={form.returnReminderEnabled}
+                    className="mt-0.5"
+                    onChange={(e) =>
+                      setForm((f) => f && { ...f, returnReminderEnabled: e.target.checked })
+                    }
+                  />
+                  <span>
+                    Chamar o cliente de volta quando vencer o retorno sugerido
+                    <span className="block text-xs text-muted-foreground">
+                      A entrega da OS marca o retorno (hoje + janela abaixo); no vencimento o
+                      cliente recebe &quot;hora da revisão?&quot; — 1x por OS.
+                    </span>
+                  </span>
+                </label>
+                <div className="w-44">
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                    Dias até o retorno sugerido
+                  </label>
+                  <input
+                    type="number"
+                    min={30}
+                    max={730}
+                    value={form.returnReminderDays}
+                    onChange={(e) =>
+                      setForm((f) => f && { ...f, returnReminderDays: e.target.value })
+                    }
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+              </div>
+            </Section>
 
             {error && <p className="text-sm text-destructive">{error}</p>}
             {saved && <p className="text-sm text-emerald-600">Configurações salvas.</p>}
