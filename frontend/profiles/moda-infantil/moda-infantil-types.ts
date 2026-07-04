@@ -75,6 +75,8 @@ export type Order = {
   contactName: string | null
   contactPhone: string | null
   items: OrderItem[]
+  discountCents: number
+  couponCode: string | null
 }
 
 /** Colunas do Kanban (status em andamento) na ordem do fluxo. */
@@ -116,4 +118,17 @@ export const FULFILLMENT_LABEL: Record<Fulfillment, string> = {
 /** Formata centavos em R$ pt-BR. */
 export function formatBrl(cents: number): string {
   return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
+
+/** Cupom de desconto gerido pelo tenant (onda 1 — motor unificado). */
+export type Coupon = {
+  id: string
+  code: string
+  kind: 'percent' | 'fixed'
+  value: number
+  minOrderCents: number
+  maxUses: number | null
+  uses: number
+  validUntil: string | null
+  active: boolean
 }

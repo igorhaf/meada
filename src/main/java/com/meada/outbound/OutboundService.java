@@ -111,6 +111,8 @@ public class OutboundService {
     private final com.meada.profiles.pet.appointments.ConfirmacaoPetHandler confirmacaoPetHandler;
     private final com.meada.profiles.otica.appointments.ConfirmacaoExameHandler confirmacaoExameHandler;
     private final com.meada.profiles.nutri.appointments.ConfirmacaoNutriHandler confirmacaoNutriHandler;
+    private final com.meada.profiles.modainfantil.orders.AvisoEstoqueModaHandler avisoEstoqueModaHandler;
+    private final com.meada.profiles.lingerie.orders.AvisoEstoqueLingerieHandler avisoEstoqueLingerieHandler;
     // Camada 8.2 (perfil eventos): pós-processa <proposta_evento> (abre proposta) e <aprovacao_proposta> (muta estado).
     private final com.meada.profiles.eventos.proposals.PropostaEventoConfirmHandler propostaEventoConfirmHandler;
     private final com.meada.profiles.eventos.proposals.AprovacaoPropostaHandler aprovacaoPropostaHandler;
@@ -254,6 +256,8 @@ public class OutboundService {
                            com.meada.profiles.pet.appointments.ConfirmacaoPetHandler confirmacaoPetHandler,
                            com.meada.profiles.otica.appointments.ConfirmacaoExameHandler confirmacaoExameHandler,
                            com.meada.profiles.nutri.appointments.ConfirmacaoNutriHandler confirmacaoNutriHandler,
+                           com.meada.profiles.modainfantil.orders.AvisoEstoqueModaHandler avisoEstoqueModaHandler,
+                           com.meada.profiles.lingerie.orders.AvisoEstoqueLingerieHandler avisoEstoqueLingerieHandler,
                            com.meada.profiles.eventos.proposals.PropostaEventoConfirmHandler propostaEventoConfirmHandler,
                            com.meada.profiles.eventos.proposals.AprovacaoPropostaHandler aprovacaoPropostaHandler,
                            com.meada.profiles.estetica.appointments.AgendamentoEsteticaConfirmHandler agendamentoEsteticaConfirmHandler,
@@ -326,6 +330,8 @@ public class OutboundService {
         this.confirmacaoPetHandler = confirmacaoPetHandler;
         this.confirmacaoExameHandler = confirmacaoExameHandler;
         this.confirmacaoNutriHandler = confirmacaoNutriHandler;
+        this.avisoEstoqueModaHandler = avisoEstoqueModaHandler;
+        this.avisoEstoqueLingerieHandler = avisoEstoqueLingerieHandler;
         this.propostaEventoConfirmHandler = propostaEventoConfirmHandler;
         this.aprovacaoPropostaHandler = aprovacaoPropostaHandler;
         this.agendamentoEsteticaConfirmHandler = agendamentoEsteticaConfirmHandler;
@@ -492,6 +498,10 @@ public class OutboundService {
         toSend = maybeProcessConfirmacaoExame(event, conversationId, toSend);
         // Onda nutri 1: <confirmacao_nutri> reflete o SIM/desmarcar do lembrete de consulta.
         toSend = maybeProcessConfirmacaoNutri(event, conversationId, toSend);
+        // Onda moda_infantil 1: <aviso_estoque_moda> registra o avise-me quando voltar.
+        toSend = maybeProcessAvisoEstoqueModa(event, conversationId, toSend);
+        // Onda lingerie 1: <aviso_estoque_lingerie> registra o avise-me quando voltar.
+        toSend = maybeProcessAvisoEstoqueLingerie(event, conversationId, toSend);
         // Camada 8.2 (perfil eventos): <proposta_evento> abre a proposta; <aprovacao_proposta> muta o
         // estado da proposta orçada. Encadeados (perfil é único; só um age).
         toSend = maybeProcessPropostaEvento(event, conversationId, toSend);
@@ -1141,6 +1151,54 @@ public class OutboundService {
             confirmacaoNutriHandler.parseAndApply(event.companyId(), conversationId, contactId.get(), reply);
         }
         String stripped = confirmacaoNutriHandler.stripConfirmacaoTag(reply);
+        return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
+            aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
+            aiResponse.schedulingIntent(), aiResponse.insights());
+    }
+
+
+    /**
+     * Caso o tenant seja perfil 'moda_infantil' (onda 1) e a resposta da IA contenha a tag
+     * {@code <aviso_estoque_moda>}, registra o avise-me da variante esgotada para o contato da
+     * conversa e devolve um AiResponse com a tag removida; senão devolve o original. Best-effort.
+     */
+    private AiResponse maybeProcessAvisoEstoqueModa(MessageInboundProcessedEvent event,
+                                                    UUID conversationId, AiResponse aiResponse) {
+        String reply = aiResponse.reply();
+        if (reply == null || !avisoEstoqueModaHandler.hasTag(reply)) {
+            return aiResponse;
+        }
+        if (!"moda_infantil".equals(companyProfileRepository.findProfileId(event.companyId()))) {
+            return aiResponse;
+        }
+        Optional<UUID> contactId = conversationRepository.findContactIdByConversation(conversationId);
+        contactId.ifPresent(cid ->
+            avisoEstoqueModaHandler.parseAndRegister(event.companyId(), conversationId, cid, reply));
+        String stripped = avisoEstoqueModaHandler.stripTag(reply);
+        return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
+            aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
+            aiResponse.schedulingIntent(), aiResponse.insights());
+    }
+
+
+    /**
+     * Caso o tenant seja perfil 'lingerie' (onda 1) e a resposta da IA contenha a tag
+     * {@code <aviso_estoque_lingerie>}, registra o avise-me da variante esgotada para o contato da
+     * conversa e devolve um AiResponse com a tag removida; senão devolve o original. Best-effort.
+     */
+    private AiResponse maybeProcessAvisoEstoqueLingerie(MessageInboundProcessedEvent event,
+                                                        UUID conversationId, AiResponse aiResponse) {
+        String reply = aiResponse.reply();
+        if (reply == null || !avisoEstoqueLingerieHandler.hasTag(reply)) {
+            return aiResponse;
+        }
+        if (!"lingerie".equals(companyProfileRepository.findProfileId(event.companyId()))) {
+            return aiResponse;
+        }
+        Optional<UUID> contactId = conversationRepository.findContactIdByConversation(conversationId);
+        contactId.ifPresent(cid ->
+            avisoEstoqueLingerieHandler.parseAndRegister(event.companyId(), conversationId, cid, reply));
+        String stripped = avisoEstoqueLingerieHandler.stripTag(reply);
         return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
             aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
             aiResponse.schedulingIntent(), aiResponse.insights());

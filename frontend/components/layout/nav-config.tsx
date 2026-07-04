@@ -567,6 +567,7 @@ const LINGERIE_GROUP: NavGroup = {
   items: [
     { label: 'Catálogo', href: '/dashboard/lingerie-catalog', icon: Shirt },
     { label: 'Pedidos', href: '/dashboard/lingerie-orders', icon: ShoppingBag },
+    { label: 'Cupons', href: '/dashboard/lingerie-coupons', icon: Ticket },
     { label: 'Configurações', href: '/dashboard/lingerie-settings', icon: Settings },
   ],
 }
@@ -576,6 +577,7 @@ const MODA_INFANTIL_GROUP: NavGroup = {
   items: [
     { label: 'Catálogo', href: '/dashboard/moda-infantil-catalog', icon: Baby },
     { label: 'Pedidos', href: '/dashboard/moda-infantil-orders', icon: ShoppingBag },
+    { label: 'Cupons', href: '/dashboard/moda-infantil-coupons', icon: Ticket },
     { label: 'Configurações', href: '/dashboard/moda-infantil-settings', icon: Settings },
   ],
 }
