@@ -10,7 +10,13 @@ import { ApiError } from '@/lib/api/client'
 import { getConfig, updateConfig } from '@/lib/api/las/config'
 import { useSyncedForm } from '@/lib/use-synced-form'
 
-type FormState = { deliveryFee: string; minOrder: string } // reais
+type FormState = {
+  deliveryFee: string // reais
+  minOrder: string // reais
+  reactivationEnabled: boolean
+  reactivationDays: string
+  reactivationCouponCode: string
+}
 
 /** Configurações do LasBot (varejo): taxa de entrega + valor mínimo do pedido (em R$). */
 export default function LasSettingsPage() {
@@ -26,6 +32,9 @@ export default function LasSettingsPage() {
   const [form, setForm] = useSyncedForm(data, (d): FormState => ({
     deliveryFee: String(d.deliveryFeeCents / 100),
     minOrder: String(d.minOrderCents / 100),
+    reactivationEnabled: d.reactivationEnabled ?? false,
+    reactivationDays: String(d.reactivationDays ?? 45),
+    reactivationCouponCode: d.reactivationCouponCode ?? '',
   }))
 
   const saveMutation = useMutation({
@@ -34,6 +43,12 @@ export default function LasSettingsPage() {
       return updateConfig({
         deliveryFeeCents: Math.max(0, Math.round(Number(form.deliveryFee || 0) * 100)),
         minOrderCents: Math.max(0, Math.round(Number(form.minOrder || 0) * 100)),
+        reactivationEnabled: form.reactivationEnabled,
+        reactivationDays: Math.min(
+          365,
+          Math.max(7, Math.round(Number(form.reactivationDays) || 45)),
+        ),
+        reactivationCouponCode: form.reactivationCouponCode.trim() || null,
       })
     },
     onSuccess: () => {
@@ -95,6 +110,58 @@ export default function LasSettingsPage() {
                     onChange={(e) => setForm((f) => f && { ...f, minOrder: e.target.value })}
                     className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                   />
+                </div>
+              </div>
+            </Section>
+
+            <Section title="Automações">
+              <div className="space-y-4">
+                <label className="flex items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={form.reactivationEnabled}
+                    className="mt-0.5"
+                    onChange={(e) =>
+                      setForm((f) => f && { ...f, reactivationEnabled: e.target.checked })
+                    }
+                  />
+                  <span>
+                    Reativação de cliente inativo (&quot;chegaram lotes novos&quot;)
+                    <span className="block text-xs text-muted-foreground">
+                      Convite gentil pra quem não compra há N dias (1 toque por ciclo). Desligado
+                      por padrão — ligar pode disparar pra base toda de uma vez.
+                    </span>
+                  </span>
+                </label>
+                <div className="grid grid-cols-2 gap-4 sm:max-w-md">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                      Dias sem compra até o convite
+                    </label>
+                    <input
+                      type="number"
+                      min={7}
+                      max={365}
+                      value={form.reactivationDays}
+                      onChange={(e) =>
+                        setForm((f) => f && { ...f, reactivationDays: e.target.value })
+                      }
+                      className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                      Cupom de retorno (opcional)
+                    </label>
+                    <input
+                      value={form.reactivationCouponCode}
+                      onChange={(e) =>
+                        setForm((f) => f && { ...f, reactivationCouponCode: e.target.value })
+                      }
+                      placeholder="VOLTA10"
+                      className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                    />
+                  </div>
                 </div>
               </div>
             </Section>

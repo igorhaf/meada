@@ -77,6 +77,7 @@ function OrderCard({
           <p className="text-sm font-medium">{order.contactName ?? 'Cliente'}</p>
           <Badge variant="muted">{FULFILLMENT_LABEL[order.fulfillment]}</Badge>
           {order.sameLotGuaranteed && <Badge variant="info">mesmo lote garantido</Badge>}
+          {order.couponCode && <Badge variant="success">cupom {order.couponCode}</Badge>}
         </div>
         <ul className="space-y-0.5 text-xs text-muted-foreground">
           {order.items.map((it) => (
@@ -86,7 +87,14 @@ function OrderCard({
           ))}
         </ul>
         <p className="text-xs text-muted-foreground">{locationLine(order)}</p>
-        <p className="text-sm font-semibold tabular-nums">{formatBrl(order.totalCents)}</p>
+        <p className="text-sm font-semibold tabular-nums">
+          {formatBrl(order.totalCents)}
+          {order.discountCents > 0 && (
+            <span className="ml-1 text-xs font-normal text-muted-foreground">
+              (−{formatBrl(order.discountCents)})
+            </span>
+          )}
+        </p>
         <div className="flex gap-1 pt-1">
           {awaiting ? (
             <>

@@ -10,6 +10,7 @@ import {
   BookOpen,
   Briefcase,
   Building2,
+  Calculator,
   Calendar,
   CalendarCheck,
   CalendarClock,
@@ -591,6 +592,8 @@ const LAS_GROUP: NavGroup = {
   items: [
     { label: 'Catálogo', href: '/dashboard/las-catalog', icon: Scissors },
     { label: 'Pedidos', href: '/dashboard/las-orders', icon: ShoppingBag },
+    { label: 'Cupons', href: '/dashboard/las-coupons', icon: Ticket },
+    { label: 'Rendimento', href: '/dashboard/las-yield', icon: Calculator },
     { label: 'Configurações', href: '/dashboard/las-settings', icon: Settings },
   ],
 }

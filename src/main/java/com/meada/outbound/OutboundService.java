@@ -113,6 +113,7 @@ public class OutboundService {
     private final com.meada.profiles.nutri.appointments.ConfirmacaoNutriHandler confirmacaoNutriHandler;
     private final com.meada.profiles.modainfantil.orders.AvisoEstoqueModaHandler avisoEstoqueModaHandler;
     private final com.meada.profiles.lingerie.orders.AvisoEstoqueLingerieHandler avisoEstoqueLingerieHandler;
+    private final com.meada.profiles.las.orders.ListaEsperaLasHandler listaEsperaLasHandler;
     // Camada 8.2 (perfil eventos): pós-processa <proposta_evento> (abre proposta) e <aprovacao_proposta> (muta estado).
     private final com.meada.profiles.eventos.proposals.PropostaEventoConfirmHandler propostaEventoConfirmHandler;
     private final com.meada.profiles.eventos.proposals.AprovacaoPropostaHandler aprovacaoPropostaHandler;
@@ -258,6 +259,7 @@ public class OutboundService {
                            com.meada.profiles.nutri.appointments.ConfirmacaoNutriHandler confirmacaoNutriHandler,
                            com.meada.profiles.modainfantil.orders.AvisoEstoqueModaHandler avisoEstoqueModaHandler,
                            com.meada.profiles.lingerie.orders.AvisoEstoqueLingerieHandler avisoEstoqueLingerieHandler,
+                           com.meada.profiles.las.orders.ListaEsperaLasHandler listaEsperaLasHandler,
                            com.meada.profiles.eventos.proposals.PropostaEventoConfirmHandler propostaEventoConfirmHandler,
                            com.meada.profiles.eventos.proposals.AprovacaoPropostaHandler aprovacaoPropostaHandler,
                            com.meada.profiles.estetica.appointments.AgendamentoEsteticaConfirmHandler agendamentoEsteticaConfirmHandler,
@@ -332,6 +334,7 @@ public class OutboundService {
         this.confirmacaoNutriHandler = confirmacaoNutriHandler;
         this.avisoEstoqueModaHandler = avisoEstoqueModaHandler;
         this.avisoEstoqueLingerieHandler = avisoEstoqueLingerieHandler;
+        this.listaEsperaLasHandler = listaEsperaLasHandler;
         this.propostaEventoConfirmHandler = propostaEventoConfirmHandler;
         this.aprovacaoPropostaHandler = aprovacaoPropostaHandler;
         this.agendamentoEsteticaConfirmHandler = agendamentoEsteticaConfirmHandler;
@@ -502,6 +505,7 @@ public class OutboundService {
         toSend = maybeProcessAvisoEstoqueModa(event, conversationId, toSend);
         // Onda lingerie 1: <aviso_estoque_lingerie> registra o avise-me quando voltar.
         toSend = maybeProcessAvisoEstoqueLingerie(event, conversationId, toSend);
+        toSend = maybeProcessListaEsperaLas(event, conversationId, toSend);
         // Camada 8.2 (perfil eventos): <proposta_evento> abre a proposta; <aprovacao_proposta> muta o
         // estado da proposta orçada. Encadeados (perfil é único; só um age).
         toSend = maybeProcessPropostaEvento(event, conversationId, toSend);
@@ -1199,6 +1203,30 @@ public class OutboundService {
         contactId.ifPresent(cid ->
             avisoEstoqueLingerieHandler.parseAndRegister(event.companyId(), conversationId, cid, reply));
         String stripped = avisoEstoqueLingerieHandler.stripTag(reply);
+        return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
+            aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
+            aiResponse.schedulingIntent(), aiResponse.insights());
+    }
+
+    /**
+     * Caso o tenant seja perfil 'las' (onda 1) e a resposta da IA contenha a tag
+     * {@code <lista_espera_las>}, registra o interesse do contato na variante esgotada (lote exato
+     * ou qualquer lote da cor) e devolve um AiResponse com a tag removida; senão devolve o
+     * original. Best-effort.
+     */
+    private AiResponse maybeProcessListaEsperaLas(MessageInboundProcessedEvent event,
+                                                  UUID conversationId, AiResponse aiResponse) {
+        String reply = aiResponse.reply();
+        if (reply == null || !listaEsperaLasHandler.hasTag(reply)) {
+            return aiResponse;
+        }
+        if (!"las".equals(companyProfileRepository.findProfileId(event.companyId()))) {
+            return aiResponse;
+        }
+        Optional<UUID> contactId = conversationRepository.findContactIdByConversation(conversationId);
+        contactId.ifPresent(cid ->
+            listaEsperaLasHandler.parseAndRegister(event.companyId(), conversationId, cid, reply));
+        String stripped = listaEsperaLasHandler.stripTag(reply);
         return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
             aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
             aiResponse.schedulingIntent(), aiResponse.insights());
