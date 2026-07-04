@@ -272,6 +272,8 @@ const LEGAL_GROUP: NavGroup = {
   items: [
     { label: 'Clientes', href: '/dashboard/clients', icon: Briefcase },
     { label: 'Processos', href: '/dashboard/cases', icon: Scale },
+    { label: 'Prazos', href: '/dashboard/legal-deadlines', icon: CalendarClock },
+    { label: 'Configurações', href: '/dashboard/legal-settings', icon: Settings },
   ],
 }
 
