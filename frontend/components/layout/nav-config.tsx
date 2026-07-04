@@ -443,6 +443,8 @@ const PIZZARIA_GROUP: NavGroup = {
   items: [
     { label: 'Cardápio', href: '/dashboard/pizzaria-menu', icon: Pizza },
     { label: 'Pedidos', href: '/dashboard/pizzaria-orders', icon: ClipboardList },
+    { label: 'Cupons', href: '/dashboard/pizzaria-coupons', icon: Ticket },
+    { label: 'Fidelidade', href: '/dashboard/pizzaria-loyalty', icon: Award },
     { label: 'Configurações', href: '/dashboard/pizzaria-settings', icon: Settings },
   ],
 }
