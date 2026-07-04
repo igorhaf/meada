@@ -18,6 +18,10 @@ export type NutriConfig = {
   opensAt: string
   closesAt: string
   bufferMinutes: number
+  reminderEnabled: boolean
+  autoCompleteEnabled: boolean
+  reengagementEnabled: boolean
+  reengagementDays: number
 }
 
 /** Paciente — sub-entidade do contato (nível 1). Espelha NutriPatient. */
