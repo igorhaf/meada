@@ -10,7 +10,16 @@ import { ApiError } from '@/lib/api/client'
 import { getConfig, updateConfig } from '@/lib/api/escola/config'
 import { useSyncedForm } from '@/lib/use-synced-form'
 
-type FormState = { businessName: string; opensAt: string; closesAt: string; notes: string }
+type FormState = {
+  businessName: string
+  opensAt: string
+  closesAt: string
+  notes: string
+  visitReminderEnabled: boolean
+  visitAutoCompleteEnabled: boolean
+  paymentReminderEnabled: boolean
+  paymentDueDay: string
+}
 
 function hhmm(t: string): string {
   return t?.slice(0, 5) ?? ''
@@ -34,6 +43,10 @@ export default function EscolaSettingsPage() {
     opensAt: hhmm(d.opensAt),
     closesAt: hhmm(d.closesAt),
     notes: d.notes ?? '',
+    visitReminderEnabled: d.visitReminderEnabled ?? true,
+    visitAutoCompleteEnabled: d.visitAutoCompleteEnabled ?? true,
+    paymentReminderEnabled: d.paymentReminderEnabled ?? false,
+    paymentDueDay: String(d.paymentDueDay ?? 10),
   }))
 
   const saveMutation = useMutation({
@@ -44,6 +57,10 @@ export default function EscolaSettingsPage() {
         opensAt: form.opensAt,
         closesAt: form.closesAt,
         notes: form.notes || null,
+        visitReminderEnabled: form.visitReminderEnabled,
+        visitAutoCompleteEnabled: form.visitAutoCompleteEnabled,
+        paymentReminderEnabled: form.paymentReminderEnabled,
+        paymentDueDay: Math.min(28, Math.max(1, Math.round(Number(form.paymentDueDay) || 10))),
       })
     },
     onSuccess: () => {
@@ -133,6 +150,73 @@ export default function EscolaSettingsPage() {
                 placeholder="Informações gerais para a IA (sem dado sensível)…"
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
               />
+            </Section>
+
+            <Section title="Automações">
+              <div className="space-y-4">
+                <label className="flex items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={form.visitReminderEnabled}
+                    className="mt-0.5"
+                    onChange={(e) =>
+                      setForm((f) => f && { ...f, visitReminderEnabled: e.target.checked })
+                    }
+                  />
+                  <span>
+                    Lembrete de visita (véspera e no dia)
+                    <span className="block text-xs text-muted-foreground">
+                      Visita é o topo do funil de matrícula — o lembrete corta o no-show.
+                    </span>
+                  </span>
+                </label>
+                <label className="flex items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={form.visitAutoCompleteEnabled}
+                    className="mt-0.5"
+                    onChange={(e) =>
+                      setForm((f) => f && { ...f, visitAutoCompleteEnabled: e.target.checked })
+                    }
+                  />
+                  <span>
+                    Marcar visita passada como realizada
+                    <span className="block text-xs text-muted-foreground">
+                      Quem faltou, a secretaria marca cancelada.
+                    </span>
+                  </span>
+                </label>
+                <label className="flex items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={form.paymentReminderEnabled}
+                    className="mt-0.5"
+                    onChange={(e) =>
+                      setForm((f) => f && { ...f, paymentReminderEnabled: e.target.checked })
+                    }
+                  />
+                  <span>
+                    Lembrete de mensalidade em aberto
+                    <span className="block text-xs text-muted-foreground">
+                      1 lembrete gentil por mês pra matrícula ativa sem pagamento registrado.
+                      Desligado por padrão — ligar dispara pra base toda de uma vez.
+                    </span>
+                  </span>
+                </label>
+                <div className="w-44">
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                    Dia de vencimento
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={28}
+                    value={form.paymentDueDay}
+                    onChange={(e) => setForm((f) => f && { ...f, paymentDueDay: e.target.value })}
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+              </div>
             </Section>
 
             {error && <p className="text-sm text-destructive">{error}</p>}

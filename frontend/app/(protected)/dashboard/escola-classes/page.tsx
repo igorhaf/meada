@@ -15,6 +15,7 @@ import {
   toggleClass,
   updateClass,
 } from '@/lib/api/escola/classes'
+import { listWaitlist, notifyOpening, updateWaitlistStatus } from '@/lib/api/escola/waitlist'
 import {
   formatBrl,
   shiftLabel,
@@ -119,6 +120,23 @@ export default function EscolaClassesPage() {
     setModalOpen(true)
   }
 
+  // Onda 1 (backlog #1): fila de espera da turma (modal).
+  const [waitlistClass, setWaitlistClass] = useState<EscolaClass | null>(null)
+  const waitlist = useQuery({
+    queryKey: ['escola-waitlist', waitlistClass?.id],
+    queryFn: () => listWaitlist(waitlistClass!.id),
+    enabled: waitlistClass !== null,
+  })
+  const notifyMutation = useMutation({
+    mutationFn: (id: string) => notifyOpening(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['escola-waitlist'] }),
+  })
+  const waitStatusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: 'convertida' | 'desistiu' }) =>
+      updateWaitlistStatus(id, status),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['escola-waitlist'] }),
+  })
+
   const items = data?.items ?? []
 
   function occupancyLabel(c: EscolaClass): string {
@@ -168,6 +186,13 @@ export default function EscolaClassesPage() {
                   />
                   ativa
                 </label>
+                <Button
+                  variant="outline"
+                  className="h-7 px-2 text-xs"
+                  onClick={() => setWaitlistClass(c)}
+                >
+                  Fila de espera
+                </Button>
                 <Button variant="outline" className="h-7 px-2 text-xs" onClick={() => openEdit(c)}>
                   Editar
                 </Button>
@@ -301,6 +326,66 @@ export default function EscolaClassesPage() {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      <Modal
+        open={waitlistClass !== null}
+        onClose={() => setWaitlistClass(null)}
+        title={`Fila de espera — ${waitlistClass?.name ?? ''}`}
+        size="lg"
+      >
+        {waitlist.isPending ? (
+          <p className="text-sm text-muted-foreground">Carregando…</p>
+        ) : (waitlist.data?.items ?? []).length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Ninguém na fila desta turma. Quando a IA registrar interesse em turma cheia, a família
+            aparece aqui.
+          </p>
+        ) : (
+          <div className="divide-y divide-border rounded-lg border border-border">
+            {(waitlist.data?.items ?? []).map((w) => (
+              <div key={w.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="muted">#{w.position}</Badge>
+                    <span className="truncate font-medium">{w.studentName}</span>
+                    {w.status === 'avisada' && <Badge variant="warning">avisada</Badge>}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {w.contactName} · {w.contactPhone}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  {w.status === 'aguardando' && (
+                    <Button
+                      className="h-7 px-2 text-xs"
+                      disabled={notifyMutation.isPending}
+                      onClick={() => notifyMutation.mutate(w.id)}
+                    >
+                      Avisar vaga
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    className="h-7 px-2 text-xs"
+                    disabled={waitStatusMutation.isPending}
+                    onClick={() => waitStatusMutation.mutate({ id: w.id, status: 'convertida' })}
+                  >
+                    Convertida
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-7 px-2 text-xs"
+                    disabled={waitStatusMutation.isPending}
+                    onClick={() => waitStatusMutation.mutate({ id: w.id, status: 'desistiu' })}
+                  >
+                    Desistiu
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </Modal>
     </div>
   )

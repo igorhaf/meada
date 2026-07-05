@@ -6,6 +6,10 @@ export type UpdateConfigInput = {
   opensAt: string // "HH:MM"
   closesAt: string // "HH:MM"
   notes?: string | null
+  visitReminderEnabled: boolean
+  visitAutoCompleteEnabled: boolean
+  paymentReminderEnabled: boolean
+  paymentDueDay: number
 }
 
 export function getConfig(): Promise<EscolaConfig> {
