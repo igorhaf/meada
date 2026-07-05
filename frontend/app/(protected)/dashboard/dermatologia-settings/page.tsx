@@ -10,7 +10,15 @@ import { ApiError } from '@/lib/api/client'
 import { getConfig, updateConfig } from '@/lib/api/dermatologia/config'
 import { useSyncedForm } from '@/lib/use-synced-form'
 
-type FormState = { opensAt: string; closesAt: string; bufferMinutes: number }
+type FormState = {
+  opensAt: string
+  closesAt: string
+  bufferMinutes: number
+  reminderEnabled: boolean
+  autoCompleteEnabled: boolean
+  recallEnabled: boolean
+  recallMonths: string
+}
 
 function hhmm(t: string): string {
   return t?.slice(0, 5) ?? ''
@@ -35,12 +43,19 @@ export default function DermatologiaSettingsPage() {
     opensAt: hhmm(d.opensAt),
     closesAt: hhmm(d.closesAt),
     bufferMinutes: d.bufferMinutes,
+    reminderEnabled: d.reminderEnabled ?? true,
+    autoCompleteEnabled: d.autoCompleteEnabled ?? true,
+    recallEnabled: d.recallEnabled ?? false,
+    recallMonths: String(d.recallMonths ?? 6),
   }))
 
   const saveMutation = useMutation({
     mutationFn: () => {
       if (!form) throw new Error('form não carregado')
-      return updateConfig(form)
+      return updateConfig({
+        ...form,
+        recallMonths: Math.min(36, Math.max(1, Math.round(Number(form.recallMonths) || 6))),
+      })
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['dermatologia-config'] })

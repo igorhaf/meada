@@ -112,6 +112,8 @@ public class OutboundService {
     private final com.meada.profiles.otica.appointments.ConfirmacaoExameHandler confirmacaoExameHandler;
     private final com.meada.profiles.nutri.appointments.ConfirmacaoNutriHandler confirmacaoNutriHandler;
     private final com.meada.profiles.fotografia.appointments.ConfirmacaoFotografiaHandler confirmacaoFotografiaHandler;
+    private final com.meada.profiles.estetica.appointments.ConfirmacaoEsteticaHandler confirmacaoEsteticaHandler;
+    private final com.meada.profiles.dermatologia.appointments.ConfirmacaoDermaHandler confirmacaoDermaHandler;
     private final com.meada.profiles.modainfantil.orders.AvisoEstoqueModaHandler avisoEstoqueModaHandler;
     private final com.meada.profiles.lingerie.orders.AvisoEstoqueLingerieHandler avisoEstoqueLingerieHandler;
     private final com.meada.profiles.las.orders.ListaEsperaLasHandler listaEsperaLasHandler;
@@ -259,6 +261,8 @@ public class OutboundService {
                            com.meada.profiles.otica.appointments.ConfirmacaoExameHandler confirmacaoExameHandler,
                            com.meada.profiles.nutri.appointments.ConfirmacaoNutriHandler confirmacaoNutriHandler,
                            com.meada.profiles.fotografia.appointments.ConfirmacaoFotografiaHandler confirmacaoFotografiaHandler,
+                           com.meada.profiles.estetica.appointments.ConfirmacaoEsteticaHandler confirmacaoEsteticaHandler,
+                           com.meada.profiles.dermatologia.appointments.ConfirmacaoDermaHandler confirmacaoDermaHandler,
                            com.meada.profiles.modainfantil.orders.AvisoEstoqueModaHandler avisoEstoqueModaHandler,
                            com.meada.profiles.lingerie.orders.AvisoEstoqueLingerieHandler avisoEstoqueLingerieHandler,
                            com.meada.profiles.las.orders.ListaEsperaLasHandler listaEsperaLasHandler,
@@ -335,6 +339,8 @@ public class OutboundService {
         this.confirmacaoExameHandler = confirmacaoExameHandler;
         this.confirmacaoNutriHandler = confirmacaoNutriHandler;
         this.confirmacaoFotografiaHandler = confirmacaoFotografiaHandler;
+        this.confirmacaoEsteticaHandler = confirmacaoEsteticaHandler;
+        this.confirmacaoDermaHandler = confirmacaoDermaHandler;
         this.avisoEstoqueModaHandler = avisoEstoqueModaHandler;
         this.avisoEstoqueLingerieHandler = avisoEstoqueLingerieHandler;
         this.listaEsperaLasHandler = listaEsperaLasHandler;
@@ -505,6 +511,8 @@ public class OutboundService {
         // Onda nutri 1: <confirmacao_nutri> reflete o SIM/desmarcar do lembrete de consulta.
         toSend = maybeProcessConfirmacaoNutri(event, conversationId, toSend);
         toSend = maybeProcessConfirmacaoFotografia(event, conversationId, toSend);
+        toSend = maybeProcessConfirmacaoEstetica(event, conversationId, toSend);
+        toSend = maybeProcessConfirmacaoDerma(event, conversationId, toSend);
         // Onda moda_infantil 1: <aviso_estoque_moda> registra o avise-me quando voltar.
         toSend = maybeProcessAvisoEstoqueModa(event, conversationId, toSend);
         // Onda lingerie 1: <aviso_estoque_lingerie> registra o avise-me quando voltar.
@@ -1256,6 +1264,56 @@ public class OutboundService {
             confirmacaoFotografiaHandler.parseAndApply(event.companyId(), conversationId, contactId.get(), reply);
         }
         String stripped = confirmacaoFotografiaHandler.stripConfirmacaoTag(reply);
+        return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
+            aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
+            aiResponse.schedulingIntent(), aiResponse.insights());
+    }
+
+    /**
+     * Caso o tenant seja perfil 'estetica' (onda 1) e a resposta da IA contenha a tag
+     * {@code <confirmacao_estetica>}, aplica a decisão da cliente (confirmado/cancelado — o
+     * cancelamento devolve a sessão ao pacote) com barreira de contato e devolve um AiResponse
+     * com a tag removida; senão devolve o original. Fecha o loop do lembrete SIM/NÃO. Best-effort.
+     */
+    private AiResponse maybeProcessConfirmacaoEstetica(MessageInboundProcessedEvent event,
+                                                       UUID conversationId, AiResponse aiResponse) {
+        String reply = aiResponse.reply();
+        if (reply == null || !confirmacaoEsteticaHandler.hasConfirmacaoTag(reply)) {
+            return aiResponse;
+        }
+        if (!"estetica".equals(companyProfileRepository.findProfileId(event.companyId()))) {
+            return aiResponse;
+        }
+        Optional<UUID> contactId = conversationRepository.findContactIdByConversation(conversationId);
+        if (contactId.isPresent()) {
+            confirmacaoEsteticaHandler.parseAndApply(event.companyId(), conversationId, contactId.get(), reply);
+        }
+        String stripped = confirmacaoEsteticaHandler.stripConfirmacaoTag(reply);
+        return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
+            aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
+            aiResponse.schedulingIntent(), aiResponse.insights());
+    }
+
+    /**
+     * Caso o tenant seja perfil 'dermatologia' (onda 1) e a resposta da IA contenha a tag
+     * {@code <confirmacao_derma>}, aplica a decisão do paciente (confirmada/cancelada, barreira
+     * de contato) e devolve um AiResponse com a tag removida; senão devolve o original. Fecha o
+     * loop do lembrete D-1. Best-effort.
+     */
+    private AiResponse maybeProcessConfirmacaoDerma(MessageInboundProcessedEvent event,
+                                                    UUID conversationId, AiResponse aiResponse) {
+        String reply = aiResponse.reply();
+        if (reply == null || !confirmacaoDermaHandler.hasConfirmacaoTag(reply)) {
+            return aiResponse;
+        }
+        if (!"dermatologia".equals(companyProfileRepository.findProfileId(event.companyId()))) {
+            return aiResponse;
+        }
+        Optional<UUID> contactId = conversationRepository.findContactIdByConversation(conversationId);
+        if (contactId.isPresent()) {
+            confirmacaoDermaHandler.parseAndApply(event.companyId(), conversationId, contactId.get(), reply);
+        }
+        String stripped = confirmacaoDermaHandler.stripConfirmacaoTag(reply);
         return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
             aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
             aiResponse.schedulingIntent(), aiResponse.insights());

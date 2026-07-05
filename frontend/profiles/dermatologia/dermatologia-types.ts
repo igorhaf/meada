@@ -18,6 +18,10 @@ export type DermatologiaConfig = {
   opensAt: string
   closesAt: string
   bufferMinutes: number
+  reminderEnabled: boolean
+  autoCompleteEnabled: boolean
+  recallEnabled: boolean
+  recallMonths: number
 }
 
 /**

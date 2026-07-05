@@ -168,7 +168,11 @@ public abstract class AbstractIntegrationTest {
         "db/migrations/103_lavanderia_onda1.sql",
         "db/migrations/104_las_onda1.sql",
         "db/migrations/105_fotografia_onda1.sql",
-        "db/migrations/106_floricultura_onda1.sql"
+        "db/migrations/106_floricultura_onda1.sql",
+        "db/migrations/107_eventos_onda1.sql",
+        "db/migrations/108_estetica_onda1.sql",
+        "db/migrations/109_escola_onda1.sql",
+        "db/migrations/110_dermatologia_onda1.sql"
     };
 
     /**
