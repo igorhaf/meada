@@ -10,7 +10,14 @@ import { ApiError } from '@/lib/api/client'
 import { getConfig, updateConfig } from '@/lib/api/cursos/config'
 import { useSyncedForm } from '@/lib/use-synced-form'
 
-type FormState = { opensAt: string; closesAt: string; notes: string }
+type FormState = {
+  opensAt: string
+  closesAt: string
+  notes: string
+  nudgeEnabled: boolean
+  nudgeDays: string
+  certificateBaseUrl: string
+}
 
 function hhmm(t: string): string {
   return t?.slice(0, 5) ?? ''
@@ -33,6 +40,9 @@ export default function CursosSettingsPage() {
     opensAt: hhmm(d.opensAt),
     closesAt: hhmm(d.closesAt),
     notes: d.notes ?? '',
+    nudgeEnabled: d.nudgeEnabled ?? true,
+    nudgeDays: String(d.nudgeDays ?? 7),
+    certificateBaseUrl: d.certificateBaseUrl ?? '',
   }))
 
   const saveMutation = useMutation({
@@ -42,6 +52,9 @@ export default function CursosSettingsPage() {
         opensAt: form.opensAt,
         closesAt: form.closesAt,
         notes: form.notes || null,
+        nudgeEnabled: form.nudgeEnabled,
+        nudgeDays: Math.min(90, Math.max(1, Math.round(Number(form.nudgeDays) || 7))),
+        certificateBaseUrl: form.certificateBaseUrl.trim() || null,
       })
     },
     onSuccess: () => {
@@ -116,6 +129,56 @@ export default function CursosSettingsPage() {
                 placeholder="Informações gerais sobre os cursos…"
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
               />
+            </Section>
+
+            <Section title="Automações e certificado">
+              <div className="space-y-4">
+                <label className="flex items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={form.nudgeEnabled}
+                    className="mt-0.5"
+                    onChange={(e) => setForm((f) => f && { ...f, nudgeEnabled: e.target.checked })}
+                  />
+                  <span>
+                    Lembrete de próximo módulo (anti-abandono)
+                    <span className="block text-xs text-muted-foreground">
+                      Aluno parado há N dias no mesmo módulo recebe um toque motivador (1 por
+                      episódio).
+                    </span>
+                  </span>
+                </label>
+                <div className="w-44">
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                    Dias parado até o lembrete
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={90}
+                    value={form.nudgeDays}
+                    onChange={(e) => setForm((f) => f && { ...f, nudgeDays: e.target.value })}
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+                <div className="max-w-lg">
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                    URL pública do certificado (base)
+                  </label>
+                  <input
+                    type="url"
+                    value={form.certificateBaseUrl}
+                    onChange={(e) =>
+                      setForm((f) => f && { ...f, certificateBaseUrl: e.target.value })
+                    }
+                    placeholder="https://escola.meadadigital.com"
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  />
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Vira o link do certificado enviado ao aluno na conclusão. Vazio = só o código.
+                  </p>
+                </div>
+              </div>
             </Section>
 
             {error && <p className="text-sm text-destructive">{error}</p>}

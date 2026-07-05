@@ -114,6 +114,9 @@ public class OutboundService {
     private final com.meada.profiles.fotografia.appointments.ConfirmacaoFotografiaHandler confirmacaoFotografiaHandler;
     private final com.meada.profiles.estetica.appointments.ConfirmacaoEsteticaHandler confirmacaoEsteticaHandler;
     private final com.meada.profiles.dermatologia.appointments.ConfirmacaoDermaHandler confirmacaoDermaHandler;
+    private final com.meada.profiles.atelie.proposals.ConfirmacaoProvaHandler confirmacaoProvaHandler;
+    private final com.meada.profiles.concessionaria.tradein.TrocaCarroHandler trocaCarroHandler;
+    private final com.meada.profiles.dental.appointments.ConfirmacaoConsultaHandler confirmacaoConsultaHandler;
     private final com.meada.profiles.modainfantil.orders.AvisoEstoqueModaHandler avisoEstoqueModaHandler;
     private final com.meada.profiles.lingerie.orders.AvisoEstoqueLingerieHandler avisoEstoqueLingerieHandler;
     private final com.meada.profiles.las.orders.ListaEsperaLasHandler listaEsperaLasHandler;
@@ -263,6 +266,9 @@ public class OutboundService {
                            com.meada.profiles.fotografia.appointments.ConfirmacaoFotografiaHandler confirmacaoFotografiaHandler,
                            com.meada.profiles.estetica.appointments.ConfirmacaoEsteticaHandler confirmacaoEsteticaHandler,
                            com.meada.profiles.dermatologia.appointments.ConfirmacaoDermaHandler confirmacaoDermaHandler,
+                           com.meada.profiles.atelie.proposals.ConfirmacaoProvaHandler confirmacaoProvaHandler,
+                           com.meada.profiles.concessionaria.tradein.TrocaCarroHandler trocaCarroHandler,
+                           com.meada.profiles.dental.appointments.ConfirmacaoConsultaHandler confirmacaoConsultaHandler,
                            com.meada.profiles.modainfantil.orders.AvisoEstoqueModaHandler avisoEstoqueModaHandler,
                            com.meada.profiles.lingerie.orders.AvisoEstoqueLingerieHandler avisoEstoqueLingerieHandler,
                            com.meada.profiles.las.orders.ListaEsperaLasHandler listaEsperaLasHandler,
@@ -341,6 +347,9 @@ public class OutboundService {
         this.confirmacaoFotografiaHandler = confirmacaoFotografiaHandler;
         this.confirmacaoEsteticaHandler = confirmacaoEsteticaHandler;
         this.confirmacaoDermaHandler = confirmacaoDermaHandler;
+        this.confirmacaoProvaHandler = confirmacaoProvaHandler;
+        this.trocaCarroHandler = trocaCarroHandler;
+        this.confirmacaoConsultaHandler = confirmacaoConsultaHandler;
         this.avisoEstoqueModaHandler = avisoEstoqueModaHandler;
         this.avisoEstoqueLingerieHandler = avisoEstoqueLingerieHandler;
         this.listaEsperaLasHandler = listaEsperaLasHandler;
@@ -513,6 +522,9 @@ public class OutboundService {
         toSend = maybeProcessConfirmacaoFotografia(event, conversationId, toSend);
         toSend = maybeProcessConfirmacaoEstetica(event, conversationId, toSend);
         toSend = maybeProcessConfirmacaoDerma(event, conversationId, toSend);
+        toSend = maybeProcessConfirmacaoProva(event, conversationId, toSend);
+        toSend = maybeProcessTrocaCarro(event, conversationId, toSend);
+        toSend = maybeProcessConfirmacaoConsulta(event, conversationId, toSend);
         // Onda moda_infantil 1: <aviso_estoque_moda> registra o avise-me quando voltar.
         toSend = maybeProcessAvisoEstoqueModa(event, conversationId, toSend);
         // Onda lingerie 1: <aviso_estoque_lingerie> registra o avise-me quando voltar.
@@ -1314,6 +1326,77 @@ public class OutboundService {
             confirmacaoDermaHandler.parseAndApply(event.companyId(), conversationId, contactId.get(), reply);
         }
         String stripped = confirmacaoDermaHandler.stripConfirmacaoTag(reply);
+        return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
+            aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
+            aiResponse.schedulingIntent(), aiResponse.insights());
+    }
+
+    /**
+     * Caso o tenant seja perfil 'atelie' (onda 3) e a resposta da IA contenha a tag
+     * {@code <confirmacao_prova>}, registra a confirmação de presença do cliente na prova
+     * (metadado confirmed_at, com barreira de contato via proposta) e devolve um AiResponse com a
+     * tag removida; senão devolve o original. Fecha o loop do lembrete de véspera. Best-effort.
+     */
+    private AiResponse maybeProcessConfirmacaoProva(MessageInboundProcessedEvent event,
+                                                    UUID conversationId, AiResponse aiResponse) {
+        String reply = aiResponse.reply();
+        if (reply == null || !confirmacaoProvaHandler.hasConfirmacaoTag(reply)) {
+            return aiResponse;
+        }
+        if (!"atelie".equals(companyProfileRepository.findProfileId(event.companyId()))) {
+            return aiResponse;
+        }
+        Optional<UUID> contactId = conversationRepository.findContactIdByConversation(conversationId);
+        contactId.ifPresent(cid ->
+            confirmacaoProvaHandler.parseAndConfirm(event.companyId(), conversationId, cid, reply));
+        String stripped = confirmacaoProvaHandler.stripConfirmacaoTag(reply);
+        return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
+            aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
+            aiResponse.schedulingIntent(), aiResponse.insights());
+    }
+
+    /**
+     * Caso o tenant seja perfil 'concessionaria' (onda 2) e a resposta da IA contenha a tag
+     * {@code <troca_carro>}, ABRE a proposta de trade-in (a IA só coleta os dados do usado —
+     * avaliação é humana) e devolve um AiResponse com a tag removida; senão devolve o original.
+     * Best-effort.
+     */
+    private AiResponse maybeProcessTrocaCarro(MessageInboundProcessedEvent event,
+                                              UUID conversationId, AiResponse aiResponse) {
+        String reply = aiResponse.reply();
+        if (reply == null || !trocaCarroHandler.hasTag(reply)) {
+            return aiResponse;
+        }
+        if (!"concessionaria".equals(companyProfileRepository.findProfileId(event.companyId()))) {
+            return aiResponse;
+        }
+        Optional<UUID> contactId = conversationRepository.findContactIdByConversation(conversationId);
+        trocaCarroHandler.parseAndOpen(event.companyId(), conversationId, contactId.orElse(null), reply);
+        String stripped = trocaCarroHandler.stripTag(reply);
+        return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
+            aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
+            aiResponse.schedulingIntent(), aiResponse.insights());
+    }
+
+    /**
+     * Caso o tenant seja perfil 'dental' (onda 1) e a resposta da IA contenha a tag
+     * {@code <confirmacao_consulta>}, CONFIRMA a consulta (só agendada→confirmada — o
+     * cancelamento pela IA segue bloqueado) com barreira via paciente e devolve um AiResponse
+     * com a tag removida; senão devolve o original. Fecha o loop do lembrete D-1. Best-effort.
+     */
+    private AiResponse maybeProcessConfirmacaoConsulta(MessageInboundProcessedEvent event,
+                                                       UUID conversationId, AiResponse aiResponse) {
+        String reply = aiResponse.reply();
+        if (reply == null || !confirmacaoConsultaHandler.hasConfirmacaoTag(reply)) {
+            return aiResponse;
+        }
+        if (!"dental".equals(companyProfileRepository.findProfileId(event.companyId()))) {
+            return aiResponse;
+        }
+        Optional<UUID> contactId = conversationRepository.findContactIdByConversation(conversationId);
+        contactId.ifPresent(cid ->
+            confirmacaoConsultaHandler.parseAndConfirm(event.companyId(), conversationId, cid, reply));
+        String stripped = confirmacaoConsultaHandler.stripConfirmacaoTag(reply);
         return new AiResponse(stripped, aiResponse.needsHuman(), aiResponse.reason(),
             aiResponse.tokensIn(), aiResponse.tokensOut(), aiResponse.latencyMs(),
             aiResponse.schedulingIntent(), aiResponse.insights());
