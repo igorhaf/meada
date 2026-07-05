@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
 import { listBarbers } from '@/lib/api/barbearia/barbers'
-import { enqueue, listQueue, updateTicketStatus } from '@/lib/api/barbearia/queue'
+import { convertTicket, enqueue, listQueue, updateTicketStatus } from '@/lib/api/barbearia/queue'
 import { listServices } from '@/lib/api/barbearia/services'
 import { ApiError } from '@/lib/api/client'
 import { statusLabel, type BarberQueueStatusId } from '@/profiles/barbearia/barber-queue-status'
@@ -112,6 +112,14 @@ export default function BarberQueuePage() {
     },
   })
 
+  const convertMutation = useMutation({
+    mutationFn: (t: { id: string; barberId: string | null }) => convertTicket(t.id, t.barberId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['barber-queue'] })
+      qc.invalidateQueries({ queryKey: ['barber-appointments'] })
+    },
+  })
+
   const statusMutation = useMutation({
     mutationFn: ({ id, newStatus }: { id: string; newStatus: BarberQueueStatusId }) =>
       updateTicketStatus(id, newStatus),
@@ -190,8 +198,18 @@ export default function BarberQueuePage() {
                           Chamar
                         </Button>
                       )}
+                      {t.status === 'chamado' && t.barberId && (
+                        <Button
+                          className="h-7 px-3 text-xs"
+                          disabled={statusMutation.isPending || convertMutation.isPending}
+                          onClick={() => convertMutation.mutate({ id: t.id, barberId: t.barberId })}
+                        >
+                          Iniciar atendimento
+                        </Button>
+                      )}
                       {t.status === 'chamado' && (
                         <Button
+                          variant="outline"
                           className="h-7 px-3 text-xs"
                           disabled={statusMutation.isPending}
                           onClick={() => statusMutation.mutate({ id: t.id, newStatus: 'atendido' })}

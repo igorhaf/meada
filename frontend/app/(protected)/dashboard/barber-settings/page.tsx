@@ -18,6 +18,12 @@ type FormState = {
   reminderEnabled: boolean
   autoCompleteEnabled: boolean
   upsellEnabled: boolean
+  reactivationEnabled: boolean
+  reactivationDays: string
+  reactivationCouponCode: string
+  postReviewEnabled: boolean
+  reviewLink: string
+  reviewCooldownDays: string
 }
 
 function hhmm(t: string): string {
@@ -46,12 +52,30 @@ export default function BarberSettingsPage() {
     reminderEnabled: d.reminderEnabled ?? true,
     autoCompleteEnabled: d.autoCompleteEnabled ?? true,
     upsellEnabled: d.upsellEnabled ?? false,
+    reactivationEnabled: d.reactivationEnabled ?? false,
+    reactivationDays: String(d.reactivationDays ?? 45),
+    reactivationCouponCode: d.reactivationCouponCode ?? '',
+    postReviewEnabled: d.postReviewEnabled ?? false,
+    reviewLink: d.reviewLink ?? '',
+    reviewCooldownDays: String(d.reviewCooldownDays ?? 90),
   }))
 
   const saveMutation = useMutation({
     mutationFn: () => {
       if (!form) throw new Error('form não carregado')
-      return updateConfig(form)
+      return updateConfig({
+        ...form,
+        reactivationDays: Math.min(
+          365,
+          Math.max(7, Math.round(Number(form.reactivationDays) || 45)),
+        ),
+        reactivationCouponCode: form.reactivationCouponCode.trim() || null,
+        reviewLink: form.reviewLink.trim() || null,
+        reviewCooldownDays: Math.min(
+          365,
+          Math.max(7, Math.round(Number(form.reviewCooldownDays) || 90)),
+        ),
+      })
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['barber-config'] })
@@ -212,6 +236,103 @@ export default function BarberSettingsPage() {
             <p className="text-xs text-muted-foreground">
               Mudanças afetam apenas agendamentos <strong>futuros</strong>.
             </p>
+
+            <Section title="Reativação e avaliação">
+              <div className="space-y-4">
+                <label className="flex items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={form.reactivationEnabled}
+                    className="mt-0.5"
+                    onChange={(e) =>
+                      setForm((f) => f && { ...f, reactivationEnabled: e.target.checked })
+                    }
+                  />
+                  <span>
+                    Reativação de cliente sumido
+                    <span className="block text-xs text-muted-foreground">
+                      &quot;O corte já deve estar pedindo um retoque&quot; — 1 toque por ciclo.
+                      Desligado por padrão; ligar pode disparar pra base toda.
+                    </span>
+                  </span>
+                </label>
+                <div className="grid grid-cols-2 gap-4 sm:max-w-md">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                      Dias sem corte até o convite
+                    </label>
+                    <input
+                      type="number"
+                      min={7}
+                      max={365}
+                      value={form.reactivationDays}
+                      onChange={(e) =>
+                        setForm((f) => f && { ...f, reactivationDays: e.target.value })
+                      }
+                      className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                      Cupom de retorno (opcional)
+                    </label>
+                    <input
+                      value={form.reactivationCouponCode}
+                      onChange={(e) =>
+                        setForm((f) => f && { ...f, reactivationCouponCode: e.target.value })
+                      }
+                      placeholder="VOLTA10"
+                      className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                    />
+                  </div>
+                </div>
+                <label className="flex items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={form.postReviewEnabled}
+                    className="mt-0.5"
+                    onChange={(e) =>
+                      setForm((f) => f && { ...f, postReviewEnabled: e.target.checked })
+                    }
+                  />
+                  <span>
+                    Pedir avaliação após o corte
+                    <span className="block text-xs text-muted-foreground">
+                      Com cooldown por cliente — o frequentador semanal não vira spam.
+                    </span>
+                  </span>
+                </label>
+                <div className="grid grid-cols-2 gap-4 sm:max-w-md">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                      Link de avaliação
+                    </label>
+                    <input
+                      type="url"
+                      value={form.reviewLink}
+                      onChange={(e) => setForm((f) => f && { ...f, reviewLink: e.target.value })}
+                      placeholder="https://g.page/r/…"
+                      className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                      Cooldown entre pedidos (dias)
+                    </label>
+                    <input
+                      type="number"
+                      min={7}
+                      max={365}
+                      value={form.reviewCooldownDays}
+                      onChange={(e) =>
+                        setForm((f) => f && { ...f, reviewCooldownDays: e.target.value })
+                      }
+                      className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+            </Section>
 
             {error && <p className="text-sm text-destructive">{error}</p>}
             {saved && <p className="text-sm text-emerald-600">Configurações salvas.</p>}

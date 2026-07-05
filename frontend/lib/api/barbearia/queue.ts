@@ -36,3 +36,10 @@ export function updateTicketStatus(
     body: JSON.stringify({ newStatus }),
   })
 }
+
+export function convertTicket(id: string, barberId?: string | null): Promise<unknown> {
+  return apiFetch<unknown>(`/api/barbearia/queue/${id}/convert`, {
+    method: 'POST',
+    body: JSON.stringify({ barberId: barberId ?? null }),
+  })
+}

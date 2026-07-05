@@ -35,6 +35,12 @@ export type Config = {
   reminderEnabled: boolean
   autoCompleteEnabled: boolean
   upsellEnabled: boolean
+  reactivationEnabled: boolean
+  reactivationDays: number
+  reactivationCouponCode: string | null
+  postReviewEnabled: boolean
+  reviewLink: string | null
+  reviewCooldownDays: number
 }
 
 /** Agendamento (espelha BarberAppointment). startAt/endAt em ISO-8601 instant. */
