@@ -370,6 +370,107 @@ export const blockSchemas: Record<CmsBlockTypeId, BlockSchema> = {
     ],
   },
 
+  reviews_carousel: {
+    type: 'reviews_carousel',
+    label: 'Avaliações (carrossel)',
+    emoji: '⭐',
+    description: 'Carrossel de avaliações estilo Google (estrelas, avatar, selo "via Google").',
+    fields: [
+      { key: 'title', label: 'Título', type: 'text' },
+      {
+        key: 'source',
+        label: 'Origem das avaliações',
+        type: 'select',
+        options: [
+          { value: 'google', label: 'Google (mostra o selo "via Google")' },
+          { value: 'manual', label: 'Manual (sem selo)' },
+        ],
+      },
+      { key: 'autoplay', label: 'Passar automaticamente', type: 'checkbox' },
+      {
+        key: 'items',
+        label: 'Avaliações',
+        type: 'repeater',
+        itemLabel: 'avaliação',
+        itemSchema: [
+          { key: 'name', label: 'Nome', type: 'text' },
+          {
+            // rating é STRING '1'..'5' — select, NUNCA number (padrão do FieldRenderer).
+            key: 'rating',
+            label: 'Nota',
+            type: 'select',
+            options: [
+              { value: '5', label: '★★★★★ (5)' },
+              { value: '4', label: '★★★★ (4)' },
+              { value: '3', label: '★★★ (3)' },
+              { value: '2', label: '★★ (2)' },
+              { value: '1', label: '★ (1)' },
+            ],
+          },
+          { key: 'text', label: 'Texto', type: 'textarea' },
+          { key: 'date', label: 'Data', type: 'text', hint: 'Ex.: há 2 semanas ou 12/05/2026' },
+          {
+            key: 'avatarUrl',
+            label: 'URL da foto (opcional)',
+            type: 'url',
+            hint: 'Sem foto, usa a inicial do nome',
+          },
+        ],
+      },
+    ],
+  },
+
+  video: {
+    type: 'video',
+    label: 'Vídeo (YouTube/Vimeo)',
+    emoji: '🎬',
+    description: 'Vídeo embutido — cole o link do YouTube ou Vimeo.',
+    fields: [
+      { key: 'title', label: 'Título', type: 'text' },
+      {
+        key: 'url',
+        label: 'Link do vídeo',
+        type: 'url',
+        hint: 'YouTube (watch, shorts, youtu.be) ou Vimeo',
+        placeholder: 'https://www.youtube.com/watch?v=...',
+      },
+      { key: 'caption', label: 'Legenda (abaixo do vídeo)', type: 'text' },
+    ],
+  },
+
+  rating_badge: {
+    type: 'rating_badge',
+    label: 'Selo de avaliação',
+    emoji: '🏅',
+    description: 'Selo compacto com nota agregada (ex.: 4,9 ★ · 320 avaliações no Google).',
+    fields: [
+      { key: 'score', label: 'Nota', type: 'text', hint: 'Ex.: 4,9' },
+      { key: 'caption', label: 'Descrição', type: 'text', hint: 'Ex.: 320 avaliações no Google' },
+      { key: 'href', label: 'Link pras avaliações (opcional)', type: 'url' },
+    ],
+  },
+
+  logo_strip: {
+    type: 'logo_strip',
+    label: 'Faixa de logos',
+    emoji: '🤝',
+    description: 'Faixa de logos de parceiros, certificações e selos (imagem por URL).',
+    fields: [
+      { key: 'label', label: 'Etiqueta', type: 'text', hint: 'Ex.: Quem confia na gente' },
+      {
+        key: 'items',
+        label: 'Logos',
+        type: 'repeater',
+        itemLabel: 'logo',
+        itemSchema: [
+          { key: 'name', label: 'Nome', type: 'text', hint: 'Sem imagem, mostra o nome' },
+          { key: 'imageUrl', label: 'URL da imagem', type: 'url' },
+          { key: 'href', label: 'Link (opcional)', type: 'url' },
+        ],
+      },
+    ],
+  },
+
   meada_hero: {
     type: 'meada_hero',
     label: 'Meada · Hero',

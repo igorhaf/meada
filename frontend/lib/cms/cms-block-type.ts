@@ -29,6 +29,10 @@ export const CMS_BLOCK_TYPES = [
   { id: 'marquee', label: 'Faixa de marcas' },
   { id: 'quote', label: 'Citação' },
   { id: 'cta', label: 'Chamada final (CTA)' },
+  { id: 'reviews_carousel', label: 'Avaliações (carrossel)' },
+  { id: 'video', label: 'Vídeo (YouTube/Vimeo)' },
+  { id: 'rating_badge', label: 'Selo de avaliação' },
+  { id: 'logo_strip', label: 'Faixa de logos' },
   { id: 'meada_hero', label: 'Meada · Hero' },
   { id: 'meada_services', label: 'Meada · Serviços' },
   { id: 'meada_portfolio', label: 'Meada · Portfólio' },
@@ -108,6 +112,28 @@ export type MarqueeItem = { name: string }
 export type MarqueeProps = { label: string; items: MarqueeItem[] }
 export type QuoteProps = { text: string; author: string; role: string }
 export type CtaProps = { title: string; subtitle: string; buttonLabel: string; buttonHref: string }
+
+// ---- Onda 1 de blocos genéricos de site (prova social e mídia) ----
+// rating é STRING '1'..'5' (select no editor); avatarUrl vazio → inicial colorida.
+export type ReviewItem = {
+  name: string
+  text: string
+  rating: string
+  date: string
+  avatarUrl: string
+}
+/** source 'google' desenha o selo "via Google" nos cards; 'manual' não. */
+export type ReviewsCarouselProps = {
+  title: string
+  source: 'google' | 'manual'
+  autoplay: boolean
+  items: ReviewItem[]
+}
+/** url aceita link de YouTube (watch/shorts/youtu.be/embed) ou Vimeo — convertido em embed seguro. */
+export type VideoProps = { title: string; url: string; caption: string }
+export type RatingBadgeProps = { score: string; caption: string; href: string }
+export type LogoItem = { name: string; imageUrl: string; href: string }
+export type LogoStripProps = { label: string; items: LogoItem[] }
 
 // ---- Blocos da marca Meada (preset meada-dark) ----
 export type MeadaStat = { value: string; label: string }
@@ -222,6 +248,10 @@ export type CmsBlock =
   | { id: string; type: 'marquee'; props: MarqueeProps }
   | { id: string; type: 'quote'; props: QuoteProps }
   | { id: string; type: 'cta'; props: CtaProps }
+  | { id: string; type: 'reviews_carousel'; props: ReviewsCarouselProps }
+  | { id: string; type: 'video'; props: VideoProps }
+  | { id: string; type: 'rating_badge'; props: RatingBadgeProps }
+  | { id: string; type: 'logo_strip'; props: LogoStripProps }
   | { id: string; type: 'meada_hero'; props: MeadaHeroProps }
   | { id: string; type: 'meada_services'; props: MeadaServicesProps }
   | { id: string; type: 'meada_portfolio'; props: MeadaPortfolioProps }
@@ -286,6 +316,14 @@ export function defaultProps(type: CmsBlockTypeId): CmsBlock['props'] {
       return { text: '', author: '', role: '' }
     case 'cta':
       return { title: 'Pronto para começar?', subtitle: '', buttonLabel: '', buttonHref: '' }
+    case 'reviews_carousel':
+      return { title: 'O que dizem nossos clientes', source: 'google', autoplay: true, items: [] }
+    case 'video':
+      return { title: '', url: '', caption: '' }
+    case 'rating_badge':
+      return { score: '', caption: '', href: '' }
+    case 'logo_strip':
+      return { label: '', items: [] }
     case 'meada_hero':
       return {
         titlePrefix: 'Sites e Sistemas',

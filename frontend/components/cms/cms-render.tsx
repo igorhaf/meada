@@ -4,6 +4,7 @@ import { MeadaFooter, MeadaNavbar } from '@/components/cms/blocks/meada-chrome'
 import { MeadaHero } from '@/components/cms/blocks/meada-hero'
 import { MeadaCta, MeadaPortfolio, MeadaServices } from '@/components/cms/blocks/meada-sections'
 import { NichesGrid } from '@/components/cms/blocks/niches-grid'
+import { ReviewsCarousel } from '@/components/cms/blocks/reviews-carousel'
 import type {
   BannerStripProps,
   CmsBlock,
@@ -17,18 +18,21 @@ import type {
   GalleryProps,
   HeroProps,
   ImageTextSplitProps,
+  LogoStripProps,
   MapProps,
   MarqueeProps,
   PackagesProps,
   QuoteProps,
+  RatingBadgeProps,
   ServicesProps,
   StatsProps,
   StepsProps,
   TestimonialsProps,
   TextProps,
+  VideoProps,
 } from '@/lib/cms/cms-block-type'
 import type { CmsNavItem, CmsTheme } from '@/lib/cms/public-fetch'
-import { safeFrameSrc, safeUrl } from '@/lib/cms/safe-url'
+import { safeFrameSrc, safeUrl, safeVideoEmbedSrc } from '@/lib/cms/safe-url'
 import { slotRing } from '@/lib/cms/slot-highlight'
 import { themeById } from '@/lib/cms/themes/theme-catalog'
 import { themeLayoutAttrs, themeToCssVars } from '@/lib/cms/themes/theme-tokens'
@@ -628,6 +632,94 @@ function CtaBlock({ props, activeSlot }: { props: CtaProps; activeSlot?: string 
   )
 }
 
+// ---- onda 1 de blocos genéricos (prova social e mídia) -----------------------
+// reviews_carousel vive em blocks/reviews-carousel.tsx ('use client' — setas/autoplay).
+
+function VideoBlock({ props }: { props: VideoProps }) {
+  // src SEMPRE reconstruído no player oficial a partir do ID (safeVideoEmbedSrc) — nunca a URL crua.
+  const src = safeVideoEmbedSrc(props.url)
+  return (
+    <section className="mx-auto max-w-4xl px-6 py-12">
+      {props.title && <h2 className="mb-6 text-center text-2xl font-bold">{props.title}</h2>}
+      {src && (
+        <div className="overflow-hidden rounded-2xl border border-black/10 shadow-sm">
+          <iframe
+            src={src}
+            title={props.title || 'Vídeo'}
+            className="aspect-video w-full"
+            loading="lazy"
+            allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+            referrerPolicy="no-referrer"
+          />
+        </div>
+      )}
+      {props.caption && <p className="mt-3 text-center text-sm opacity-70">{props.caption}</p>}
+    </section>
+  )
+}
+
+function RatingBadgeBlock({ props }: { props: RatingBadgeProps }) {
+  if (!props.score && !props.caption) return null
+  return (
+    <section className="px-6 py-8 text-center">
+      <div className="inline-flex flex-wrap items-center justify-center gap-3 rounded-full border border-black/10 bg-white/60 px-6 py-3 text-slate-900 shadow-sm">
+        <span className="text-lg text-amber-400" aria-hidden>
+          ★★★★★
+        </span>
+        {props.score && <span className="text-lg font-bold">{props.score}</span>}
+        {props.caption && <span className="text-sm opacity-70">{props.caption}</span>}
+        {safeUrl(props.href) && (
+          <a
+            href={safeUrl(props.href)}
+            className="text-sm font-medium underline underline-offset-2"
+            style={{ color: 'var(--cms-primary)' }}
+          >
+            Ver avaliações
+          </a>
+        )}
+      </div>
+    </section>
+  )
+}
+
+function LogoStripBlock({ props }: { props: LogoStripProps }) {
+  const items = props.items ?? []
+  if (items.length === 0) return null
+  return (
+    <section className="mx-auto max-w-6xl px-6 py-10">
+      {props.label && (
+        <div className="mb-6 text-center text-xs tracking-widest uppercase opacity-60">
+          {props.label}
+        </div>
+      )}
+      <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-6">
+        {items.map((it, i) => {
+          const img = safeUrl(it.imageUrl)
+          const content = img ? (
+            /* eslint-disable-next-line @next/next/no-img-element -- URL externa colada pelo tenant */
+            <img
+              src={img}
+              alt={it.name || ''}
+              className="h-10 w-auto object-contain opacity-70 grayscale transition hover:opacity-100 hover:grayscale-0"
+            />
+          ) : (
+            <span className="text-lg font-semibold tracking-tight opacity-60">{it.name}</span>
+          )
+          const href = safeUrl(it.href)
+          return href ? (
+            <a key={i} href={href}>
+              {content}
+            </a>
+          ) : (
+            <span key={i}>{content}</span>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
 // ---- registry + dispatch ----------------------------------------------------
 
 /** Mapa type → componente. Usado pelo dispatch (render público) e exposto pro editor. */
@@ -650,6 +742,10 @@ export const blockComponents = {
   marquee: MarqueeBlock,
   quote: QuoteBlock,
   cta: CtaBlock,
+  reviews_carousel: ReviewsCarousel,
+  video: VideoBlock,
+  rating_badge: RatingBadgeBlock,
+  logo_strip: LogoStripBlock,
   meada_hero: MeadaHero,
   meada_services: MeadaServices,
   meada_portfolio: MeadaPortfolio,
@@ -703,6 +799,14 @@ export function renderCmsBlock(
       return <QuoteBlock key={b.id} props={b.props} />
     case 'cta':
       return <CtaBlock key={b.id} props={b.props} activeSlot={opts?.activeSlot} />
+    case 'reviews_carousel':
+      return <ReviewsCarousel key={b.id} props={b.props} />
+    case 'video':
+      return <VideoBlock key={b.id} props={b.props} />
+    case 'rating_badge':
+      return <RatingBadgeBlock key={b.id} props={b.props} />
+    case 'logo_strip':
+      return <LogoStripBlock key={b.id} props={b.props} />
     case 'meada_hero':
       return <MeadaHero key={b.id} props={b.props} />
     case 'meada_services':
