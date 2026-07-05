@@ -16,6 +16,10 @@ type FormState = {
   paymentReminderEnabled: boolean
   autoCompleteEnabled: boolean
   anniversaryEnabled: boolean
+  postEventEnabled: boolean
+  reviewLink: string
+  followUpEnabled: boolean
+  followUpDays: string
 }
 
 /**
@@ -39,6 +43,10 @@ export default function CasamentoSettingsPage() {
     paymentReminderEnabled: d.paymentReminderEnabled ?? true,
     autoCompleteEnabled: d.autoCompleteEnabled ?? true,
     anniversaryEnabled: d.anniversaryEnabled ?? true,
+    postEventEnabled: d.postEventEnabled ?? true,
+    reviewLink: d.reviewLink ?? '',
+    followUpEnabled: d.followUpEnabled ?? true,
+    followUpDays: String(d.followUpDays ?? 5),
   }))
 
   const saveMutation = useMutation({
@@ -51,6 +59,10 @@ export default function CasamentoSettingsPage() {
         paymentReminderEnabled: form.paymentReminderEnabled,
         autoCompleteEnabled: form.autoCompleteEnabled,
         anniversaryEnabled: form.anniversaryEnabled,
+        postEventEnabled: form.postEventEnabled,
+        reviewLink: form.reviewLink.trim() || null,
+        followUpEnabled: form.followUpEnabled,
+        followUpDays: Math.min(60, Math.max(1, Math.round(Number(form.followUpDays) || 5))),
       })
     },
     onSuccess: () => {
@@ -186,6 +198,68 @@ export default function CasamentoSettingsPage() {
               checklist), não por agendamento de horário — por isso não há configuração de horário
               aqui.
             </p>
+
+            <Section title="Pós-casamento e follow-up">
+              <div className="space-y-4">
+                <label className="flex items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={form.postEventEnabled}
+                    className="mt-0.5"
+                    onChange={(e) =>
+                      setForm((f) => f && { ...f, postEventEnabled: e.target.checked })
+                    }
+                  />
+                  <span>
+                    Mensagem de pós-casamento (depoimento + indicação)
+                    <span className="block text-xs text-muted-foreground">
+                      Sai quando o casamento vira &quot;realizada&quot; — o auge da emoção.
+                    </span>
+                  </span>
+                </label>
+                <div className="max-w-lg">
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                    Link de avaliação (Google, por exemplo)
+                  </label>
+                  <input
+                    type="url"
+                    value={form.reviewLink}
+                    onChange={(e) => setForm((f) => f && { ...f, reviewLink: e.target.value })}
+                    placeholder="https://g.page/r/…"
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+                <label className="flex items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={form.followUpEnabled}
+                    className="mt-0.5"
+                    onChange={(e) =>
+                      setForm((f) => f && { ...f, followUpEnabled: e.target.checked })
+                    }
+                  />
+                  <span>
+                    Follow-up de orçamento parado
+                    <span className="block text-xs text-muted-foreground">
+                      Orçamento sem resposta há N dias recebe um toque gentil (1 por episódio).
+                    </span>
+                  </span>
+                </label>
+                <div className="w-44">
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                    Dias parado até o follow-up
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={60}
+                    value={form.followUpDays}
+                    onChange={(e) => setForm((f) => f && { ...f, followUpDays: e.target.value })}
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+              </div>
+            </Section>
 
             {error && <p className="text-sm text-destructive">{error}</p>}
             {saved && <p className="text-sm text-emerald-600">Configurações salvas.</p>}

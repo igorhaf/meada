@@ -8,6 +8,10 @@ export type UpdateConfigInput = {
   paymentReminderEnabled?: boolean
   autoCompleteEnabled?: boolean
   anniversaryEnabled?: boolean
+  postEventEnabled: boolean
+  reviewLink?: string | null
+  followUpEnabled: boolean
+  followUpDays: number
 }
 
 export function getConfig(): Promise<WeddingConfig> {
