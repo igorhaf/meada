@@ -15,6 +15,10 @@ type FormState = {
   bufferMinutes: number
   opensAt: string
   closesAt: string
+  reminderEnabled: boolean
+  autoCompleteEnabled: boolean
+  recallEnabled: boolean
+  recallMonths: string
 }
 
 function hhmm(t: string): string {
@@ -40,12 +44,19 @@ export default function DentalSettingsPage() {
     bufferMinutes: d.bufferMinutes,
     opensAt: hhmm(d.opensAt),
     closesAt: hhmm(d.closesAt),
+    reminderEnabled: d.reminderEnabled ?? true,
+    autoCompleteEnabled: d.autoCompleteEnabled ?? true,
+    recallEnabled: d.recallEnabled ?? false,
+    recallMonths: String(d.recallMonths ?? 6),
   }))
 
   const saveMutation = useMutation({
     mutationFn: () => {
       if (!form) throw new Error('form não carregado')
-      return updateConfig(form)
+      return updateConfig({
+        ...form,
+        recallMonths: Math.min(36, Math.max(1, Math.round(Number(form.recallMonths) || 6))),
+      })
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['dental-config'] })
@@ -151,6 +162,71 @@ export default function DentalSettingsPage() {
               Mudanças afetam apenas consultas <strong>futuras</strong> — consultas já confirmadas
               mantêm a duração do momento em que foram criadas.
             </p>
+
+            <Section title="Automações">
+              <div className="space-y-4">
+                <label className="flex items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={form.reminderEnabled}
+                    className="mt-0.5"
+                    onChange={(e) =>
+                      setForm((f) => f && { ...f, reminderEnabled: e.target.checked })
+                    }
+                  />
+                  <span>
+                    Lembrete de consulta na véspera (responda SIM)
+                    <span className="block text-xs text-muted-foreground">
+                      Desmarcar segue com o consultório — a IA só confirma.
+                    </span>
+                  </span>
+                </label>
+                <label className="flex items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={form.autoCompleteEnabled}
+                    className="mt-0.5"
+                    onChange={(e) =>
+                      setForm((f) => f && { ...f, autoCompleteEnabled: e.target.checked })
+                    }
+                  />
+                  <span>
+                    Concluir consultas confirmadas que já passaram
+                    <span className="block text-xs text-muted-foreground">
+                      Falta continua sendo marcada pela equipe.
+                    </span>
+                  </span>
+                </label>
+                <label className="flex items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={form.recallEnabled}
+                    className="mt-0.5"
+                    onChange={(e) => setForm((f) => f && { ...f, recallEnabled: e.target.checked })}
+                  />
+                  <span>
+                    Recall de manutenção/limpeza
+                    <span className="block text-xs text-muted-foreground">
+                      Convite de revisão pra quem não vem há N meses (1 toque por ciclo). Desligado
+                      por padrão — ligar pode disparar pra base toda.
+                    </span>
+                  </span>
+                </label>
+                <div className="w-44">
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                    Meses sem consulta até o recall
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={36}
+                    value={form.recallMonths}
+                    onChange={(e) => setForm((f) => f && { ...f, recallMonths: e.target.value })}
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+              </div>
+            </Section>
 
             {error && <p className="text-sm text-destructive">{error}</p>}
             {saved && <p className="text-sm text-emerald-600">Configurações salvas.</p>}
