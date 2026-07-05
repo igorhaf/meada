@@ -112,7 +112,9 @@ class SalonReminderJobIntegrationTest extends AbstractIntegrationTest {
 
         jdbcTemplate.update("update salon_config set reminder_enabled = true where company_id = ?", COMPANY);
         seedAppointment("cancelado", tomorrowAt(16), conversationId);  // status terminal
-        Instant hoje = Instant.now().plus(2, ChronoUnit.HOURS);
+        // HOJE fixo ao meio-dia (não Instant.now()+2h — depois das 22h BRT cruzaria a meia-noite
+        // e viraria "amanhã", flake real de 2026-07-04).
+        Instant hoje = LocalDate.now(SP).atTime(LocalTime.NOON).atZone(SP).toInstant();
         seedAppointment("confirmado", hoje, conversationId);           // hoje, não amanhã
         // o de amanhã 15h (toggle religado) dispara — os outros dois não.
         assertThat(job.runReminders()).isEqualTo(1);

@@ -5,6 +5,13 @@ export type UpdateConfigInput = {
   opensAt: string // "HH:MM"
   closesAt: string // "HH:MM"
   slotMinutes: number
+  reminderEnabled: boolean
+  autoCompleteEnabled: boolean
+  autoExpireEnabled: boolean
+  packageValidityDays: number | null
+  renewalEnabled: boolean
+  renewalDays: number
+  expiryWarningDays: number
 }
 
 export function getConfig(): Promise<AestheticConfig> {

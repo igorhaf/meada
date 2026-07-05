@@ -174,6 +174,8 @@ export default function EsteticaPackagesPage() {
                   <p className="text-xs text-muted-foreground">
                     {pk.sessionsRemaining} de {pk.totalSessions} sessões restantes ·{' '}
                     {formatPrice(pk.totalCents)} · {formatDate(pk.purchasedAt)}
+                    {pk.validUntil &&
+                      ` · válido até ${pk.validUntil.split('-').reverse().join('/')}`}
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">

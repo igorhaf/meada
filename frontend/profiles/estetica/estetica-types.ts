@@ -31,6 +31,13 @@ export type AestheticConfig = {
   opensAt: string
   closesAt: string
   slotMinutes: number
+  reminderEnabled: boolean
+  autoCompleteEnabled: boolean
+  autoExpireEnabled: boolean
+  packageValidityDays: number | null
+  renewalEnabled: boolean
+  renewalDays: number
+  expiryWarningDays: number
 }
 
 /** Pacote multi-sessão (espelha AestheticPackage) — a escapada. saldo materializado. */
@@ -49,6 +56,7 @@ export type AestheticPackage = {
   totalCents: number
   status: AestheticPackageStatusId
   notes: string | null
+  validUntil: string | null
   purchasedAt: string
   activatedAt: string | null
   statusUpdatedAt: string
