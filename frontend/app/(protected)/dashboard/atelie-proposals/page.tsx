@@ -1026,6 +1026,13 @@ export default function AtelieProposalsPage() {
                               prazo {formatDate(ft.dueDate)}
                             </span>
                           )}
+                          {ft.status === 'pendente' &&
+                            ft.confirmedAt &&
+                            ft.confirmedDueDate === ft.dueDate && (
+                              <span className="ml-2 text-xs font-medium text-emerald-600">
+                                presença confirmada
+                              </span>
+                            )}
                           {ft.status === 'realizada' && ft.completedAt && (
                             <span className="ml-2 text-xs text-emerald-600">
                               concluída {formatDate(ft.completedAt)}

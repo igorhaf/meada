@@ -5,6 +5,10 @@ export type UpdateConfigInput = {
   businessName?: string | null
   notes?: string | null
   fittingReminderEnabled?: boolean
+  postDeliveryEnabled: boolean
+  reviewLink?: string | null
+  reactivationEnabled: boolean
+  reactivationDays: number
 }
 
 export function getConfig(): Promise<AtelieConfig> {
