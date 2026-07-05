@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Modal } from '@/components/ui/modal'
 import { ApiError } from '@/lib/api/client'
+import { checkDate, listPackages } from '@/lib/api/eventos/packages'
 import { listPlanners } from '@/lib/api/eventos/planners'
 import {
   addItem,
@@ -107,6 +108,18 @@ export default function EventosProposalsPage() {
   const planners = useQuery({
     queryKey: ['eventos-planners-all'],
     queryFn: () => listPlanners({ onlyActive: true }),
+  })
+
+  const packages = useQuery({
+    queryKey: ['eventos-packages'],
+    queryFn: () => listPackages(),
+  })
+
+  // Onda 1 (backlog #3): aviso NÃO bloqueante de data ocupada ao escolher a data no modal.
+  const dateCheck = useQuery({
+    queryKey: ['eventos-date-check', openForm.eventDate],
+    queryFn: () => checkDate(openForm.eventDate),
+    enabled: openForm.eventDate !== '',
   })
 
   const detail = useQuery({
@@ -402,6 +415,13 @@ export default function EventosProposalsPage() {
                 onChange={(e) => setOpenForm((f) => ({ ...f, eventDate: e.target.value }))}
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
               />
+              {dateCheck.data?.occupied && (
+                <p className="mt-1 text-xs font-medium text-amber-600">
+                  ⚠ Já existe{' '}
+                  {dateCheck.data.count > 1 ? `${dateCheck.data.count} eventos` : 'um evento'}{' '}
+                  aprovado/fechado nesta data — confira antes de seguir.
+                </p>
+              )}
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-muted-foreground">
@@ -554,6 +574,36 @@ export default function EventosProposalsPage() {
                     addItemMutation.mutate()
                   }}
                 >
+                  {(packages.data?.items ?? []).filter((pk) => pk.active).length > 0 && (
+                    <div className="w-full">
+                      <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                        Do catálogo (preenche descrição e preço)
+                      </label>
+                      <select
+                        value=""
+                        onChange={(e) => {
+                          const pk = packages.data?.items.find((x) => x.id === e.target.value)
+                          if (pk) {
+                            setItemForm((f) => ({
+                              ...f,
+                              description: pk.name,
+                              price: String(pk.priceCents / 100),
+                            }))
+                          }
+                        }}
+                        className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+                      >
+                        <option value="">Item avulso (digitar)…</option>
+                        {(packages.data?.items ?? [])
+                          .filter((pk) => pk.active)
+                          .map((pk) => (
+                            <option key={pk.id} value={pk.id}>
+                              [{pk.kind}] {pk.name} — R$ {(pk.priceCents / 100).toFixed(2)}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                  )}
                   <div className="min-w-[8rem] flex-1">
                     <label className="mb-1 block text-xs font-medium text-muted-foreground">
                       Descrição

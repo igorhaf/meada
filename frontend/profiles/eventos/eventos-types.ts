@@ -16,6 +16,22 @@ export type EventConfig = {
   companyId: string
   businessName: string | null
   notes: string | null
+  autoCompleteEnabled: boolean
+  postEventEnabled: boolean
+  reviewLink: string | null
+  followUpEnabled: boolean
+  followUpDays: number
+}
+
+/** Pacote/adicional do catálogo do buffet (espelha EventPackage — onda 1, backlog #2). */
+export type EventPackage = {
+  id: string
+  name: string
+  kind: 'pacote' | 'adicional'
+  description: string | null
+  priceCents: number
+  suggestible: boolean
+  active: boolean
 }
 
 /** Item de ORÇAMENTO de uma proposta (espelha EventProposalItem). lineTotalCents materializado. */

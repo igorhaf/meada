@@ -26,6 +26,7 @@ import {
   FileText,
   Flower2,
   Gem,
+  Gift,
   Glasses,
   Globe,
   GraduationCap,
@@ -398,6 +399,7 @@ const EVENTOS_GROUP: NavGroup = {
   items: [
     { label: 'Cerimonialistas', href: '/dashboard/eventos-planners', icon: PartyPopper },
     { label: 'Propostas', href: '/dashboard/eventos-proposals', icon: ClipboardList },
+    { label: 'Pacotes', href: '/dashboard/eventos-packages', icon: Gift },
     { label: 'Configurações', href: '/dashboard/eventos-settings', icon: Settings },
   ],
 }
