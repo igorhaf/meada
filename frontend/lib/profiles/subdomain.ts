@@ -58,7 +58,11 @@ export function baseUrl(reqUrl: URL, host: string | null | undefined): URL {
   const parts = hostname.split('.')
   const base = parts.length <= 2 ? hostname : parts.slice(1).join('.')
   const url = new URL(reqUrl)
-  url.host = port ? `${base}:${port}` : base
+  // O setter `.host` NÃO limpa a porta preexistente do reqUrl (no dev, o request interno do
+  // Next carrega :3000). Setar hostname e port SEPARADAMENTE garante a porta do Host header
+  // (quando o usuário acessa direto em :3000) ou NENHUMA (acesso via Caddy em 80/443).
+  url.hostname = base
+  url.port = port ?? ''
   url.pathname = '/'
   url.search = ''
   return url
