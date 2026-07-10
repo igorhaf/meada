@@ -1,22 +1,16 @@
 {
   "featured": [
     {
-      "profileId": "sushi",
-      "productName": "Sushi",
-      "subdomain": "sushi",
-      "paletteId": "tijolo"
-    },
-    {
       "profileId": "comida",
       "productName": "Comida",
       "subdomain": "comida",
       "paletteId": "terracota"
     },
     {
-      "profileId": "dental",
-      "productName": "Dental",
-      "subdomain": "dental",
-      "paletteId": "celeste"
+      "profileId": "pizzaria",
+      "productName": "Pizzaria",
+      "subdomain": "pizzaria",
+      "paletteId": "carmim"
     },
     {
       "profileId": "salon",
@@ -31,10 +25,28 @@
       "paletteId": "grafite"
     },
     {
+      "profileId": "dental",
+      "productName": "Dental",
+      "subdomain": "dental",
+      "paletteId": "celeste"
+    },
+    {
       "profileId": "estetica",
       "productName": "Estética",
       "subdomain": "estetica",
       "paletteId": "rosa-po"
+    },
+    {
+      "profileId": "academia",
+      "productName": "Academia",
+      "subdomain": "academia",
+      "paletteId": "pinheiro"
+    },
+    {
+      "profileId": "pet",
+      "productName": "Pet",
+      "subdomain": "pet",
+      "paletteId": "coral"
     }
   ],
   "all": [
@@ -55,6 +67,12 @@
       "productName": "Casamento",
       "subdomain": "casamento",
       "paletteId": "trigo"
+    },
+    {
+      "profileId": "comida",
+      "productName": "Comida",
+      "subdomain": "comida",
+      "paletteId": "terracota"
     },
     {
       "profileId": "concessionaria",
@@ -129,12 +147,6 @@
       "paletteId": "lavanda"
     },
     {
-      "profileId": "pizzaria",
-      "productName": "Pizzaria",
-      "subdomain": "pizzaria",
-      "paletteId": "carmim"
-    },
-    {
       "profileId": "suplementos",
       "productName": "Suplementos",
       "subdomain": "suplementos",
@@ -159,16 +171,10 @@
       "paletteId": "ardosia"
     },
     {
-      "profileId": "comida",
-      "productName": "Comida",
-      "subdomain": "comida",
-      "paletteId": "terracota"
-    },
-    {
-      "profileId": "dental",
-      "productName": "Dental",
-      "subdomain": "dental",
-      "paletteId": "celeste"
+      "profileId": "pizzaria",
+      "productName": "Pizzaria",
+      "subdomain": "pizzaria",
+      "paletteId": "carmim"
     },
     {
       "profileId": "salon",
@@ -183,16 +189,34 @@
       "paletteId": "grafite"
     },
     {
+      "profileId": "dental",
+      "productName": "Dental",
+      "subdomain": "dental",
+      "paletteId": "celeste"
+    },
+    {
       "profileId": "estetica",
       "productName": "Estética",
       "subdomain": "estetica",
       "paletteId": "rosa-po"
     },
     {
+      "profileId": "academia",
+      "productName": "Academia",
+      "subdomain": "academia",
+      "paletteId": "pinheiro"
+    },
+    {
       "profileId": "legal",
       "productName": "Legal",
       "subdomain": "juridico",
       "paletteId": "indigo"
+    },
+    {
+      "profileId": "pet",
+      "productName": "Pet",
+      "subdomain": "pet",
+      "paletteId": "coral"
     },
     {
       "profileId": "restaurant",
@@ -205,18 +229,6 @@
       "productName": "Pousada",
       "subdomain": "pousada",
       "paletteId": "oceano"
-    },
-    {
-      "profileId": "academia",
-      "productName": "Academia",
-      "subdomain": "academia",
-      "paletteId": "pinheiro"
-    },
-    {
-      "profileId": "pet",
-      "productName": "Pet",
-      "subdomain": "pet",
-      "paletteId": "coral"
     },
     {
       "profileId": "oficina",
