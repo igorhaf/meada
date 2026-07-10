@@ -94,13 +94,25 @@ já vamos usar a do docker de meada"): o pindorama roda no **docker-compose do m
 externo, acessível via Caddy em `pindorama.meadadigital.local` (dev) e `pindorama.meadadigital.com`
 (prod) — mesmo padrão do muda / semente-doce (php-fpm + nginx + Postgres dedicado, sem portas no host).
 
-## Estado (2026-07-10) — o que ficou pendente quando a fila quebrou
+## Estado — FECHADO em 2026-07-10
 
-**Pronto:** domínio migrado no model/DB; workflow `pindorama-storefront-rewire` completou
-(Home/vitrine reescritas — "Explore por prática", "Terapeutas em destaque"); comissão, billing,
-appointments, eventos, especialidades implementados; suíte passou 100% (obs #4050, 08:46).
+**Base construída na sessão original:** domínio migrado no model/DB; workflow
+`pindorama-storefront-rewire` completou (Home/vitrine reescritas — "Explore por prática",
+"Terapeutas em destaque"); comissão, billing, appointments, eventos, especialidades.
 
-**Pendente (a fila morreu aqui):**
-- [ ] Integrar no docker-compose do meada + rota no Caddy + subdomínio próprio (não fundido — ainda tem compose próprio).
-- [ ] Limpar resíduo do muda: README (feito), `docs/INTEGRACOES.md` (remover frete/Melhor Envio — não se aplica a serviços), `ngrok-muda.sh`.
-- [ ] Reverificar a suíte pós-quebra ("deu alguns erros anteriores, solucione" — último prompt sem confirmação de verde).
+**Fechamento (recuperação):**
+- [x] Integrado no docker-compose do meada + rota no Caddy (dev/prod) + subdomínio próprio
+      (`pindorama-postgres`/`-app`/`-nginx`). Verificado: `pindorama.meadadigital.local` → 200,
+      title "Terapias integrativas e práticas de bem-estar".
+- [x] Resíduo do muda limpo: README reescrito; `docs/INTEGRACOES.md` sem a seção de
+      frete/Melhor Envio; `ngrok-muda.sh` removido (era do muda — mirava o container
+      `muda-app`, túnel/domínio ngrok próprios).
+- [x] Suíte phpunit **verde**: 10 passed / 15 assertions, incluindo `BookingEngineTest`
+      (materialização de `end_at`, conflito de slot, back-to-back, janela de horário, aceite
+      gate, blocks). Os "erros anteriores" NÃO deixaram o código quebrado.
+
+**Polimento futuro (não bloqueante):** a terminologia herdada do muda (`INTEGRACOES.md` e
+views de pagamento) ainda diz "loja/pedido" — trocar por "agendamento/consulta" quando
+conveniente. O `phpunit.xml` aponta o DB de teste pra `127.0.0.1:5441` (setup antigo); no
+docker do meada a suíte roda com override `DB_HOST=pindorama-postgres DB_PORT=5432
+DB_DATABASE=pindorama_test`.
