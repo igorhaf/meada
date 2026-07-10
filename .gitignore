@@ -18,6 +18,11 @@ Thumbs.db
 # Logs
 *.log
 
+# Artefatos de build de mobile (gerados; nunca versionados)
+*.apk
+*.aab
+*.ipa
+
 # Testes (artefatos regeneráveis dos testes Selenium em scripts/)
 .pytest_cache/
 __pycache__/

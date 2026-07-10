@@ -45,6 +45,11 @@ muda.meadadigital.com {
 	reverse_proxy muda-nginx:80
 }
 
+# Projeto externo semente-doce (Laravel — doceria) — subdomínio próprio.
+semente-doce.meadadigital.com {
+	reverse_proxy semente-nginx:80
+}
+
 # Projeto externo conexao-municipio (Laravel API + Next) — path-based mesma-origem.
 conexao-municipio.meadadigital.com {
 	handle /api/* {

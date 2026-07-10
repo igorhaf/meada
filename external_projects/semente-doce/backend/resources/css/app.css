@@ -1,0 +1,98 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../views/**/*.blade.php';
+@source './**/*.vue';
+@source '../js/**/*.vue';
+
+@theme {
+    --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif,
+        'Apple Color Emoji', 'Segoe UI Emoji';
+
+    /* Semente Doce — framboesa (marca principal / doçura) */
+    --color-brand-50: #fff1f4;
+    --color-brand-100: #ffe0e7;
+    --color-brand-200: #ffc6d4;
+    --color-brand-300: #ff9db4;
+    --color-brand-400: #fb6690;
+    --color-brand-500: #ef3f72;
+    --color-brand-600: #d81e5b;
+    --color-brand-700: #b3164a;
+    --color-brand-800: #8f143f;
+    --color-brand-900: #6b0f30;
+
+    /* Caramelo — acento quente (preços, selos, salgados) */
+    --color-caramel-100: #f9ecd6;
+    --color-caramel-300: #e6c085;
+    --color-caramel-400: #d9a441;
+    --color-caramel-500: #c07f24;
+    --color-caramel-600: #a3641a;
+    --color-caramel-700: #834f16;
+
+    /* Pistache — acento fresco (disponível, frescor) */
+    --color-pistache-100: #e8f0d8;
+    --color-pistache-400: #9cc06a;
+    --color-pistache-500: #7ba24a;
+    --color-pistache-600: #5f8039;
+
+    /* Creme — fundo aconchegante da loja */
+    --color-cream: #fff8f1;
+}
+
+@layer base {
+    html {
+        scroll-behavior: smooth;
+    }
+
+    body {
+        @apply bg-cream text-neutral-800 antialiased;
+    }
+}
+
+@layer components {
+    .container-doce {
+        @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+    }
+
+    .btn-brand {
+        @apply inline-flex items-center justify-center gap-2 rounded-full bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60;
+    }
+
+    .btn-caramel {
+        @apply inline-flex items-center justify-center gap-2 rounded-full bg-caramel-500 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-caramel-600 focus:outline-none focus:ring-2 focus:ring-caramel-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60;
+    }
+
+    .btn-outline {
+        @apply inline-flex items-center justify-center gap-2 rounded-full border border-neutral-300 bg-white px-5 py-3 text-sm font-semibold text-neutral-700 transition hover:border-brand-400 hover:text-brand-700;
+    }
+
+    .card {
+        @apply rounded-3xl border border-neutral-200/80 bg-white shadow-sm transition hover:shadow-md;
+    }
+
+    .chip {
+        @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold;
+    }
+
+    .menu-item {
+        @apply flex items-center gap-2 px-4 py-2 text-sm text-neutral-700 transition hover:bg-brand-50;
+    }
+
+    .field-label {
+        @apply mb-1 block text-sm font-semibold text-neutral-700;
+    }
+
+    .field-input {
+        @apply w-full rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm text-neutral-800 transition focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100;
+    }
+
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+}

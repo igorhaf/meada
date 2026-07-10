@@ -90,7 +90,7 @@ services:
       - ${CADDYFILE_PATH:-./caddy/Caddyfile}:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
     networks: [meada]
-    depends_on: [frontend, backend, muda-nginx, conexao-municipio-frontend]
+    depends_on: [frontend, backend, muda-nginx, semente-nginx, conexao-municipio-frontend]
 
   # ---------------------------------------------------------------------------
   # Projeto EXTERNO muda (Laravel/PHP) — external_projects/muda. Integrado ao mesmo
@@ -142,6 +142,58 @@ services:
       - ./external_projects/muda:/var/www/html
       - ./external_projects/muda/docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on: [muda-app]
+    networks: [meada]
+
+  # ---------------------------------------------------------------------------
+  # Projeto EXTERNO semente-doce (Laravel/PHP) — external_projects/semente-doce.
+  # Doceria & salgaderia. Mesmo compose e mesma rede do muda; acessível SÓ via Caddy
+  # em http://semente-doce.meadadigital.local (sem portas no host). Postgres dedicado.
+  # ---------------------------------------------------------------------------
+  semente-postgres:
+    image: postgres:16-alpine
+    container_name: semente-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${SEMENTE_DB_DATABASE:-semente_doce}
+      POSTGRES_USER: ${SEMENTE_DB_USERNAME:-semente}
+      POSTGRES_PASSWORD: ${SEMENTE_DB_PASSWORD:-semente_secret}
+    volumes:
+      - semente-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${SEMENTE_DB_USERNAME:-semente} -d ${SEMENTE_DB_DATABASE:-semente_doce}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [meada]
+
+  semente-app:
+    build:
+      context: ./external_projects/semente-doce/backend
+      dockerfile: docker/php/Dockerfile
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+    container_name: semente-app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./external_projects/semente-doce/backend:/var/www/html
+    # self-heal: instala vendor se faltar (deploy novo), depois php-fpm. Assets (Vite) são
+    # buildados à parte (persistem no bind mount).
+    command: sh -c "[ -f vendor/autoload.php ] || composer install --no-dev --optimize-autoloader --no-interaction; php-fpm"
+    depends_on:
+      semente-postgres:
+        condition: service_healthy
+    networks: [meada]
+
+  semente-nginx:
+    image: nginx:1.27-alpine
+    container_name: semente-nginx
+    restart: unless-stopped
+    volumes:
+      - ./external_projects/semente-doce/backend:/var/www/html
+      - ./external_projects/semente-doce/backend/docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on: [semente-app]
     networks: [meada]
 
   # ---------------------------------------------------------------------------
@@ -226,6 +278,7 @@ volumes:
   caddy-data:
   embedding-models:
   muda-postgres-data:
+  semente-postgres-data:
   conexao-municipio-db-data:
   conexao-municipio-backend-vendor:
   conexao-municipio-frontend-node_modules:
