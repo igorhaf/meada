@@ -27,6 +27,9 @@ function backendBase(): string {
   return process.env.CMS_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8095'
 }
 
+/** Aborta o resolve se o backend pendurar — roda no middleware (toda request). */
+const RESOLVE_TIMEOUT_MS = 2500
+
 export async function resolveCompany(
   slug: string,
   now: number = Date.now(),
@@ -38,6 +41,7 @@ export async function resolveCompany(
       `${backendBase()}/public/companies/resolve/${encodeURIComponent(slug)}`,
       {
         cache: 'no-store',
+        signal: AbortSignal.timeout(RESOLVE_TIMEOUT_MS),
       },
     )
     if (!res.ok) return NOT_FOUND // falha → trata como inexistente (defensivo)

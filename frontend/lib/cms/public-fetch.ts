@@ -29,9 +29,20 @@ function backendBase(): string {
   return process.env.CMS_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8095'
 }
 
+/**
+ * Timeout curto pro fetch do CMS. Em produção o backend pode PENDURAR ~16s no pool de conexão
+ * (Postgres/Supabase indisponível) antes de responder 500; sem isto o SSR esperava tudo antes de
+ * cair no fallback estático (home com TTFB ~22s). Com o abort, falha rápido → fallback em ~2,5s.
+ * O backend saudável responde em ms, bem abaixo do limite, então o caminho dinâmico não muda.
+ */
+const CMS_FETCH_TIMEOUT_MS = 2500
+
 async function fetchPublic(path: string): Promise<PublicCmsView | null> {
   try {
-    const res = await fetch(`${backendBase()}${path}`, { cache: 'no-store' })
+    const res = await fetch(`${backendBase()}${path}`, {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(CMS_FETCH_TIMEOUT_MS),
+    })
     if (!res.ok) return null
     const view = (await res.json()) as {
       title: string
