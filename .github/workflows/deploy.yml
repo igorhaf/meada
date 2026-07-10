@@ -1,16 +1,22 @@
-# Deploy manual no servidor — bem simples (por enquanto): SSH com login/senha,
-# derruba o docker-compose e sobe de novo. Disparado manualmente pela UI/API.
+# Deploy no servidor via SSH (login/senha). Dispara:
+#   - automaticamente a cada push na main (rebuilda quando ha alteracao no github);
+#   - manualmente pela UI/API (workflow_dispatch).
 #
-# Pré-requisitos no servidor (ver README de deploy):
-#   1. Docker + Docker Compose instalados.
-#   2. O projeto (com docker-compose.yml na raiz) presente em `project_dir`.
+# O que faz no servidor: git pull (pega as mudancas) -> docker compose down ->
+# docker compose up -d --build. O --build reconstroi as imagens, o que ATUALIZA as
+# bibliotecas (composer/npm/mvn) sempre que ha mudanca.
 #
-# Secrets usados (Settings > Secrets and variables > Actions):
+# Pre-requisitos no servidor: Docker + Compose instalados; projeto clonado em project_dir
+# (com docker-compose.yml na raiz) e, em producao, CADDYFILE_PATH=./caddy/Caddyfile.prod no .env.
+#
+# Secrets (Settings > Secrets and variables > Actions):
 #   SERVER_SSH_HOST, SERVER_SSH_USER, SERVER_SSH_PASSWORD
 
 name: Deploy (servidor)
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       project_dir:
@@ -23,18 +29,21 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: SSH — docker compose down + up
+      - name: SSH — git pull + docker compose down + up --build
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SERVER_SSH_HOST }}
           username: ${{ secrets.SERVER_SSH_USER }}
           password: ${{ secrets.SERVER_SSH_PASSWORD }}
+          command_timeout: 30m
           script: |
             set -e
-            cd "${{ inputs.project_dir }}"
-            echo "== Derrubando a stack (docker compose down) =="
+            cd "${{ github.event.inputs.project_dir || '/opt/meada' }}"
+            echo "== git pull (traz as alteracoes do github) =="
+            git pull origin main
+            echo "== docker compose down =="
             docker compose down
-            echo "== Subindo a stack (docker compose up -d --build) =="
+            echo "== docker compose up -d --build (rebuilda + atualiza libs) =="
             docker compose up -d --build
             echo "== Status =="
             docker compose ps

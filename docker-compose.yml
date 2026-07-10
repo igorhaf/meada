@@ -99,8 +99,11 @@ services:
     container_name: meada-caddy
     ports:
       - "80:80"
+      - "443:443"     # HTTPS em produção (dev usa auto_https off; a 443 fica ociosa)
     volumes:
-      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # Caddyfile por AMBIENTE: dev usa ./caddy/Caddyfile (.local); produção exporta
+      # CADDYFILE_PATH=./caddy/Caddyfile.prod no .env do compose (.com + HTTPS automático).
+      - ${CADDYFILE_PATH:-./caddy/Caddyfile}:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
     networks: [meada]
     depends_on: [frontend, backend, muda-nginx, conexao-municipio-frontend]
