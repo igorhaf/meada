@@ -50,6 +50,11 @@ semente-doce.meadadigital.com {
 	reverse_proxy semente-nginx:80
 }
 
+# Projeto externo pindorama (Laravel — marketplace de saúde integrativa) — subdomínio próprio.
+pindorama.meadadigital.com {
+	reverse_proxy pindorama-nginx:80
+}
+
 # Projeto externo conexao-municipio (Laravel API + Next) — path-based mesma-origem.
 conexao-municipio.meadadigital.com {
 	handle /api/* {
