@@ -1,17 +1,25 @@
 # docker-compose.override.yml — overrides de DESENVOLVIMENTO LOCAL.
 #
 # O Docker Compose carrega este arquivo AUTOMATICAMENTE em `docker compose up` (dev).
-# Em PRODUÇÃO, o deploy roda `docker compose -f docker-compose.yml up` (só a base),
-# então estes overrides NÃO se aplicam — lá valem os valores do .env / .env.local de prod.
+# Em PRODUÇÃO, o deploy roda `docker compose -f docker-compose.yml up` (só a base = modo
+# PROD, enxuto): backend `java -jar`, frontend Next standalone, conexao `next start`.
 #
-# Aqui ficam só as diferenças de ambiente local:
-#   - Supabase LOCAL (via CLI no host WSL) alcançado pelo IP do WSL a partir dos containers.
-#   - URLs de domínio .local (Caddy dev) e CORS de dev.
-#   - hot-reload (WATCHPACK_POLLING).
+# Aqui ficam as diferenças de DEV:
+#   - targets `dev` (hot-reload): backend mvn spring-boot:run, frontend/conexao next dev.
+#   - volumes de código-fonte (hot-reload) + maven-cache.
+#   - Supabase LOCAL (IP do WSL) e domínios .local.
 # Se o WSL trocar de IP no boot: exporte SUPABASE_HOST_IP=<novo ip> antes do compose up.
+# (Compose MERGE: environment por chave; volumes concatenam.)
 
 services:
   backend:
+    build:
+      target: dev
+    volumes:
+      - ./src:/app/src
+      - ./pom.xml:/app/pom.xml
+      - ./supabase:/app/supabase
+      - maven-cache:/root/.m2
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://${SUPABASE_HOST_IP:-172.27.153.135}:54322/postgres
       - SUPABASE_JWKS_URL=http://${SUPABASE_HOST_IP:-172.27.153.135}:54321/auth/v1/.well-known/jwks.json
@@ -19,7 +27,28 @@ services:
       - ADMIN_CORS_ALLOWED_ORIGINS=http://meadadigital.local,http://*.meadadigital.local,http://localhost:3000
 
   frontend:
+    build:
+      target: dev
+    env_file: ./frontend/.env.local
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
     environment:
       - NEXT_PUBLIC_API_URL=http://api.meadadigital.local
       - WATCHPACK_POLLING=true
       - NEXT_PUBLIC_SUPABASE_URL=http://${SUPABASE_HOST_IP:-172.27.153.135}:54321
+
+  conexao-municipio-backend:
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://conexao-municipio.meadadigital.local
+
+  conexao-municipio-frontend:
+    command: sh -c "npm install && npm run dev"
+    environment:
+      NEXT_PUBLIC_API_URL: http://conexao-municipio.meadadigital.local
+
+volumes:
+  maven-cache:

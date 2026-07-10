@@ -23,7 +23,7 @@ EXPOSE 3000
 # alcançam o container.
 CMD ["npm", "run", "dev", "--", "--hostname", "0.0.0.0"]
 
-# ---- build de produção (futuro) ------------------------------------------
+# ---- build de produção ---------------------------------------------------
 FROM node:20-alpine AS builder
 
 WORKDIR /app
@@ -32,6 +32,15 @@ COPY package.json package-lock.json* ./
 RUN npm ci
 
 COPY . .
+
+# NEXT_PUBLIC_* são INLINADAS no `next build` (build-time). O .dockerignore exclui .env*,
+# então entram por BUILD ARG (o compose passa os valores de produção via build.args).
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL} \
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY} \
+    NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 RUN npm run build
 
 FROM node:20-alpine AS prod

@@ -39,8 +39,9 @@ jobs:
           script: |
             set -e
             cd "${{ github.event.inputs.project_dir || '/opt/meada' }}"
-            echo "== git pull (traz as alteracoes do github) =="
-            git pull origin main
+            echo "== git fetch + reset --hard (traz as alteracoes; ignora drift de arquivos rastreados) =="
+            git fetch origin main
+            git reset --hard origin/main
             echo "== docker compose down =="
             docker compose -f docker-compose.yml down
             echo "== docker compose up -d --build (base SEM override de dev; rebuilda + atualiza libs) =="
