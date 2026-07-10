@@ -1,0 +1,18 @@
+# Build
+target/
+
+# Banco H2 local
+data/
+
+# Env / segredos
+.env
+.env.local
+*.env
+
+# Logs
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.iml
