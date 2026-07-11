@@ -240,12 +240,13 @@ function PlanShowcase({ props }: { props: MeadaHeroProps }) {
         style={{
           width: '100%',
           maxWidth: '420px',
-          background: '#ffffff',
-          color: '#0b1220',
-          borderRadius: '20px',
-          padding: '2.25rem',
-          border: '1px solid rgba(59,130,246,0.55)',
-          boxShadow: '0 0 0 4px rgba(59,130,246,0.12), 0 30px 60px -20px rgba(0,0,0,0.65)',
+          background: 'rgba(10,14,30,0.92)',
+          color: '#fff',
+          borderRadius: '24px',
+          padding: '2.5rem',
+          border: '1px solid rgba(99,102,241,0.3)',
+          backdropFilter: 'blur(24px)',
+          boxShadow: '0 32px 80px rgba(99,102,241,0.2)',
         }}
       >
         {props.planBadge && (
@@ -255,24 +256,41 @@ function PlanShowcase({ props }: { props: MeadaHeroProps }) {
               fontWeight: 700,
               letterSpacing: '0.08em',
               textTransform: 'uppercase',
-              color: '#3b82f6',
-              marginBottom: '0.9rem',
+              color: '#60a5fa',
+              marginBottom: '1rem',
             }}
           >
             {props.planBadge}
           </div>
         )}
-        <div style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '0.75rem' }}>
+        <div
+          style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.85rem', color: '#fff' }}
+        >
           {props.planName}
         </div>
         {props.planDescription && (
           <p
-            style={{ fontSize: '15px', lineHeight: 1.55, color: '#475569', marginBottom: '1.5rem' }}
+            style={{
+              fontSize: '15px',
+              lineHeight: 1.6,
+              color: 'rgb(148,163,184)',
+              marginBottom: '1.75rem',
+            }}
           >
             {props.planDescription}
           </p>
         )}
-        <div style={{ fontSize: '2.4rem', fontWeight: 800, marginBottom: '1.5rem' }}>
+        <div
+          style={{
+            fontSize: '2.6rem',
+            fontWeight: 900,
+            marginBottom: '1.75rem',
+            backgroundImage: 'linear-gradient(90deg, #60a5fa, #a855f7)',
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            color: 'transparent',
+          }}
+        >
           {props.planPrice}
         </div>
         {props.planButtonLabel && (
@@ -281,12 +299,14 @@ function PlanShowcase({ props }: { props: MeadaHeroProps }) {
             style={{
               display: 'block',
               textAlign: 'center',
-              background: '#3b82f6',
+              background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
               color: '#fff',
-              fontWeight: 700,
-              padding: '0.9rem 1rem',
-              borderRadius: '12px',
+              fontWeight: 600,
+              fontSize: '15px',
+              padding: '15px',
+              borderRadius: '10px',
               textDecoration: 'none',
+              boxShadow: '0 14px 32px rgba(59,130,246,0.38)',
             }}
           >
             {props.planButtonLabel}
