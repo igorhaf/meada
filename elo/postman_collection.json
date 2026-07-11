@@ -1,0 +1,709 @@
+{
+  "info": {
+    "name": "Elo API",
+    "description": "Elo API - API local usando assinatura via CLI.\n\nBase URL: http://localhost:8200\n\nEndpoint principal: POST /v1/messages\n\nCaracteristicas:\n- Usa assinatura Claude (nao API key)\n- CLI executa com --permission-mode bypassPermissions (sem prompts interativos)\n- Suporta parametro cwd para executar em qualquer diretorio de projeto\n- Suporta thinking (extended thinking) - blocos thinking so aparecem quando explicitamente solicitados via parametro thinking\n- Streaming via SSE (Server-Sent Events)\n- Compativel com formato Anthropic Messages API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "poc_chat"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8200",
+      "type": "string"
+    },
+    {
+      "key": "model",
+      "value": "claude-sonnet-4-6",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "item": [
+        {
+          "name": "GET /api/health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "health"]
+            },
+            "description": "Verifica se o servidor esta rodando."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\"status\": \"ok\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Quota (Claude subscription)",
+      "item": [
+        {
+          "name": "GET /api/quota/status",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "x-api-key", "value": "123456789"}],
+            "url": {"raw": "{{base_url}}/api/quota/status", "host": ["{{base_url}}"], "path": ["api", "quota", "status"]},
+            "description": "Snapshot da janela rolante 5h. Cheap, sem chamadas ao Claude.\n\nResposta inclui: tier, prompts_used/max, tokens, exhausted, resets_at."
+          }
+        },
+        {
+          "name": "POST /api/quota/probe",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "x-api-key", "value": "123456789"}],
+            "url": {"raw": "{{base_url}}/api/quota/probe", "host": ["{{base_url}}"], "path": ["api", "quota", "probe"]},
+            "description": "Ping de 5 tokens pra verificar se cota Claude esta disponivel.\n\nUsar com parcimonia (consome 1 prompt da janela). Atualiza o tracker."
+          }
+        },
+        {
+          "name": "GET /api/quota/history",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "x-api-key", "value": "123456789"}],
+            "url": {
+              "raw": "{{base_url}}/api/quota/history?limit=50",
+              "host": ["{{base_url}}"],
+              "path": ["api", "quota", "history"],
+              "query": [{"key": "limit", "value": "50"}]
+            },
+            "description": "Eventos recentes (calls, exhausted, available) para charts de historico."
+          }
+        },
+        {
+          "name": "POST /api/quota/tier",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "x-api-key", "value": "123456789"}
+            ],
+            "body": {"mode": "raw", "raw": "{\n  \"tier\": \"max_5x\"\n}", "options": {"raw": {"language": "json"}}},
+            "url": {"raw": "{{base_url}}/api/quota/tier", "host": ["{{base_url}}"], "path": ["api", "quota", "tier"]},
+            "description": "Altera o tier do plano (pro | max_5x | max_20x). Persistido em settings."
+          }
+        },
+        {
+          "name": "POST /api/quota/scan-now",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "x-api-key", "value": "123456789"}],
+            "url": {"raw": "{{base_url}}/api/quota/scan-now", "host": ["{{base_url}}"], "path": ["api", "quota", "scan-now"]},
+            "description": "Forca scan sincrono de ~/.claude/projects/*.jsonl pra atualizar snapshot apos atividade CLI fora do orbit."
+          }
+        },
+        {
+          "name": "POST /api/quota/plan",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "x-api-key", "value": "123456789"}
+            ],
+            "body": {"mode": "raw", "raw": "{\n  \"project_meta\": {\"n_files\": 256, \"n_domains\": 29},\n  \"mode\": \"balanced\"\n}", "options": {"raw": {"language": "json"}}},
+            "url": {"raw": "{{base_url}}/api/quota/plan", "host": ["{{base_url}}"], "path": ["api", "quota", "plan"]},
+            "description": "Estima custo de um Deep Pipeline run vs cota restante. Modes: aggressive | balanced | conservative. Retorna fits, recommendation (proceed/adjust/wait), e suggested_profile com overrides quando nao cabe."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Messages API (/v1/messages)",
+      "item": [
+        {
+          "name": "Mensagem simples (non-streaming)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "anthropic-version", "value": "2023-06-01"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"max_tokens\": 1024,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Diga apenas: ola mundo\"\n    }\n  ]\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/messages",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "messages"]
+            },
+            "description": "Envia uma mensagem e recebe a resposta completa (sem streaming).\n\nO CLI executa com --permission-mode bypassPermissions, sem bloquear em prompts de permissao."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"id\": \"msg_a221883f34bd4b458744dc6f\",\n  \"type\": \"message\",\n  \"role\": \"assistant\",\n  \"model\": \"claude-sonnet-4-6\",\n  \"content\": [\n    {\n      \"type\": \"text\",\n      \"text\": \"ola mundo\"\n    }\n  ],\n  \"stop_reason\": \"end_turn\",\n  \"stop_sequence\": null,\n  \"usage\": {\n    \"input_tokens\": 3,\n    \"output_tokens\": 5\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Mensagem simples (streaming)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "anthropic-version", "value": "2023-06-01"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"max_tokens\": 1024,\n  \"stream\": true,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Explique o que e Python em 2 frases.\"\n    }\n  ]\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/messages",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "messages"]
+            },
+            "description": "Envia uma mensagem com streaming habilitado. Resposta via SSE (Server-Sent Events).\n\nEventos SSE:\n- message_start\n- ping\n- content_block_start\n- content_block_delta (text_delta)\n- content_block_stop\n- message_delta\n- message_stop"
+          },
+          "response": [
+            {
+              "name": "200 SSE Stream",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "text/event-stream"}],
+              "body": "event: message_start\ndata: {\"type\": \"message_start\", \"message\": {\"id\": \"msg_xxx\", \"type\": \"message\", \"role\": \"assistant\", \"content\": [], \"model\": \"claude-sonnet-4-6\", \"stop_reason\": null, \"stop_sequence\": null, \"usage\": {\"input_tokens\": 0, \"output_tokens\": 0}}}\n\nevent: ping\ndata: {\"type\": \"ping\"}\n\nevent: content_block_start\ndata: {\"type\": \"content_block_start\", \"index\": 0, \"content_block\": {\"type\": \"text\", \"text\": \"\"}}\n\nevent: content_block_delta\ndata: {\"type\": \"content_block_delta\", \"index\": 0, \"delta\": {\"type\": \"text_delta\", \"text\": \"Python e uma linguagem...\"}}\n\nevent: content_block_stop\ndata: {\"type\": \"content_block_stop\", \"index\": 0}\n\nevent: message_delta\ndata: {\"type\": \"message_delta\", \"delta\": {\"stop_reason\": \"end_turn\", \"stop_sequence\": null}, \"usage\": {\"output_tokens\": 15}}\n\nevent: message_stop\ndata: {\"type\": \"message_stop\"}"
+            }
+          ]
+        },
+        {
+          "name": "Com system prompt",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "anthropic-version", "value": "2023-06-01"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"max_tokens\": 1024,\n  \"system\": \"Voce e um assistente que responde sempre em portugues e de forma concisa.\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"What is the capital of Brazil?\"\n    }\n  ]\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/messages",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "messages"]
+            },
+            "description": "Envia uma mensagem com system prompt personalizado."
+          },
+          "response": []
+        },
+        {
+          "name": "Conversa multi-turn",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "anthropic-version", "value": "2023-06-01"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"max_tokens\": 1024,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Meu nome e Igor.\"\n    },\n    {\n      \"role\": \"assistant\",\n      \"content\": \"Prazer, Igor! Como posso ajudar?\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Qual e o meu nome?\"\n    }\n  ]\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/messages",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "messages"]
+            },
+            "description": "Conversa com multiplas mensagens (multi-turn). O historico completo e enviado no array messages.\n\nO backend usa --resume <session_id> para manter contexto entre chamadas."
+          },
+          "response": []
+        },
+        {
+          "name": "Modelo Opus",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "anthropic-version", "value": "2023-06-01"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"claude-opus-4-6\",\n  \"max_tokens\": 2048,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Escreva um haiku sobre programacao.\"\n    }\n  ]\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/messages",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "messages"]
+            },
+            "description": "Usa o modelo Opus (mais capaz).\n\nModelos disponiveis: claude-sonnet-4-6 (padrao), claude-opus-4-6 (mais capaz), claude-haiku-4-5 (mais rapido)."
+          },
+          "response": []
+        },
+        {
+          "name": "Modelo Haiku (rapido)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "anthropic-version", "value": "2023-06-01"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"claude-haiku-4-5\",\n  \"max_tokens\": 512,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"1+1=?\"\n    }\n  ]\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/messages",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "messages"]
+            },
+            "description": "Usa o modelo Haiku (mais rapido e economico)."
+          },
+          "response": []
+        },
+        {
+          "name": "Com parametros ignorados (temperature, top_p)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "anthropic-version", "value": "2023-06-01"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"max_tokens\": 1024,\n  \"temperature\": 0.7,\n  \"top_p\": 0.9,\n  \"top_k\": 40,\n  \"stop_sequences\": [\"FIM\"],\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Conte uma piada curta.\"\n    }\n  ]\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/messages",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "messages"]
+            },
+            "description": "Demonstra parametros que a API aceita mas IGNORA (nao suportados pelo CLI).\n\nA resposta incluira o campo '_ignored_params' listando os parametros ignorados.\n\nParametros ignorados: temperature, top_p, top_k, stop_sequences, metadata, tool_choice.\n\nNota: thinking NAO e mais ignorado - agora e suportado (ver pasta Thinking)."
+          },
+          "response": [
+            {
+              "name": "200 OK (com _ignored_params)",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"id\": \"msg_xxx\",\n  \"type\": \"message\",\n  \"role\": \"assistant\",\n  \"model\": \"claude-sonnet-4-6\",\n  \"content\": [{\"type\": \"text\", \"text\": \"...\"}],\n  \"stop_reason\": \"end_turn\",\n  \"stop_sequence\": null,\n  \"usage\": {\"input_tokens\": 3, \"output_tokens\": 20},\n  \"_ignored_params\": [\"temperature\", \"top_p\", \"top_k\", \"stop_sequences\"]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Content blocks (array)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "anthropic-version", "value": "2023-06-01"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"max_tokens\": 1024,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"text\",\n          \"text\": \"Analise este codigo:\"\n        },\n        {\n          \"type\": \"text\",\n          \"text\": \"def hello():\\n    print('Hello World')\"\n        }\n      ]\n    }\n  ]\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/messages",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "messages"]
+            },
+            "description": "Mensagem com content como array de blocks (formato avancado da API). Suporta multiplos blocos de texto."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "CWD - Diretorio de Trabalho",
+      "description": "O parametro 'cwd' define em qual pasta/diretorio o CLI do Claude sera executado.\n\nIsso permite que o Elo tenha acesso ao contexto completo de um projeto: ler arquivos, analisar codigo, editar, criar, etc.\n\nSem cwd, o CLI roda no diretorio padrao do backend. Com cwd, voce aponta para qualquer projeto no sistema de arquivos.\n\nExemplo: cwd=/home/igorhaf/meu-projeto faz o Claude rodar como se estivesse dentro dessa pasta.\n\nO CLI roda com --permission-mode bypassPermissions, entao operacoes de leitura/escrita no diretorio sao permitidas sem interacao manual.",
+      "item": [
+        {
+          "name": "Com cwd (non-streaming)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "anthropic-version", "value": "2023-06-01"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"max_tokens\": 1024,\n  \"cwd\": \"/home/igorhaf/meu-projeto\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Liste os arquivos do projeto e explique a estrutura.\"\n    }\n  ]\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/messages",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "messages"]
+            },
+            "description": "Envia uma mensagem especificando o diretorio de trabalho (cwd) sem streaming.\n\nO campo 'cwd' deve ser um caminho absoluto para a pasta do projeto.\n\nO CLI sera executado dentro dessa pasta, tendo acesso a todos os arquivos.\n\nSe omitido, o CLI executa no diretorio padrao do backend."
+          },
+          "response": []
+        },
+        {
+          "name": "Com cwd + streaming",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "anthropic-version", "value": "2023-06-01"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"max_tokens\": 2048,\n  \"stream\": true,\n  \"cwd\": \"/home/igorhaf/meu-projeto\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Analise o codigo deste projeto e sugira melhorias.\"\n    }\n  ]\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/messages",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "messages"]
+            },
+            "description": "Combina streaming SSE com cwd para executar no contexto de um projeto especifico.\n\nIdeal para analises longas onde voce quer ver o resultado conforme o modelo processa."
+          },
+          "response": []
+        },
+        {
+          "name": "Com cwd + system prompt",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "anthropic-version", "value": "2023-06-01"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"max_tokens\": 2048,\n  \"cwd\": \"/home/igorhaf/meu-projeto\",\n  \"system\": \"Voce e um code reviewer senior. Analise o codigo com foco em seguranca, performance e boas praticas.\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Faca um code review completo deste projeto.\"\n    }\n  ]\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/messages",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "messages"]
+            },
+            "description": "Combina cwd com system prompt para dar instrucoes especificas ao modelo sobre como analisar o projeto.\n\nExemplo: usar system prompt para definir o papel do modelo (code reviewer, arquiteto, etc) enquanto cwd aponta para o projeto alvo."
+          },
+          "response": []
+        },
+        {
+          "name": "Com cwd - criar arquivo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "anthropic-version", "value": "2023-06-01"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"max_tokens\": 4096,\n  \"cwd\": \"/home/igorhaf/meu-projeto\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Crie um arquivo README.md para este projeto com base na estrutura existente.\"\n    }\n  ]\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/messages",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "messages"]
+            },
+            "description": "Usa cwd para pedir ao Claude que crie/edite arquivos dentro do projeto.\n\nComo o CLI roda com --permission-mode bypassPermissions, ele pode criar, editar e excluir arquivos no diretorio especificado sem pedir confirmacao.\n\nATENCAO: Use com cuidado - o modelo tera permissao total sobre os arquivos na pasta."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Thinking (Extended Thinking)",
+      "description": "Extended thinking permite que o modelo 'pense' antes de responder, mostrando o raciocinio interno.\n\nIMPORTANTE: Blocos thinking so aparecem na resposta quando o parametro 'thinking' e explicitamente enviado no request. Sem o parametro (ou com thinking: null), a API filtra automaticamente os blocos thinking e retorna apenas o texto final.\n\n3 modos de thinking:\n\n1. DESATIVADO (null): Nao envie o parametro thinking, ou envie thinking: null. Nenhum bloco thinking na resposta.\n\n2. MANUAL (enabled): {\"type\": \"enabled\", \"budget_tokens\": N} - habilita com budget de N tokens (minimo 1024). budget_tokens deve ser menor que max_tokens. Nota: budget_tokens esta DEPRECATED para Opus 4.6 e Sonnet 4.6 - use adaptive.\n\n3. ADAPTIVE (recomendado para Opus 4.6 / Sonnet 4.6): {\"type\": \"adaptive\"} - o modelo decide automaticamente quanto pensar. Combine com output_config.effort para controlar profundidade.\n\nNiveis de effort (opcional, apenas adaptive):\n- \"low\": pensamento minimo\n- \"medium\": pensamento moderado\n- \"high\": pensamento profundo (padrao)\n- \"max\": pensamento maximo (apenas Opus 4.6)\n\nRestricoes: thinking NAO e compativel com temperature ou top_k. Quando thinking esta ativo, esses parametros sao ignorados.\n\nA resposta contem blocos na ordem:\n1. type=thinking (raciocinio interno)\n2. type=text (resposta final)\n\nNo streaming SSE:\n- content_block_start (type=thinking)\n- content_block_delta (type=thinking_delta)\n- content_block_stop\n- content_block_start (type=text)\n- content_block_delta (type=text_delta)\n- content_block_stop\n\nModelos compativeis: claude-opus-4-6, claude-sonnet-4-6, claude-haiku-4-5.",
+      "item": [
+        {
+          "name": "Thinking DESATIVADO (null)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "anthropic-version", "value": "2023-06-01"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"max_tokens\": 1024,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Quantos Rs existem na palavra strawberry?\"\n    }\n  ]\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/messages",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "messages"]
+            },
+            "description": "Thinking DESATIVADO: quando o parametro 'thinking' NAO e enviado (ou e null), a resposta contem APENAS blocos text. Nenhum bloco thinking aparece na resposta, mesmo que o modelo tenha pensado internamente.\n\nEste e o comportamento padrao."
+          },
+          "response": [
+            {
+              "name": "200 OK (sem thinking)",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"id\": \"msg_xxx\",\n  \"type\": \"message\",\n  \"role\": \"assistant\",\n  \"model\": \"claude-sonnet-4-6\",\n  \"content\": [\n    {\n      \"type\": \"text\",\n      \"text\": \"Existem 3 Rs na palavra strawberry.\"\n    }\n  ],\n  \"stop_reason\": \"end_turn\",\n  \"stop_sequence\": null,\n  \"usage\": {\"input_tokens\": 10, \"output_tokens\": 15}\n}"
+            }
+          ]
+        },
+        {
+          "name": "Thinking MANUAL (enabled + budget_tokens)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "anthropic-version", "value": "2023-06-01"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"max_tokens\": 16000,\n  \"thinking\": {\n    \"type\": \"enabled\",\n    \"budget_tokens\": 10000\n  },\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Resolva: Se um trem sai de A as 8h a 60km/h e outro sai de B as 9h a 90km/h, a distancia entre A e B e 300km. A que horas se encontram?\"\n    }\n  ]\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/messages",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "messages"]
+            },
+            "description": "Thinking MANUAL: habilita extended thinking com budget de tokens.\n\n- budget_tokens: minimo 1024, deve ser menor que max_tokens\n- O modelo usa ate budget_tokens tokens para pensar\n- Resposta inclui bloco thinking + bloco text\n\nNota: budget_tokens esta DEPRECATED para Opus 4.6 e Sonnet 4.6. Use 'adaptive' para esses modelos."
+          },
+          "response": [
+            {
+              "name": "200 OK (com thinking)",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"id\": \"msg_xxx\",\n  \"type\": \"message\",\n  \"role\": \"assistant\",\n  \"model\": \"claude-sonnet-4-6\",\n  \"content\": [\n    {\n      \"type\": \"thinking\",\n      \"thinking\": \"Vou resolver passo a passo...\\n\\nTrem A: sai de A as 8h a 60km/h...\\nTrem B: sai de B as 9h a 90km/h...\\nDistancia: 300km...\"\n    },\n    {\n      \"type\": \"text\",\n      \"text\": \"Os trens se encontram as 11h.\"\n    }\n  ],\n  \"stop_reason\": \"end_turn\",\n  \"stop_sequence\": null,\n  \"usage\": {\"input_tokens\": 30, \"output_tokens\": 250}\n}"
+            }
+          ]
+        },
+        {
+          "name": "Thinking ADAPTIVE (recomendado)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "anthropic-version", "value": "2023-06-01"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"claude-opus-4-6\",\n  \"max_tokens\": 16000,\n  \"thinking\": {\n    \"type\": \"adaptive\"\n  },\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Quantos Rs existem na palavra strawberry? Pense passo a passo.\"\n    }\n  ]\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/messages",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "messages"]
+            },
+            "description": "Thinking ADAPTIVE (RECOMENDADO para Opus 4.6 e Sonnet 4.6).\n\nO modelo decide automaticamente quanto pensar baseado na complexidade da pergunta.\n\nNao precisa definir budget_tokens - o modelo gerencia sozinho.\n\nCompativel apenas com: claude-opus-4-6, claude-sonnet-4-6."
+          },
+          "response": []
+        },
+        {
+          "name": "Thinking ADAPTIVE + effort",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "anthropic-version", "value": "2023-06-01"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"claude-opus-4-6\",\n  \"max_tokens\": 16000,\n  \"thinking\": {\n    \"type\": \"adaptive\"\n  },\n  \"output_config\": {\n    \"effort\": \"high\"\n  },\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Projete uma arquitetura completa para um sistema de e-commerce com microsservicos.\"\n    }\n  ]\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/messages",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "messages"]
+            },
+            "description": "Thinking adaptive com controle de effort.\n\nNiveis de effort:\n- \"low\": pensamento minimo (respostas rapidas)\n- \"medium\": pensamento moderado\n- \"high\": pensamento profundo (padrao)\n- \"max\": pensamento maximo (apenas Opus 4.6)\n\nNote: output_config.effort e opcional. Se omitido, usa \"high\" como padrao."
+          },
+          "response": []
+        },
+        {
+          "name": "Thinking (streaming)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "anthropic-version", "value": "2023-06-01"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"claude-opus-4-6\",\n  \"max_tokens\": 16000,\n  \"thinking\": {\n    \"type\": \"adaptive\"\n  },\n  \"stream\": true,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Quantos Rs existem na palavra strawberry? Pense passo a passo.\"\n    }\n  ]\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/messages",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "messages"]
+            },
+            "description": "Thinking com streaming SSE.\n\nVoce vera os blocos thinking chegando em tempo real antes da resposta final.\n\nEventos SSE:\n1. content_block_start (type=thinking)\n2. content_block_delta (type=thinking_delta, thinking=...)\n3. content_block_stop\n4. content_block_start (type=text)\n5. content_block_delta (type=text_delta, text=...)\n6. content_block_stop"
+          },
+          "response": []
+        },
+        {
+          "name": "Thinking + cwd (analise de projeto)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "anthropic-version", "value": "2023-06-01"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"claude-opus-4-6\",\n  \"max_tokens\": 16000,\n  \"thinking\": {\n    \"type\": \"adaptive\"\n  },\n  \"cwd\": \"/home/igorhaf/meu-projeto\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Analise a arquitetura deste projeto e sugira melhorias. Pense antes de responder.\"\n    }\n  ]\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/messages",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "messages"]
+            },
+            "description": "Combina thinking com cwd para analise profunda de projetos.\n\nO modelo primeiro pensa sobre a estrutura do projeto (bloco thinking), depois fornece a analise final (bloco text).\n\nIdeal para:\n- Code review com raciocinio visivel\n- Analise arquitetural\n- Debugging complexo\n- Refactoring planejado"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Business Mode",
+      "description": "O parametro 'business_mode' (booleano) ativa a traducao automatica de saida tecnica para linguagem de negocio.\n\nQuando business_mode=true:\n- A saida tecnica do CLI e interceptada\n- Uma chamada interna ao CLI (modelo haiku) traduz o texto para linguagem funcional/de negocio\n- A resposta final contem apenas descricoes de comportamento e impacto, sem detalhes de implementacao\n\nQuando business_mode=false (padrao):\n- Comportamento normal, sem traducao\n\nUso ideal: quando o Orbit ou outro consumidor precisa de textos funcionais sobre regras de negocio, nao detalhes tecnicos.\n\nNota: em modo streaming com business_mode=true, o texto e acumulado internamente, traduzido, e emitido de uma vez ao final (nao ha streaming parcial do texto traduzido).",
+      "item": [
+        {
+          "name": "Business mode (non-streaming)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "anthropic-version", "value": "2023-06-01"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"max_tokens\": 1024,\n  \"business_mode\": true,\n  \"cwd\": \"/home/igorhaf/meu-projeto\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Analise o arquivo main.py e descreva o que ele faz.\"\n    }\n  ]\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/messages",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "messages"]
+            },
+            "description": "Envia uma mensagem com business_mode ativado. A saida tecnica do CLI sera traduzida para linguagem de negocio antes de retornar.\n\nA traducao e feita por uma chamada interna ao CLI usando o modelo haiku (rapido e economico)."
+          },
+          "response": [
+            {
+              "name": "200 OK (business mode)",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"id\": \"msg_xxx\",\n  \"type\": \"message\",\n  \"role\": \"assistant\",\n  \"model\": \"claude-sonnet-4-6\",\n  \"content\": [\n    {\n      \"type\": \"text\",\n      \"text\": \"O sistema recebe requisicoes de chat, processa atraves de um motor de IA e retorna respostas em tempo real. Ele suporta conversas continuas mantendo o historico entre interacoes.\"\n    }\n  ],\n  \"stop_reason\": \"end_turn\",\n  \"stop_sequence\": null,\n  \"usage\": {\"input_tokens\": 50, \"output_tokens\": 30}\n}"
+            }
+          ]
+        },
+        {
+          "name": "Business mode (streaming)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "anthropic-version", "value": "2023-06-01"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"max_tokens\": 2048,\n  \"stream\": true,\n  \"business_mode\": true,\n  \"cwd\": \"/home/igorhaf/meu-projeto\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Descreva as regras de negocio implementadas neste projeto.\"\n    }\n  ]\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/messages",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "messages"]
+            },
+            "description": "Business mode com streaming. IMPORTANTE: o texto e acumulado internamente durante o processamento e so e emitido (traduzido) ao final. O streaming parcial nao ocorre para o texto — apenas os eventos de protocolo SSE sao emitidos normalmente."
+          },
+          "response": []
+        },
+        {
+          "name": "Business mode + system prompt",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "anthropic-version", "value": "2023-06-01"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"max_tokens\": 2048,\n  \"business_mode\": true,\n  \"system\": \"Voce e um analista de sistemas focado em regras de negocio.\",\n  \"cwd\": \"/home/igorhaf/meu-projeto\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Quais sao as regras de validacao implementadas no sistema?\"\n    }\n  ]\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/messages",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "messages"]
+            },
+            "description": "Combina business_mode com system prompt para direcionar a analise.\n\nO system prompt instrui o modelo principal sobre o foco da analise. O business_mode garante que a saida seja em linguagem de negocio."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Chat Simples (/api/chat)",
+      "item": [
+        {
+          "name": "POST /api/chat (SSE simples)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Ola, tudo bem?\",\n  \"session_id\": null\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/api/chat",
+              "host": ["{{base_url}}"],
+              "path": ["api", "chat"]
+            },
+            "description": "Endpoint simplificado de chat. Retorna SSE com eventos:\n- thinking: processando\n- chunk: texto parcial\n- done: finalizado (retorna session_id para continuar conversa)\n- error: erro\n\nUse o session_id retornado no campo 'done' para manter o contexto nas proximas mensagens."
+          },
+          "response": [
+            {
+              "name": "200 SSE Stream",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "text/event-stream"}],
+              "body": "event: thinking\ndata: {}\n\nevent: chunk\ndata: {\"text\": \"Ola! Tudo bem sim, \"}\n\nevent: chunk\ndata: {\"text\": \"como posso ajudar?\"}\n\nevent: done\ndata: {\"session_id\": \"db1252a8-1fb5-45b5-9a6b-9b1a23177203\"}"
+            }
+          ]
+        },
+        {
+          "name": "POST /api/chat (com session_id)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"O que eu disse antes?\",\n  \"session_id\": \"COLE_AQUI_O_SESSION_ID\"\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/api/chat",
+              "host": ["{{base_url}}"],
+              "path": ["api", "chat"]
+            },
+            "description": "Continua uma conversa existente usando o session_id retornado anteriormente."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
