@@ -164,6 +164,8 @@ export type MeadaHeroProps = {
   planPrice: string
   planButtonLabel: string
   planButtonHref: string
+  planDemoLabel: string
+  planDemoHref: string
 }
 
 /** Serviço do bloco meada_services. icon = nome lucide (Code, Cloud, Heart, Smartphone, Layers,

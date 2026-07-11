@@ -312,6 +312,22 @@ function PlanShowcase({ props }: { props: MeadaHeroProps }) {
             {props.planButtonLabel}
           </a>
         )}
+        {props.planDemoHref && (
+          <a
+            href={props.planDemoHref}
+            style={{
+              display: 'block',
+              textAlign: 'center',
+              marginTop: '0.9rem',
+              fontSize: '14px',
+              fontWeight: 600,
+              color: '#60a5fa',
+              textDecoration: 'none',
+            }}
+          >
+            {props.planDemoLabel || 'Ver demonstração →'}
+          </a>
+        )}
       </div>
     </div>
   )

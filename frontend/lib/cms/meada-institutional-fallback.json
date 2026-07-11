@@ -171,12 +171,12 @@
     ],
     "theme": { "preset": "meada-dark" },
     "nav": [
+      { "pageSlug": "home", "title": "Meada", "isHome": true },
       { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
       { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-      { "pageSlug": "home", "title": "Meada", "isHome": true },
+      { "pageSlug": "contato", "title": "Contato", "isHome": false },
       { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
       { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
-      { "pageSlug": "contato", "title": "Contato", "isHome": false },
       { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
       { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
       { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
@@ -297,12 +297,12 @@
       ],
       "theme": { "preset": "meada-dark" },
       "nav": [
+        { "pageSlug": "home", "title": "Meada", "isHome": true },
         { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
         { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-        { "pageSlug": "home", "title": "Meada", "isHome": true },
+        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
         { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
-        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
         { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
         { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
@@ -416,12 +416,183 @@
       ],
       "theme": { "preset": "meada-dark" },
       "nav": [
+        { "pageSlug": "home", "title": "Meada", "isHome": true },
         { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
         { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-        { "pageSlug": "home", "title": "Meada", "isHome": true },
+        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
         { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
+        { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
+        { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
+        { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
+        { "pageSlug": "restaurant", "title": "MesaBot", "isHome": false },
+        { "pageSlug": "salon", "title": "SalãoBot", "isHome": false },
+        { "pageSlug": "pousada", "title": "PousadaBot", "isHome": false },
+        { "pageSlug": "academia", "title": "AcademiaBot", "isHome": false },
+        { "pageSlug": "pet", "title": "PetBot", "isHome": false },
+        { "pageSlug": "oficina", "title": "OficinaBot", "isHome": false },
+        { "pageSlug": "nutri", "title": "NutriBot", "isHome": false },
+        { "pageSlug": "barbearia", "title": "BarbeariaBot", "isHome": false },
+        { "pageSlug": "eventos", "title": "EventosBot", "isHome": false },
+        { "pageSlug": "estetica", "title": "EsteticaBot", "isHome": false },
+        { "pageSlug": "comida", "title": "ComidaBot", "isHome": false },
+        { "pageSlug": "floricultura", "title": "FloriculturaBot", "isHome": false },
+        { "pageSlug": "pizzaria", "title": "PizzariaBot", "isHome": false },
+        { "pageSlug": "adega", "title": "AdegaBot", "isHome": false },
+        { "pageSlug": "escola", "title": "EscolaBot", "isHome": false },
+        { "pageSlug": "atelie", "title": "AtelieBot", "isHome": false },
+        { "pageSlug": "casamento", "title": "CasamentoBot", "isHome": false },
+        { "pageSlug": "concessionaria", "title": "ConcessionariaBot", "isHome": false },
+        { "pageSlug": "lavanderia", "title": "LavanderiaBot", "isHome": false },
+        { "pageSlug": "dermatologia", "title": "DermatologiaBot", "isHome": false },
+        { "pageSlug": "fotografia", "title": "FotografiaBot", "isHome": false },
+        { "pageSlug": "cursos", "title": "CursosBot", "isHome": false },
+        { "pageSlug": "lingerie", "title": "LingerieBot", "isHome": false },
+        { "pageSlug": "moda_infantil", "title": "ModaInfantilBot", "isHome": false },
+        { "pageSlug": "las", "title": "LasBot", "isHome": false },
+        { "pageSlug": "padaria", "title": "PadariaBot", "isHome": false },
+        { "pageSlug": "otica", "title": "OticaBot", "isHome": false },
+        { "pageSlug": "papelaria", "title": "PapelariaBot", "isHome": false },
+        { "pageSlug": "viagens", "title": "ViagensBot", "isHome": false },
+        { "pageSlug": "suplementos", "title": "SuplementosBot", "isHome": false }
+      ]
+    },
+    "contato": {
+      "title": "Contato",
+      "blocks": [
+        {
+          "id": "nav",
+          "type": "meada_navbar",
+          "props": {
+            "links": [
+              { "href": "/servicos", "label": "Serviços" },
+              { "href": "/produtos", "label": "Produtos" },
+              { "href": "/sobre", "label": "Sobre" },
+              { "href": "/contato", "label": "Contato" }
+            ],
+            "ctaHref": "/contato",
+            "ctaLabel": "Pedir orçamento",
+            "brandName": "Meada",
+            "brandSuffix": "Digital"
+          }
+        },
+        {
+          "id": "hero",
+          "type": "meada_hero",
+          "props": {
+            "stats": [],
+            "showcase": "terminal",
+            "subtitle": "Tem um projeto em mente? Nossa equipe está pronta para transformar sua visão em realidade. Fale conosco.",
+            "chatTitle": "Assistente Meada",
+            "chatMessage": "Oi! 👋 Conta seu projeto que a gente te responde rapidinho.",
+            "primaryHref": "https://wa.me/5581992612292",
+            "titlePrefix": "Vamos Construir",
+            "titleSuffix": "",
+            "gradientText": "Algo Incrível",
+            "primaryLabel": "Chamar no WhatsApp",
+            "secondaryHref": "",
+            "terminalLines": [
+              { "kind": "cmd", "text": "meada start --tipo=ecommerce" },
+              { "kind": "info", "text": "Discovery e arquitetura definidos." },
+              { "kind": "check", "text": "Frontend Next.js + Tailwind" },
+              { "kind": "check", "text": "Backend escalável + API REST" },
+              { "kind": "check", "text": "Banco de dados + migrations" },
+              { "kind": "check", "text": "Pagamentos integrados" },
+              { "kind": "check", "text": "CI/CD + deploy em produção" },
+              { "kind": "check", "text": "Painel admin para gestão" },
+              { "kind": "done", "text": "Projeto entregue ✦ pronto pra escalar" }
+            ],
+            "terminalTitle": "meada — projeto.sh",
+            "secondaryLabel": "",
+            "terminalCaptionLeft": "do briefing ao ar em produção",
+            "terminalCaptionRight": "~ 2-6 sem"
+          }
+        },
+        {
+          "id": "cards",
+          "type": "columns",
+          "props": {
+            "items": [
+              { "body": "oi@meadadigital.com", "icon": "Mail", "title": "Email" },
+              { "body": "(81) 99261-2292", "icon": "Phone", "title": "WhatsApp" },
+              { "body": "@meadadigital no Instagram", "icon": "Globe", "title": "Redes" }
+            ],
+            "title": "Outras Formas de Contato",
+            "eyebrow": ""
+          }
+        },
+        {
+          "id": "faq",
+          "type": "faq",
+          "props": {
+            "items": [
+              {
+                "answer": "Após o alinhamento inicial, geralmente iniciamos o desenvolvimento em até 5 dias úteis. Para projetos urgentes, o discovery pode começar ainda mais rápido.",
+                "question": "Quanto tempo leva para iniciar um projeto?"
+              },
+              {
+                "answer": "De startups em early stage a empresas estabelecidas. A abordagem e o tamanho do trabalho se adaptam à complexidade e ao porte do projeto.",
+                "question": "Vocês atendem empresas de que porte?"
+              },
+              {
+                "answer": "Metodologia ágil com sprints de 2 semanas. Cada sprint termina com uma demo do que foi desenvolvido, garantindo alinhamento constante.",
+                "question": "Como funciona o processo de desenvolvimento?"
+              },
+              {
+                "answer": "Transferência, PIX e cartão. Para projetos grandes, pagamento por milestone; para serviços contínuos, contratos mensais.",
+                "question": "Quais são as formas de pagamento?"
+              }
+            ],
+            "title": "Perguntas Frequentes"
+          }
+        },
+        {
+          "id": "ft",
+          "type": "meada_footer",
+          "props": {
+            "columns": [
+              {
+                "links": [
+                  { "href": "/servicos", "label": "Sites Profissionais" },
+                  { "href": "/servicos", "label": "Sistemas sob Medida" },
+                  { "href": "/contato", "label": "Manutenção & Suporte" }
+                ],
+                "heading": "Serviços"
+              },
+              {
+                "links": [
+                  { "href": "/sobre", "label": "Sobre Nós" },
+                  { "href": "/produtos", "label": "Produtos" },
+                  { "href": "/servicos", "label": "Serviços" }
+                ],
+                "heading": "Empresa"
+              },
+              {
+                "links": [
+                  { "href": "mailto:oi@meadadigital.com", "label": "oi@meadadigital.com" },
+                  { "href": "https://wa.me/5581992612292", "label": "(81) 99261-2292" },
+                  { "href": "https://instagram.com/meadadigital", "label": "@meadadigital" }
+                ],
+                "heading": "Contato"
+              }
+            ],
+            "tagline": "Agência digital especializada em sites e sistemas sob medida para pequenos e médios negócios.",
+            "brandName": "Meada",
+            "copyright": "© Meada Agência Digital. Todos os direitos reservados.",
+            "brandSuffix": "Digital",
+            "whatsappUrl": "https://wa.me/5581992612292",
+            "instagramUrl": "https://instagram.com/meadadigital"
+          }
+        }
+      ],
+      "theme": { "preset": "meada-dark" },
+      "nav": [
+        { "pageSlug": "home", "title": "Meada", "isHome": true },
+        { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
+        { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
         { "pageSlug": "contato", "title": "Contato", "isHome": false },
+        { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
+        { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
         { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
         { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
         { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
@@ -650,12 +821,12 @@
       ],
       "theme": { "preset": "meada-dark" },
       "nav": [
+        { "pageSlug": "home", "title": "Meada", "isHome": true },
         { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
         { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-        { "pageSlug": "home", "title": "Meada", "isHome": true },
+        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
         { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
-        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
         { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
         { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
@@ -868,183 +1039,12 @@
       ],
       "theme": { "preset": "meada-dark" },
       "nav": [
+        { "pageSlug": "home", "title": "Meada", "isHome": true },
         { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
         { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-        { "pageSlug": "home", "title": "Meada", "isHome": true },
+        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
         { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
-        { "pageSlug": "contato", "title": "Contato", "isHome": false },
-        { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
-        { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
-        { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
-        { "pageSlug": "restaurant", "title": "MesaBot", "isHome": false },
-        { "pageSlug": "salon", "title": "SalãoBot", "isHome": false },
-        { "pageSlug": "pousada", "title": "PousadaBot", "isHome": false },
-        { "pageSlug": "academia", "title": "AcademiaBot", "isHome": false },
-        { "pageSlug": "pet", "title": "PetBot", "isHome": false },
-        { "pageSlug": "oficina", "title": "OficinaBot", "isHome": false },
-        { "pageSlug": "nutri", "title": "NutriBot", "isHome": false },
-        { "pageSlug": "barbearia", "title": "BarbeariaBot", "isHome": false },
-        { "pageSlug": "eventos", "title": "EventosBot", "isHome": false },
-        { "pageSlug": "estetica", "title": "EsteticaBot", "isHome": false },
-        { "pageSlug": "comida", "title": "ComidaBot", "isHome": false },
-        { "pageSlug": "floricultura", "title": "FloriculturaBot", "isHome": false },
-        { "pageSlug": "pizzaria", "title": "PizzariaBot", "isHome": false },
-        { "pageSlug": "adega", "title": "AdegaBot", "isHome": false },
-        { "pageSlug": "escola", "title": "EscolaBot", "isHome": false },
-        { "pageSlug": "atelie", "title": "AtelieBot", "isHome": false },
-        { "pageSlug": "casamento", "title": "CasamentoBot", "isHome": false },
-        { "pageSlug": "concessionaria", "title": "ConcessionariaBot", "isHome": false },
-        { "pageSlug": "lavanderia", "title": "LavanderiaBot", "isHome": false },
-        { "pageSlug": "dermatologia", "title": "DermatologiaBot", "isHome": false },
-        { "pageSlug": "fotografia", "title": "FotografiaBot", "isHome": false },
-        { "pageSlug": "cursos", "title": "CursosBot", "isHome": false },
-        { "pageSlug": "lingerie", "title": "LingerieBot", "isHome": false },
-        { "pageSlug": "moda_infantil", "title": "ModaInfantilBot", "isHome": false },
-        { "pageSlug": "las", "title": "LasBot", "isHome": false },
-        { "pageSlug": "padaria", "title": "PadariaBot", "isHome": false },
-        { "pageSlug": "otica", "title": "OticaBot", "isHome": false },
-        { "pageSlug": "papelaria", "title": "PapelariaBot", "isHome": false },
-        { "pageSlug": "viagens", "title": "ViagensBot", "isHome": false },
-        { "pageSlug": "suplementos", "title": "SuplementosBot", "isHome": false }
-      ]
-    },
-    "contato": {
-      "title": "Contato",
-      "blocks": [
-        {
-          "id": "nav",
-          "type": "meada_navbar",
-          "props": {
-            "links": [
-              { "href": "/servicos", "label": "Serviços" },
-              { "href": "/produtos", "label": "Produtos" },
-              { "href": "/sobre", "label": "Sobre" },
-              { "href": "/contato", "label": "Contato" }
-            ],
-            "ctaHref": "/contato",
-            "ctaLabel": "Pedir orçamento",
-            "brandName": "Meada",
-            "brandSuffix": "Digital"
-          }
-        },
-        {
-          "id": "hero",
-          "type": "meada_hero",
-          "props": {
-            "stats": [],
-            "showcase": "terminal",
-            "subtitle": "Tem um projeto em mente? Nossa equipe está pronta para transformar sua visão em realidade. Fale conosco.",
-            "chatTitle": "Assistente Meada",
-            "chatMessage": "Oi! 👋 Conta seu projeto que a gente te responde rapidinho.",
-            "primaryHref": "https://wa.me/5581992612292",
-            "titlePrefix": "Vamos Construir",
-            "titleSuffix": "",
-            "gradientText": "Algo Incrível",
-            "primaryLabel": "Chamar no WhatsApp",
-            "secondaryHref": "",
-            "terminalLines": [
-              { "kind": "cmd", "text": "meada start --tipo=ecommerce" },
-              { "kind": "info", "text": "Discovery e arquitetura definidos." },
-              { "kind": "check", "text": "Frontend Next.js + Tailwind" },
-              { "kind": "check", "text": "Backend escalável + API REST" },
-              { "kind": "check", "text": "Banco de dados + migrations" },
-              { "kind": "check", "text": "Pagamentos integrados" },
-              { "kind": "check", "text": "CI/CD + deploy em produção" },
-              { "kind": "check", "text": "Painel admin para gestão" },
-              { "kind": "done", "text": "Projeto entregue ✦ pronto pra escalar" }
-            ],
-            "terminalTitle": "meada — projeto.sh",
-            "secondaryLabel": "",
-            "terminalCaptionLeft": "do briefing ao ar em produção",
-            "terminalCaptionRight": "~ 2-6 sem"
-          }
-        },
-        {
-          "id": "cards",
-          "type": "columns",
-          "props": {
-            "items": [
-              { "body": "oi@meadadigital.com", "icon": "Mail", "title": "Email" },
-              { "body": "(81) 99261-2292", "icon": "Phone", "title": "WhatsApp" },
-              { "body": "@meadadigital no Instagram", "icon": "Globe", "title": "Redes" }
-            ],
-            "title": "Outras Formas de Contato",
-            "eyebrow": ""
-          }
-        },
-        {
-          "id": "faq",
-          "type": "faq",
-          "props": {
-            "items": [
-              {
-                "answer": "Após o alinhamento inicial, geralmente iniciamos o desenvolvimento em até 5 dias úteis. Para projetos urgentes, o discovery pode começar ainda mais rápido.",
-                "question": "Quanto tempo leva para iniciar um projeto?"
-              },
-              {
-                "answer": "De startups em early stage a empresas estabelecidas. A abordagem e o tamanho do trabalho se adaptam à complexidade e ao porte do projeto.",
-                "question": "Vocês atendem empresas de que porte?"
-              },
-              {
-                "answer": "Metodologia ágil com sprints de 2 semanas. Cada sprint termina com uma demo do que foi desenvolvido, garantindo alinhamento constante.",
-                "question": "Como funciona o processo de desenvolvimento?"
-              },
-              {
-                "answer": "Transferência, PIX e cartão. Para projetos grandes, pagamento por milestone; para serviços contínuos, contratos mensais.",
-                "question": "Quais são as formas de pagamento?"
-              }
-            ],
-            "title": "Perguntas Frequentes"
-          }
-        },
-        {
-          "id": "ft",
-          "type": "meada_footer",
-          "props": {
-            "columns": [
-              {
-                "links": [
-                  { "href": "/servicos", "label": "Sites Profissionais" },
-                  { "href": "/servicos", "label": "Sistemas sob Medida" },
-                  { "href": "/contato", "label": "Manutenção & Suporte" }
-                ],
-                "heading": "Serviços"
-              },
-              {
-                "links": [
-                  { "href": "/sobre", "label": "Sobre Nós" },
-                  { "href": "/produtos", "label": "Produtos" },
-                  { "href": "/servicos", "label": "Serviços" }
-                ],
-                "heading": "Empresa"
-              },
-              {
-                "links": [
-                  { "href": "mailto:oi@meadadigital.com", "label": "oi@meadadigital.com" },
-                  { "href": "https://wa.me/5581992612292", "label": "(81) 99261-2292" },
-                  { "href": "https://instagram.com/meadadigital", "label": "@meadadigital" }
-                ],
-                "heading": "Contato"
-              }
-            ],
-            "tagline": "Agência digital especializada em sites e sistemas sob medida para pequenos e médios negócios.",
-            "brandName": "Meada",
-            "copyright": "© Meada Agência Digital. Todos os direitos reservados.",
-            "brandSuffix": "Digital",
-            "whatsappUrl": "https://wa.me/5581992612292",
-            "instagramUrl": "https://instagram.com/meadadigital"
-          }
-        }
-      ],
-      "theme": { "preset": "meada-dark" },
-      "nav": [
-        { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
-        { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-        { "pageSlug": "home", "title": "Meada", "isHome": true },
-        { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
-        { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
-        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
         { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
         { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
@@ -1115,7 +1115,9 @@
             "titlePrefix": "Atendimento jurídico",
             "titleSuffix": "",
             "gradientText": "automatizado",
+            "planDemoHref": "https://demo.meadadigital.com/login",
             "primaryLabel": "Falar com especialista",
+            "planDemoLabel": "Ver demonstração do painel →",
             "secondaryHref": "/produtos",
             "terminalLines": [
               { "kind": "cmd", "text": "meada start --tipo=ecommerce" },
@@ -1205,12 +1207,12 @@
       ],
       "theme": { "preset": "meada-dark" },
       "nav": [
+        { "pageSlug": "home", "title": "Meada", "isHome": true },
         { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
         { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-        { "pageSlug": "home", "title": "Meada", "isHome": true },
+        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
         { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
-        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
         { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
         { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
@@ -1281,7 +1283,9 @@
             "titlePrefix": "Sua clínica odontológica",
             "titleSuffix": "",
             "gradientText": "sempre disponível",
+            "planDemoHref": "https://demo.meadadigital.com/login",
             "primaryLabel": "Falar com especialista",
+            "planDemoLabel": "Ver demonstração do painel →",
             "secondaryHref": "/produtos",
             "terminalLines": [
               { "kind": "cmd", "text": "meada start --tipo=ecommerce" },
@@ -1371,12 +1375,12 @@
       ],
       "theme": { "preset": "meada-dark" },
       "nav": [
+        { "pageSlug": "home", "title": "Meada", "isHome": true },
         { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
         { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-        { "pageSlug": "home", "title": "Meada", "isHome": true },
+        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
         { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
-        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
         { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
         { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
@@ -1447,7 +1451,9 @@
             "titlePrefix": "Seu restaurante de sushi",
             "titleSuffix": "",
             "gradientText": "no automático",
+            "planDemoHref": "https://demo.meadadigital.com/login",
             "primaryLabel": "Falar com especialista",
+            "planDemoLabel": "Ver demonstração do painel →",
             "secondaryHref": "/produtos",
             "terminalLines": [
               { "kind": "cmd", "text": "meada start --tipo=ecommerce" },
@@ -1537,12 +1543,12 @@
       ],
       "theme": { "preset": "meada-dark" },
       "nav": [
+        { "pageSlug": "home", "title": "Meada", "isHome": true },
         { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
         { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-        { "pageSlug": "home", "title": "Meada", "isHome": true },
+        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
         { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
-        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
         { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
         { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
@@ -1613,7 +1619,9 @@
             "titlePrefix": "Reservas do seu restaurante",
             "titleSuffix": "",
             "gradientText": "sem telefone tocando",
+            "planDemoHref": "https://demo.meadadigital.com/login",
             "primaryLabel": "Falar com especialista",
+            "planDemoLabel": "Ver demonstração do painel →",
             "secondaryHref": "/produtos",
             "terminalLines": [
               { "kind": "cmd", "text": "meada start --tipo=ecommerce" },
@@ -1703,12 +1711,12 @@
       ],
       "theme": { "preset": "meada-dark" },
       "nav": [
+        { "pageSlug": "home", "title": "Meada", "isHome": true },
         { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
         { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-        { "pageSlug": "home", "title": "Meada", "isHome": true },
+        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
         { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
-        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
         { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
         { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
@@ -1779,7 +1787,9 @@
             "titlePrefix": "Seu salão de beleza",
             "titleSuffix": "",
             "gradientText": "agendado sozinho",
+            "planDemoHref": "https://demo.meadadigital.com/login",
             "primaryLabel": "Falar com especialista",
+            "planDemoLabel": "Ver demonstração do painel →",
             "secondaryHref": "/produtos",
             "terminalLines": [
               { "kind": "cmd", "text": "meada start --tipo=ecommerce" },
@@ -1869,12 +1879,12 @@
       ],
       "theme": { "preset": "meada-dark" },
       "nav": [
+        { "pageSlug": "home", "title": "Meada", "isHome": true },
         { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
         { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-        { "pageSlug": "home", "title": "Meada", "isHome": true },
+        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
         { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
-        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
         { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
         { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
@@ -1945,7 +1955,9 @@
             "titlePrefix": "Sua pousada",
             "titleSuffix": "",
             "gradientText": "reservando hóspedes",
+            "planDemoHref": "https://demo.meadadigital.com/login",
             "primaryLabel": "Falar com especialista",
+            "planDemoLabel": "Ver demonstração do painel →",
             "secondaryHref": "/produtos",
             "terminalLines": [
               { "kind": "cmd", "text": "meada start --tipo=ecommerce" },
@@ -2035,12 +2047,12 @@
       ],
       "theme": { "preset": "meada-dark" },
       "nav": [
+        { "pageSlug": "home", "title": "Meada", "isHome": true },
         { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
         { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-        { "pageSlug": "home", "title": "Meada", "isHome": true },
+        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
         { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
-        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
         { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
         { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
@@ -2111,7 +2123,9 @@
             "titlePrefix": "Sua academia",
             "titleSuffix": "",
             "gradientText": "com matrícula no WhatsApp",
+            "planDemoHref": "https://demo.meadadigital.com/login",
             "primaryLabel": "Falar com especialista",
+            "planDemoLabel": "Ver demonstração do painel →",
             "secondaryHref": "/produtos",
             "terminalLines": [
               { "kind": "cmd", "text": "meada start --tipo=ecommerce" },
@@ -2201,12 +2215,12 @@
       ],
       "theme": { "preset": "meada-dark" },
       "nav": [
+        { "pageSlug": "home", "title": "Meada", "isHome": true },
         { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
         { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-        { "pageSlug": "home", "title": "Meada", "isHome": true },
+        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
         { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
-        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
         { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
         { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
@@ -2277,7 +2291,9 @@
             "titlePrefix": "Seu pet shop",
             "titleSuffix": "",
             "gradientText": "cuidando dos tutores",
+            "planDemoHref": "https://demo.meadadigital.com/login",
             "primaryLabel": "Falar com especialista",
+            "planDemoLabel": "Ver demonstração do painel →",
             "secondaryHref": "/produtos",
             "terminalLines": [
               { "kind": "cmd", "text": "meada start --tipo=ecommerce" },
@@ -2367,12 +2383,12 @@
       ],
       "theme": { "preset": "meada-dark" },
       "nav": [
+        { "pageSlug": "home", "title": "Meada", "isHome": true },
         { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
         { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-        { "pageSlug": "home", "title": "Meada", "isHome": true },
+        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
         { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
-        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
         { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
         { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
@@ -2443,7 +2459,9 @@
             "titlePrefix": "Sua oficina mecânica",
             "titleSuffix": "",
             "gradientText": "com OS pelo WhatsApp",
+            "planDemoHref": "https://demo.meadadigital.com/login",
             "primaryLabel": "Falar com especialista",
+            "planDemoLabel": "Ver demonstração do painel →",
             "secondaryHref": "/produtos",
             "terminalLines": [
               { "kind": "cmd", "text": "meada start --tipo=ecommerce" },
@@ -2533,12 +2551,12 @@
       ],
       "theme": { "preset": "meada-dark" },
       "nav": [
+        { "pageSlug": "home", "title": "Meada", "isHome": true },
         { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
         { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-        { "pageSlug": "home", "title": "Meada", "isHome": true },
+        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
         { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
-        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
         { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
         { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
@@ -2609,7 +2627,9 @@
             "titlePrefix": "Seu consultório de nutrição",
             "titleSuffix": "",
             "gradientText": "agendando e entregando o plano",
+            "planDemoHref": "https://demo.meadadigital.com/login",
             "primaryLabel": "Falar com especialista",
+            "planDemoLabel": "Ver demonstração do painel →",
             "secondaryHref": "/produtos",
             "terminalLines": [
               { "kind": "cmd", "text": "meada start --tipo=ecommerce" },
@@ -2699,12 +2719,12 @@
       ],
       "theme": { "preset": "meada-dark" },
       "nav": [
+        { "pageSlug": "home", "title": "Meada", "isHome": true },
         { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
         { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-        { "pageSlug": "home", "title": "Meada", "isHome": true },
+        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
         { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
-        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
         { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
         { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
@@ -2775,7 +2795,9 @@
             "titlePrefix": "Sua barbearia",
             "titleSuffix": "",
             "gradientText": "com agenda e fila",
+            "planDemoHref": "https://demo.meadadigital.com/login",
             "primaryLabel": "Falar com especialista",
+            "planDemoLabel": "Ver demonstração do painel →",
             "secondaryHref": "/produtos",
             "terminalLines": [
               { "kind": "cmd", "text": "meada start --tipo=ecommerce" },
@@ -2865,12 +2887,12 @@
       ],
       "theme": { "preset": "meada-dark" },
       "nav": [
+        { "pageSlug": "home", "title": "Meada", "isHome": true },
         { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
         { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-        { "pageSlug": "home", "title": "Meada", "isHome": true },
+        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
         { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
-        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
         { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
         { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
@@ -2941,7 +2963,9 @@
             "titlePrefix": "Sua casa de festas",
             "titleSuffix": "",
             "gradientText": "com proposta no WhatsApp",
+            "planDemoHref": "https://demo.meadadigital.com/login",
             "primaryLabel": "Falar com especialista",
+            "planDemoLabel": "Ver demonstração do painel →",
             "secondaryHref": "/produtos",
             "terminalLines": [
               { "kind": "cmd", "text": "meada start --tipo=ecommerce" },
@@ -3031,12 +3055,12 @@
       ],
       "theme": { "preset": "meada-dark" },
       "nav": [
+        { "pageSlug": "home", "title": "Meada", "isHome": true },
         { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
         { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-        { "pageSlug": "home", "title": "Meada", "isHome": true },
+        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
         { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
-        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
         { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
         { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
@@ -3107,7 +3131,9 @@
             "titlePrefix": "Sua clínica de estética",
             "titleSuffix": "",
             "gradientText": "com pacote de sessões",
+            "planDemoHref": "https://demo.meadadigital.com/login",
             "primaryLabel": "Falar com especialista",
+            "planDemoLabel": "Ver demonstração do painel →",
             "secondaryHref": "/produtos",
             "terminalLines": [
               { "kind": "cmd", "text": "meada start --tipo=ecommerce" },
@@ -3197,12 +3223,12 @@
       ],
       "theme": { "preset": "meada-dark" },
       "nav": [
+        { "pageSlug": "home", "title": "Meada", "isHome": true },
         { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
         { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-        { "pageSlug": "home", "title": "Meada", "isHome": true },
+        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
         { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
-        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
         { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
         { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
@@ -3273,7 +3299,9 @@
             "titlePrefix": "Seu delivery",
             "titleSuffix": "",
             "gradientText": "estilo iFood",
+            "planDemoHref": "https://demo.meadadigital.com/login",
             "primaryLabel": "Falar com especialista",
+            "planDemoLabel": "Ver demonstração do painel →",
             "secondaryHref": "/produtos",
             "terminalLines": [
               { "kind": "cmd", "text": "meada start --tipo=ecommerce" },
@@ -3363,12 +3391,12 @@
       ],
       "theme": { "preset": "meada-dark" },
       "nav": [
+        { "pageSlug": "home", "title": "Meada", "isHome": true },
         { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
         { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-        { "pageSlug": "home", "title": "Meada", "isHome": true },
+        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
         { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
-        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
         { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
         { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
@@ -3439,7 +3467,9 @@
             "titlePrefix": "Sua floricultura",
             "titleSuffix": "",
             "gradientText": "com entrega agendada",
+            "planDemoHref": "https://demo.meadadigital.com/login",
             "primaryLabel": "Falar com especialista",
+            "planDemoLabel": "Ver demonstração do painel →",
             "secondaryHref": "/produtos",
             "terminalLines": [
               { "kind": "cmd", "text": "meada start --tipo=ecommerce" },
@@ -3529,12 +3559,12 @@
       ],
       "theme": { "preset": "meada-dark" },
       "nav": [
+        { "pageSlug": "home", "title": "Meada", "isHome": true },
         { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
         { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-        { "pageSlug": "home", "title": "Meada", "isHome": true },
+        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
         { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
-        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
         { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
         { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
@@ -3605,7 +3635,9 @@
             "titlePrefix": "Sua pizzaria",
             "titleSuffix": "",
             "gradientText": "com meio-a-meio",
+            "planDemoHref": "https://demo.meadadigital.com/login",
             "primaryLabel": "Falar com especialista",
+            "planDemoLabel": "Ver demonstração do painel →",
             "secondaryHref": "/produtos",
             "terminalLines": [
               { "kind": "cmd", "text": "meada start --tipo=ecommerce" },
@@ -3695,12 +3727,12 @@
       ],
       "theme": { "preset": "meada-dark" },
       "nav": [
+        { "pageSlug": "home", "title": "Meada", "isHome": true },
         { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
         { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-        { "pageSlug": "home", "title": "Meada", "isHome": true },
+        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
         { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
-        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
         { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
         { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
@@ -3771,7 +3803,9 @@
             "titlePrefix": "Sua adega",
             "titleSuffix": "",
             "gradientText": "com delivery de bebidas",
+            "planDemoHref": "https://demo.meadadigital.com/login",
             "primaryLabel": "Falar com especialista",
+            "planDemoLabel": "Ver demonstração do painel →",
             "secondaryHref": "/produtos",
             "terminalLines": [
               { "kind": "cmd", "text": "meada start --tipo=ecommerce" },
@@ -3861,12 +3895,12 @@
       ],
       "theme": { "preset": "meada-dark" },
       "nav": [
+        { "pageSlug": "home", "title": "Meada", "isHome": true },
         { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
         { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-        { "pageSlug": "home", "title": "Meada", "isHome": true },
+        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
         { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
-        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
         { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
         { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
@@ -3937,7 +3971,9 @@
             "titlePrefix": "Sua escola",
             "titleSuffix": "",
             "gradientText": "com matrícula no WhatsApp",
+            "planDemoHref": "https://demo.meadadigital.com/login",
             "primaryLabel": "Falar com especialista",
+            "planDemoLabel": "Ver demonstração do painel →",
             "secondaryHref": "/produtos",
             "terminalLines": [
               { "kind": "cmd", "text": "meada start --tipo=ecommerce" },
@@ -4027,12 +4063,12 @@
       ],
       "theme": { "preset": "meada-dark" },
       "nav": [
+        { "pageSlug": "home", "title": "Meada", "isHome": true },
         { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
         { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-        { "pageSlug": "home", "title": "Meada", "isHome": true },
+        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
         { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
-        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
         { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
         { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
@@ -4103,7 +4139,9 @@
             "titlePrefix": "Seu ateliê",
             "titleSuffix": "",
             "gradientText": "sob encomenda",
+            "planDemoHref": "https://demo.meadadigital.com/login",
             "primaryLabel": "Falar com especialista",
+            "planDemoLabel": "Ver demonstração do painel →",
             "secondaryHref": "/produtos",
             "terminalLines": [
               { "kind": "cmd", "text": "meada start --tipo=ecommerce" },
@@ -4193,12 +4231,12 @@
       ],
       "theme": { "preset": "meada-dark" },
       "nav": [
+        { "pageSlug": "home", "title": "Meada", "isHome": true },
         { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
         { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-        { "pageSlug": "home", "title": "Meada", "isHome": true },
+        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
         { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
-        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
         { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
         { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
@@ -4269,7 +4307,9 @@
             "titlePrefix": "Sua assessoria de casamento",
             "titleSuffix": "",
             "gradientText": "do briefing à aprovação",
+            "planDemoHref": "https://demo.meadadigital.com/login",
             "primaryLabel": "Falar com especialista",
+            "planDemoLabel": "Ver demonstração do painel →",
             "secondaryHref": "/produtos",
             "terminalLines": [
               { "kind": "cmd", "text": "meada start --tipo=ecommerce" },
@@ -4359,12 +4399,12 @@
       ],
       "theme": { "preset": "meada-dark" },
       "nav": [
+        { "pageSlug": "home", "title": "Meada", "isHome": true },
         { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
         { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-        { "pageSlug": "home", "title": "Meada", "isHome": true },
+        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
         { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
-        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
         { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
         { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
@@ -4435,7 +4475,9 @@
             "titlePrefix": "Sua concessionária",
             "titleSuffix": "",
             "gradientText": "estoque, test-drive e leads",
+            "planDemoHref": "https://demo.meadadigital.com/login",
             "primaryLabel": "Falar com especialista",
+            "planDemoLabel": "Ver demonstração do painel →",
             "secondaryHref": "/produtos",
             "terminalLines": [
               { "kind": "cmd", "text": "meada start --tipo=ecommerce" },
@@ -4525,12 +4567,12 @@
       ],
       "theme": { "preset": "meada-dark" },
       "nav": [
+        { "pageSlug": "home", "title": "Meada", "isHome": true },
         { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
         { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-        { "pageSlug": "home", "title": "Meada", "isHome": true },
+        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
         { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
-        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
         { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
         { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
@@ -4601,7 +4643,9 @@
             "titlePrefix": "Sua lavanderia",
             "titleSuffix": "",
             "gradientText": "com coleta e entrega",
+            "planDemoHref": "https://demo.meadadigital.com/login",
             "primaryLabel": "Falar com especialista",
+            "planDemoLabel": "Ver demonstração do painel →",
             "secondaryHref": "/produtos",
             "terminalLines": [
               { "kind": "cmd", "text": "meada start --tipo=ecommerce" },
@@ -4691,12 +4735,12 @@
       ],
       "theme": { "preset": "meada-dark" },
       "nav": [
+        { "pageSlug": "home", "title": "Meada", "isHome": true },
         { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
         { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-        { "pageSlug": "home", "title": "Meada", "isHome": true },
+        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
         { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
-        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
         { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
         { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
@@ -4767,7 +4811,9 @@
             "titlePrefix": "Sua clínica de dermatologia",
             "titleSuffix": "",
             "gradientText": "agendando com segurança",
+            "planDemoHref": "https://demo.meadadigital.com/login",
             "primaryLabel": "Falar com especialista",
+            "planDemoLabel": "Ver demonstração do painel →",
             "secondaryHref": "/produtos",
             "terminalLines": [
               { "kind": "cmd", "text": "meada start --tipo=ecommerce" },
@@ -4857,12 +4903,12 @@
       ],
       "theme": { "preset": "meada-dark" },
       "nav": [
+        { "pageSlug": "home", "title": "Meada", "isHome": true },
         { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
         { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-        { "pageSlug": "home", "title": "Meada", "isHome": true },
+        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
         { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
-        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
         { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
         { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
@@ -4933,7 +4979,9 @@
             "titlePrefix": "Seu estúdio de fotografia",
             "titleSuffix": "",
             "gradientText": "agenda e entrega de material",
+            "planDemoHref": "https://demo.meadadigital.com/login",
             "primaryLabel": "Falar com especialista",
+            "planDemoLabel": "Ver demonstração do painel →",
             "secondaryHref": "/produtos",
             "terminalLines": [
               { "kind": "cmd", "text": "meada start --tipo=ecommerce" },
@@ -5023,12 +5071,12 @@
       ],
       "theme": { "preset": "meada-dark" },
       "nav": [
+        { "pageSlug": "home", "title": "Meada", "isHome": true },
         { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
         { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-        { "pageSlug": "home", "title": "Meada", "isHome": true },
+        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
         { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
-        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
         { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
         { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
@@ -5099,7 +5147,9 @@
             "titlePrefix": "Sua escola de cursos",
             "titleSuffix": "",
             "gradientText": "com trilha de módulos",
+            "planDemoHref": "https://demo.meadadigital.com/login",
             "primaryLabel": "Falar com especialista",
+            "planDemoLabel": "Ver demonstração do painel →",
             "secondaryHref": "/produtos",
             "terminalLines": [
               { "kind": "cmd", "text": "meada start --tipo=ecommerce" },
@@ -5189,12 +5239,12 @@
       ],
       "theme": { "preset": "meada-dark" },
       "nav": [
+        { "pageSlug": "home", "title": "Meada", "isHome": true },
         { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
         { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-        { "pageSlug": "home", "title": "Meada", "isHome": true },
+        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
         { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
-        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
         { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
         { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
@@ -5265,7 +5315,9 @@
             "titlePrefix": "Sua loja de lingerie",
             "titleSuffix": "",
             "gradientText": "com grade de variantes",
+            "planDemoHref": "https://demo.meadadigital.com/login",
             "primaryLabel": "Falar com especialista",
+            "planDemoLabel": "Ver demonstração do painel →",
             "secondaryHref": "/produtos",
             "terminalLines": [
               { "kind": "cmd", "text": "meada start --tipo=ecommerce" },
@@ -5355,12 +5407,12 @@
       ],
       "theme": { "preset": "meada-dark" },
       "nav": [
+        { "pageSlug": "home", "title": "Meada", "isHome": true },
         { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
         { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-        { "pageSlug": "home", "title": "Meada", "isHome": true },
+        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
         { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
-        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
         { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
         { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
@@ -5431,7 +5483,9 @@
             "titlePrefix": "Sua loja de moda infantil",
             "titleSuffix": "",
             "gradientText": "com tamanho por idade",
+            "planDemoHref": "https://demo.meadadigital.com/login",
             "primaryLabel": "Falar com especialista",
+            "planDemoLabel": "Ver demonstração do painel →",
             "secondaryHref": "/produtos",
             "terminalLines": [
               { "kind": "cmd", "text": "meada start --tipo=ecommerce" },
@@ -5521,12 +5575,12 @@
       ],
       "theme": { "preset": "meada-dark" },
       "nav": [
+        { "pageSlug": "home", "title": "Meada", "isHome": true },
         { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
         { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-        { "pageSlug": "home", "title": "Meada", "isHome": true },
+        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
         { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
-        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
         { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
         { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
@@ -5597,7 +5651,9 @@
             "titlePrefix": "Sua loja de lãs",
             "titleSuffix": "",
             "gradientText": "com lote de tingimento",
+            "planDemoHref": "https://demo.meadadigital.com/login",
             "primaryLabel": "Falar com especialista",
+            "planDemoLabel": "Ver demonstração do painel →",
             "secondaryHref": "/produtos",
             "terminalLines": [
               { "kind": "cmd", "text": "meada start --tipo=ecommerce" },
@@ -5687,12 +5743,12 @@
       ],
       "theme": { "preset": "meada-dark" },
       "nav": [
+        { "pageSlug": "home", "title": "Meada", "isHome": true },
         { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
         { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-        { "pageSlug": "home", "title": "Meada", "isHome": true },
+        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
         { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
-        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
         { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
         { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
@@ -5763,7 +5819,9 @@
             "titlePrefix": "Sua padaria e confeitaria",
             "titleSuffix": "",
             "gradientText": "pronta-entrega e encomenda",
+            "planDemoHref": "https://demo.meadadigital.com/login",
             "primaryLabel": "Falar com especialista",
+            "planDemoLabel": "Ver demonstração do painel →",
             "secondaryHref": "/produtos",
             "terminalLines": [
               { "kind": "cmd", "text": "meada start --tipo=ecommerce" },
@@ -5853,12 +5911,12 @@
       ],
       "theme": { "preset": "meada-dark" },
       "nav": [
+        { "pageSlug": "home", "title": "Meada", "isHome": true },
         { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
         { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-        { "pageSlug": "home", "title": "Meada", "isHome": true },
+        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
         { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
-        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
         { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
         { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
@@ -5929,7 +5987,9 @@
             "titlePrefix": "Sua ótica",
             "titleSuffix": "",
             "gradientText": "exame e óculos sob receita",
+            "planDemoHref": "https://demo.meadadigital.com/login",
             "primaryLabel": "Falar com especialista",
+            "planDemoLabel": "Ver demonstração do painel →",
             "secondaryHref": "/produtos",
             "terminalLines": [
               { "kind": "cmd", "text": "meada start --tipo=ecommerce" },
@@ -6019,12 +6079,12 @@
       ],
       "theme": { "preset": "meada-dark" },
       "nav": [
+        { "pageSlug": "home", "title": "Meada", "isHome": true },
         { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
         { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-        { "pageSlug": "home", "title": "Meada", "isHome": true },
+        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
         { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
-        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
         { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
         { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
@@ -6095,7 +6155,9 @@
             "titlePrefix": "Sua papelaria",
             "titleSuffix": "",
             "gradientText": "convites personalizados",
+            "planDemoHref": "https://demo.meadadigital.com/login",
             "primaryLabel": "Falar com especialista",
+            "planDemoLabel": "Ver demonstração do painel →",
             "secondaryHref": "/produtos",
             "terminalLines": [
               { "kind": "cmd", "text": "meada start --tipo=ecommerce" },
@@ -6185,12 +6247,12 @@
       ],
       "theme": { "preset": "meada-dark" },
       "nav": [
+        { "pageSlug": "home", "title": "Meada", "isHome": true },
         { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
         { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-        { "pageSlug": "home", "title": "Meada", "isHome": true },
+        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
         { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
-        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
         { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
         { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
@@ -6261,7 +6323,9 @@
             "titlePrefix": "Sua agência de viagens",
             "titleSuffix": "",
             "gradientText": "do briefing à aprovação",
+            "planDemoHref": "https://demo.meadadigital.com/login",
             "primaryLabel": "Falar com especialista",
+            "planDemoLabel": "Ver demonstração do painel →",
             "secondaryHref": "/produtos",
             "terminalLines": [
               { "kind": "cmd", "text": "meada start --tipo=ecommerce" },
@@ -6351,12 +6415,12 @@
       ],
       "theme": { "preset": "meada-dark" },
       "nav": [
+        { "pageSlug": "home", "title": "Meada", "isHome": true },
         { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
         { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-        { "pageSlug": "home", "title": "Meada", "isHome": true },
+        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
         { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
-        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
         { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
         { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },
@@ -6427,7 +6491,9 @@
             "titlePrefix": "Sua loja de suplementos",
             "titleSuffix": "",
             "gradientText": "com variantes e estoque",
+            "planDemoHref": "https://demo.meadadigital.com/login",
             "primaryLabel": "Falar com especialista",
+            "planDemoLabel": "Ver demonstração do painel →",
             "secondaryHref": "/produtos",
             "terminalLines": [
               { "kind": "cmd", "text": "meada start --tipo=ecommerce" },
@@ -6517,12 +6583,12 @@
       ],
       "theme": { "preset": "meada-dark" },
       "nav": [
+        { "pageSlug": "home", "title": "Meada", "isHome": true },
         { "pageSlug": "portfolio", "title": "Portfólio", "isHome": false },
         { "pageSlug": "produtos", "title": "Produtos", "isHome": false },
-        { "pageSlug": "home", "title": "Meada", "isHome": true },
+        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "servicos", "title": "Serviços", "isHome": false },
         { "pageSlug": "sobre", "title": "Sobre", "isHome": false },
-        { "pageSlug": "contato", "title": "Contato", "isHome": false },
         { "pageSlug": "legal", "title": "ProcessoBot", "isHome": false },
         { "pageSlug": "dental", "title": "DentalBot", "isHome": false },
         { "pageSlug": "sushi", "title": "SushiBot", "isHome": false },

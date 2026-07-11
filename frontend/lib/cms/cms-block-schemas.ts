@@ -512,6 +512,8 @@ export const blockSchemas: Record<CmsBlockTypeId, BlockSchema> = {
       { key: 'planPrice', label: 'Plano — preço', type: 'text', hint: 'Ex.: R$ 197/mês' },
       { key: 'planButtonLabel', label: 'Plano — texto do botão', type: 'text' },
       { key: 'planButtonHref', label: 'Plano — link do botão', type: 'url' },
+      { key: 'planDemoLabel', label: 'Plano — texto do link de demo', type: 'text' },
+      { key: 'planDemoHref', label: 'Plano — link da demonstração', type: 'url' },
       { key: 'terminalTitle', label: 'Terminal — título', type: 'text' },
       {
         key: 'terminalLines',
