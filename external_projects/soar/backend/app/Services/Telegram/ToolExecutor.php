@@ -138,7 +138,13 @@ class ToolExecutor
             'position' => ($page->taskItems()->max('position') ?? -1) + 1,
         ]);
 
-        return ['ok' => true, 'tarefa' => $task->content, 'lista' => $page->title, 'prazo' => $task->due_date?->format('d/m/Y')];
+        return [
+            'ok' => true,
+            'tarefa' => $task->content,
+            'lista' => $page->title,
+            'escopo' => $page->scope === Page::SCOPE_PERSONAL ? 'pessoal' : 'familia',
+            'prazo' => $task->due_date?->format('d/m/Y'),
+        ];
     }
 
     private function concluirTarefa(User $user, array $args): array

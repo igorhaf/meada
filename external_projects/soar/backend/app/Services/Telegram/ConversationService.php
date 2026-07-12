@@ -4,6 +4,7 @@ namespace App\Services\Telegram;
 
 use App\Models\User;
 use App\Services\EloClient;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -21,6 +22,7 @@ class ConversationService
         private readonly TelegramClient $telegram,
         private readonly EloClient $elo,
         private readonly ToolExecutor $tools,
+        private readonly ReplyFormatter $formatter,
     ) {
     }
 
@@ -29,10 +31,17 @@ class ConversationService
     {
         $message = $update['message'] ?? null;
         $chatId = $message['chat']['id'] ?? null;
+        $messageId = $message['message_id'] ?? null;
         $text = trim($message['text'] ?? '');
 
         if (! $chatId || $text === '') {
             return;
+        }
+
+        // ack instantâneo: o usuário vê que a mensagem chegou (antes era só typing,
+        // que expira em 5s enquanto o Elo pensa — daí a sensação de "não enviou").
+        if ($messageId) {
+            $this->telegram->react($chatId, $messageId);
         }
 
         try {
@@ -82,6 +91,15 @@ class ConversationService
             return;
         }
 
+        // Anti-duplicata: o Elo leva ~10s; se a mesma frase vier de novo nesse meio-tempo
+        // (o usuário achando que não enviou), NÃO executa a ação duas vezes.
+        $dedupeKey = 'tg-dedupe-'.$chatId.'-'.md5(mb_strtolower($text));
+        if (! Cache::add($dedupeKey, true, now()->addSeconds(90))) {
+            $this->telegram->sendMessage($chatId, '⏳ Já estou cuidando dessa — só um segundo!');
+
+            return;
+        }
+
         // ── Conversa com o Elo (loop de ações) ───────────────────────────
         $this->telegram->sendTyping($chatId);
 
@@ -102,6 +120,16 @@ class ConversationService
             $result = $this->tools->execute($user, $action['tool'], $action['args']);
             Log::info('Telegram ação', ['user' => $user->name, 'tool' => $action['tool'], 'ok' => ! isset($result['erro'])]);
 
+            // Sucesso: confirma NA HORA, sem 2ª ida ao Elo (metade da latência).
+            $quick = $this->formatter->format($action['tool'], $result);
+            if ($quick !== null) {
+                $this->telegram->sendMessage($chatId, $quick);
+                Log::info('Telegram resposta', ['user' => $user->name, 'texto' => $quick]);
+
+                return;
+            }
+
+            // Erro/ambiguidade (ou ação que precisa de redação): o modelo responde.
             $response = $this->elo->chat(
                 [['role' => 'user', 'content' => '<resultado>'.json_encode($result, JSON_UNESCAPED_UNICODE).'</resultado>']],
                 system: $this->systemPrompt($user),
@@ -111,7 +139,9 @@ class ConversationService
 
         // remove qualquer tag residual antes de enviar
         $final = trim(preg_replace('/<acao>.*?<\/acao>/s', '', $response) ?? $response);
-        $this->telegram->sendMessage($chatId, $final !== '' ? $final : 'Feito. ✅');
+        $final = $final !== '' ? $final : 'Feito. ✅';
+        $this->telegram->sendMessage($chatId, $final);
+        Log::info('Telegram resposta', ['user' => $user->name, 'texto' => mb_substr($final, 0, 200)]);
     }
 
     private function systemPrompt(User $user): string
