@@ -135,7 +135,7 @@ services:
       - ${CADDYFILE_PATH:-./caddy/Caddyfile}:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
     networks: [meada]
-    depends_on: [frontend, backend, muda-nginx, semente-nginx, pindorama-nginx, germinar-nginx, framely-app, conexao-municipio-frontend]
+    depends_on: [frontend, backend, muda-nginx, semente-nginx, pindorama-nginx, germinar-nginx, framely-app, conexao-municipio-frontend, soar-frontend]
 
   # ---------------------------------------------------------------------------
   # Projeto EXTERNO muda (Laravel/PHP) — external_projects/muda. Integrado ao mesmo
@@ -443,6 +443,49 @@ services:
     command: sh -c "npm install && npm run build && npm run start"
     networks: [meada]
 
+  # ---------------------------------------------------------------------------
+  # Projeto EXTERNO soar (Laravel API + React/Vite) — external_projects/soar.
+  # Dashboard colaborativo estilo Notion (árvore compartilhada + pessoal por usuário).
+  # Acessível SÓ via Caddy em http://soar.meadadigital.local (path /api → backend,
+  # resto → frontend, mesma origem). Postgres dedicado. Prod: soar.meadadigital.com.
+  # ---------------------------------------------------------------------------
+  soar-backend:
+    build:
+      context: ./external_projects/soar/backend
+      dockerfile: Dockerfile
+    container_name: soar-backend
+    restart: unless-stopped
+    # Banco = Supabase (nuvem); credenciais SÓ no backend/.env (gitignored).
+    # artisan serve não repassa env do processo → o .env é a fonte única.
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # Elo (proxy Claude) roda no host, porta 8200
+    volumes:
+      - ./external_projects/soar/backend:/var/www/html
+      - soar-backend-vendor:/var/www/html/vendor
+    command: sh -c "composer install --no-interaction && ([ -f .env ] || cp .env.example .env) && (grep -q '^APP_KEY=.' .env || php artisan key:generate --force) && php artisan migrate --force && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=8000"
+    networks: [meada]
+
+  soar-frontend:
+    build:
+      context: ./external_projects/soar/frontend
+      dockerfile: Dockerfile
+    container_name: soar-frontend
+    restart: unless-stopped
+    depends_on:
+      - soar-backend
+    environment:
+      # SPA fala com a API na MESMA ORIGEM (Caddy roteia /api). Vazio = fetch relativo.
+      VITE_API_URL: ""
+    volumes:
+      - ./external_projects/soar/frontend:/app
+      - soar-frontend-node_modules:/app/node_modules
+    # PROD: build + vite preview (estático). DEV: override troca pra `npm run dev`.
+    command: sh -c "npm install && npm run build && npm run preview -- --host 0.0.0.0 --port 3130"
+    networks: [meada]
+
 networks:
   meada:
     driver: bridge
@@ -459,3 +502,5 @@ volumes:
   conexao-municipio-db-data:
   conexao-municipio-backend-vendor:
   conexao-municipio-frontend-node_modules:
+  soar-backend-vendor:
+  soar-frontend-node_modules:

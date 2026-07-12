@@ -95,6 +95,18 @@ http://conexao-municipio.meadadigital.local {
 	}
 }
 
+# Projeto externo soar (Laravel API + React/Vite) — subdomínio próprio.
+# Path-based mesma-origem: /api/* vai pro backend Laravel; o resto pro frontend Vite.
+# Prod: soar.meadadigital.com.
+http://soar.meadadigital.local {
+	handle /api/* {
+		reverse_proxy soar-backend:8000
+	}
+	handle {
+		reverse_proxy soar-frontend:3130
+	}
+}
+
 # Catch-all dos SUBDOMÍNIOS DE EMPRESA (slug.meadadigital.local) — qualquer host *.meadadigital.local
 # que NÃO casou os blocos acima (nichos fixos + api) cai aqui e vai pro frontend. Necessário porque
 # o "Acessar admin" do root abre {slug}.meadadigital.local/auth/confirm, e os slugs de empresa

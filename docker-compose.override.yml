@@ -64,5 +64,32 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: http://conexao-municipio.meadadigital.local
 
+  soar-backend:
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://soar.meadadigital.local
+
+  soar-frontend:
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 3130"
+
+  # Bot do Telegram + scheduler do soar — SÓ LOCAL (precisa do Elo, que roda no host:8200).
+  # O banco é o Supabase (nuvem), então o bot local opera os MESMOS dados da produção.
+  soar-bot:
+    build:
+      context: ./external_projects/soar/backend
+      dockerfile: Dockerfile
+    container_name: soar-bot
+    restart: unless-stopped
+    environment:
+      APP_ENV: local
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./external_projects/soar/backend:/var/www/html
+      - soar-bot-vendor:/var/www/html/vendor
+    command: sh -c "composer install --no-interaction && (php artisan schedule:work &) && php artisan telegram:poll"
+
 volumes:
   maven-cache:
+  soar-bot-vendor:

@@ -1,0 +1,15 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-white font-sans text-[#37352f] antialiased;
+}

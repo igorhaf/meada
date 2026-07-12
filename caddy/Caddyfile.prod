@@ -84,6 +84,16 @@ conexao-municipio.meadadigital.com {
 	}
 }
 
+# Projeto externo soar (Laravel API + React/Vite) — path-based mesma-origem.
+soar.meadadigital.com {
+	handle /api/* {
+		reverse_proxy soar-backend:8000
+	}
+	handle {
+		reverse_proxy soar-frontend:3130
+	}
+}
+
 # Catch-all dos SUBDOMÍNIOS DE EMPRESA (slug.meadadigital.com) — DESATIVADO por enquanto.
 # O wildcard exige cert via DNS-01 (Let's Encrypt não faz HTTP-01 pra wildcard), o que
 # precisa do plugin caddy-dns/cloudflare + token da API do Cloudflare. Enquanto o wildcard
