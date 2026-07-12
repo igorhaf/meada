@@ -1,0 +1,200 @@
+@import './tokens.css';
+
+/* Home pública Germinar — inline styles do protótipo final
+   ("Germinar - Home.dc.html") convertidos em classes. Desktop é fiel ao
+   protótipo; a responsividade (880/720/480px) segue o template Landing do DS. */
+
+:root {
+  --edge: clamp(20px, 5vw, 72px);
+}
+
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+body { text-wrap: pretty; overflow-x: clip; }
+a { color: var(--color-accent-700); text-decoration: none; }
+a:hover { color: var(--color-accent-600); }
+
+/* âncoras com classe de botão mantêm a cor do componente (o a:hover global
+   venceria .btn-* por especificidade e trocaria a cor do texto) */
+a.btn, a.btn:hover { color: var(--color-text); }
+a.btn-primary, a.btn-primary:hover { color: var(--color-bg); }
+a.btn-ghost, a.btn-ghost:hover { color: var(--color-accent); }
+
+/* — kickers e títulos de seção — */
+.section-kicker {
+  display: block; font-size: 13px; letter-spacing: 0.06em;
+  text-transform: uppercase; font-weight: 600;
+  color: var(--color-accent-700); margin-bottom: 12px;
+}
+.section-title {
+  font-family: var(--font-heading); font-weight: 400;
+  font-size: 34px; margin: 0 0 36px;
+}
+
+/* — menu do topo — */
+.site-nav {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+  gap: 32px; padding: 24px var(--edge);
+}
+.site-nav a, .site-nav a:hover { color: var(--color-text); }
+.site-nav a { font-size: 15px; font-weight: 600; }
+.site-nav-logo {
+  width: 56px; height: 56px; border-radius: 50%;
+  object-fit: cover; background: #fdfaf4; margin: 0 16px;
+}
+
+/* — herói — */
+.hero {
+  display: grid; grid-template-columns: 1fr 420px; gap: 64px; align-items: center;
+  max-width: 1200px; margin: 0 auto; padding: 64px var(--edge);
+}
+.hero .section-kicker { margin-bottom: 20px; }
+.hero-title {
+  font-family: var(--font-heading); font-weight: 400;
+  font-size: clamp(40px, 4.8vw, 58px); line-height: 1.08;
+  margin: 0; max-width: 15ch;
+}
+.hero-subtitle {
+  font-size: 17px; line-height: 1.65; max-width: 52ch;
+  margin: 28px 0 0; color: var(--color-neutral-800);
+}
+.hero-actions { display: flex; gap: 12px; margin-top: 32px; flex-wrap: wrap; }
+.hero-photo { position: relative; justify-self: end; }
+.hero-photo::before {
+  content: ""; position: absolute; inset: -28px; border-radius: 50%;
+  background: var(--color-accent-2-200); z-index: 0;
+}
+.hero-photo img {
+  position: relative; width: 420px; height: 420px;
+  object-fit: cover; object-position: 50% 30%;
+  border-radius: 50%; box-shadow: var(--shadow-md);
+}
+
+/* — o que fazemos — */
+.services {
+  max-width: 1200px; margin: 0 auto;
+  padding: 48px var(--edge) 64px;
+}
+.services .section-kicker { margin-bottom: 20px; }
+.service-row {
+  display: grid; grid-template-columns: 380px 1fr;
+  gap: 24px 72px; padding: 28px 0; align-items: baseline;
+}
+.service-title {
+  font-family: var(--font-heading); font-weight: 400; font-size: 26px;
+  margin: 0; display: flex; align-items: center; gap: 16px;
+}
+.service-dot {
+  flex: none; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--color-accent);
+}
+.service-dot--accent-2 { background: var(--color-accent-2-500); }
+.service-desc {
+  font-size: 15.5px; line-height: 1.8; margin: 0;
+  color: var(--color-neutral-800); max-width: 52ch;
+}
+
+/* — práticas integrativas (faixa full-bleed sálvia) — */
+.practices { background: var(--color-accent-2-100); padding: 64px var(--edge); }
+.practices-inner { max-width: 1200px; margin: 0 auto; }
+.practices .section-kicker { color: var(--color-accent-2-800); }
+.practices .section-title { max-width: 24ch; }
+.practices-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.practice-card { background: var(--color-bg); border-radius: 24px; padding: 28px 32px; }
+.practice-card h3 {
+  font-family: var(--font-heading); font-weight: 400; font-size: 20px; margin: 0;
+}
+.practice-card p {
+  font-size: 14.5px; line-height: 1.6;
+  color: var(--color-neutral-800); margin: 10px 0 0;
+}
+
+/* — cursos e treinamentos — */
+.courses { max-width: 1200px; margin: 0 auto; padding: 64px var(--edge); }
+.courses-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.course-card {
+  border: 2px solid var(--color-neutral-300); border-radius: 24px;
+  padding: 32px; display: flex; flex-direction: column; gap: 12px;
+}
+.course-card .tag { align-self: flex-start; }
+.course-card h3 {
+  font-family: var(--font-heading); font-weight: 400; font-size: 22px; margin: 0;
+}
+.course-card p {
+  font-size: 14.5px; line-height: 1.6;
+  color: var(--color-neutral-800); margin: 0;
+}
+.course-meta {
+  font-size: 13px; font-weight: 600;
+  color: var(--color-neutral-700); margin-top: auto;
+}
+
+/* — quem somos — */
+.about { max-width: 1200px; margin: 0 auto; padding: 24px var(--edge) 88px; }
+.about-grid {
+  display: grid; grid-template-columns: 420px 1fr;
+  gap: 72px; align-items: center;
+}
+.about-figure { margin: 0; border-radius: 32px; overflow: hidden; }
+.about-figure img { width: 420px; height: 480px; object-fit: cover; }
+.about .section-kicker { margin-bottom: 16px; }
+.about-title {
+  font-family: var(--font-heading); font-weight: 400;
+  font-size: 34px; line-height: 1.25; margin: 0; max-width: 20ch;
+}
+.about-text {
+  font-size: 16px; line-height: 1.75; color: var(--color-neutral-800);
+  margin: 20px 0 0; max-width: 52ch;
+}
+.about-cta { margin-top: 24px; }
+
+/* — contato + rodapé — */
+.contact { max-width: 1200px; margin: 0 auto; padding: 0 var(--edge) 72px; }
+.contact-patch {
+  background: var(--color-accent-100); border-radius: 32px;
+  padding: 56px 64px; text-align: center;
+}
+.contact-title {
+  font-family: var(--font-heading); font-weight: 400; font-size: 30px; margin: 0;
+}
+.contact-subtitle {
+  font-size: 15.5px; color: var(--color-neutral-800);
+  margin: 16px auto 0; max-width: 50ch;
+}
+.contact-actions {
+  display: flex; gap: 12px; justify-content: center;
+  margin-top: 28px; flex-wrap: wrap;
+}
+.site-footer {
+  font-size: 13px; color: var(--color-neutral-700);
+  margin: 32px 0 0; text-align: center;
+}
+/* no protótipo o e-mail é texto plano neutral-700 — o link não ganha accent */
+.site-footer a, .site-footer a:hover { color: inherit; }
+
+/* — colapso responsivo (acréscimo ao protótipo desktop) — */
+@media (max-width: 880px) {
+  .hero { grid-template-columns: 1fr; gap: 48px; padding-block: 40px 56px; }
+  .hero-photo { justify-self: center; }
+  .service-row { grid-template-columns: 1fr; gap: 14px; }
+  .practices-grid, .courses-grid { grid-template-columns: repeat(2, 1fr); }
+  .about-grid { grid-template-columns: 1fr; gap: 40px; }
+  .about { padding-bottom: 64px; }
+}
+
+@media (max-width: 720px) {
+  .hero-photo img { width: 300px; height: 300px; }
+  .practices { padding-block: 48px; }
+  .practices-grid, .courses-grid { grid-template-columns: 1fr; }
+  .courses { padding-block: 48px; }
+  .about-figure img { width: 100%; height: auto; aspect-ratio: 420 / 480; }
+  .contact-patch { padding: 40px clamp(24px, 6vw, 64px); }
+}
+
+@media (max-width: 480px) {
+  .site-nav { gap: 12px 20px; padding-block: 16px; }
+  .site-nav-logo { margin: 0 4px; }
+  .hero-photo img { width: 240px; height: 240px; }
+  .hero-photo::before { inset: -20px; }
+}

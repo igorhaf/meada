@@ -135,7 +135,7 @@ services:
       - ${CADDYFILE_PATH:-./caddy/Caddyfile}:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
     networks: [meada]
-    depends_on: [frontend, backend, muda-nginx, semente-nginx, pindorama-nginx, framely-app, conexao-municipio-frontend]
+    depends_on: [frontend, backend, muda-nginx, semente-nginx, pindorama-nginx, germinar-nginx, framely-app, conexao-municipio-frontend]
 
   # ---------------------------------------------------------------------------
   # Projeto EXTERNO muda (Laravel/PHP) — external_projects/muda. Integrado ao mesmo
@@ -296,6 +296,59 @@ services:
     networks: [meada]
 
   # ---------------------------------------------------------------------------
+  # Projeto EXTERNO germinar (Laravel/PHP) — external_projects/germinar.
+  # Site institucional de doulas (Germinar) com admin dinâmico. Acessível SÓ via
+  # Caddy em http://germinar.meadadigital.local (sem portas expostas no host).
+  # Postgres dedicado (desacoplado do Supabase do meada).
+  # ---------------------------------------------------------------------------
+  germinar-postgres:
+    image: postgres:16-alpine
+    container_name: germinar-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${GERMINAR_DB_DATABASE:-germinar}
+      POSTGRES_USER: ${GERMINAR_DB_USERNAME:-germinar}
+      POSTGRES_PASSWORD: ${GERMINAR_DB_PASSWORD:-germinar_secret}
+    volumes:
+      - germinar-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${GERMINAR_DB_USERNAME:-germinar} -d ${GERMINAR_DB_DATABASE:-germinar}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [meada]
+
+  germinar-app:
+    build:
+      context: ./external_projects/germinar
+      dockerfile: docker/php/Dockerfile
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+    container_name: germinar-app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./external_projects/germinar:/var/www/html
+    # self-heal: instala vendor se faltar (deploy novo), depois php-fpm. Assets (Vite) são
+    # buildados à parte (persistem no bind mount).
+    command: sh -c "[ -f vendor/autoload.php ] || composer install --no-dev --optimize-autoloader --no-interaction; php-fpm"
+    depends_on:
+      germinar-postgres:
+        condition: service_healthy
+    networks: [meada]
+
+  germinar-nginx:
+    image: nginx:1.27-alpine
+    container_name: germinar-nginx
+    restart: unless-stopped
+    volumes:
+      - ./external_projects/germinar:/var/www/html
+      - ./external_projects/germinar/docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on: [germinar-app]
+    networks: [meada]
+
+  # ---------------------------------------------------------------------------
   # Projeto EXTERNO framely (Spring Boot/Java) — external_projects/framely.
   # Controle financeiro pessoal: API REST + bot de Telegram (opcional, só liga com
   # TELEGRAM_BOT_TOKEN). Banco H2 EM ARQUIVO (volume framely-data) — sem Postgres. O Spring
@@ -401,6 +454,7 @@ volumes:
   muda-postgres-data:
   semente-postgres-data:
   pindorama-postgres-data:
+  germinar-postgres-data:
   framely-data:
   conexao-municipio-db-data:
   conexao-municipio-backend-vendor:

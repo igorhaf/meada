@@ -41,10 +41,33 @@ http://muda.meadadigital.local {
 	reverse_proxy muda-nginx:80
 }
 
+# Túnel ngrok da muda (DEV) — domínio fixo reservado na conta, usado para callbacks
+# externos (Mercado Pago, Google OAuth, MelhorEnvio) e para o webhook do WhatsApp.
+# Cadeia: ngrok (TLS) -> Caddy :80 -> muda-nginx:80.
+#
+# http:// explícito: o ngrok TERMINA o TLS e entrega em HTTP na 80; sem o prefixo o
+# Caddy tentaria emitir cert ACME para um domínio que não é dele.
+#
+# header_up X-Forwarded-Proto https: o Caddy recebe a request em HTTP e, por padrão,
+# repassaria X-Forwarded-Proto=http — o Laravel geraria os assets como http:// e o
+# navegador bloquearia tudo por mixed content na página https do ngrok. Como sabemos
+# que o ngrok termina TLS, cravamos https aqui.
+http://slum-feminist-speculate.ngrok-free.dev {
+	reverse_proxy muda-nginx:80 {
+		header_up X-Forwarded-Proto https
+	}
+}
+
 # Projeto externo semente-doce (Laravel — doceria) — subdomínio próprio.
 # Prod: semente-doce.meadadigital.com (mesmo reverse_proxy, com TLS).
 http://semente-doce.meadadigital.local {
 	reverse_proxy semente-nginx:80
+}
+
+# Projeto externo germinar (Laravel — site institucional de doulas) — subdomínio próprio.
+# Prod: germinar.meadadigital.com (mesmo reverse_proxy, com TLS).
+http://germinar.meadadigital.local {
+	reverse_proxy germinar-nginx:80
 }
 
 # Projeto externo pindorama (Laravel — marketplace de saúde integrativa) — subdomínio próprio.

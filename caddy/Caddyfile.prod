@@ -64,6 +64,11 @@ pindorama.meadadigital.com {
 	reverse_proxy pindorama-nginx:80
 }
 
+# Projeto externo germinar (Laravel — site institucional de doulas) — subdomínio próprio.
+germinar.meadadigital.com {
+	reverse_proxy germinar-nginx:80
+}
+
 # Projeto externo framely (Spring Boot — controle financeiro) — subdomínio próprio.
 framely.meadadigital.com {
 	reverse_proxy framely-app:8090
