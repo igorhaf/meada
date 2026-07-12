@@ -31,3 +31,11 @@ scripts/selenium_tests/screenshots/
 # Documento de coordenação entre conversas — vive fora do repo
 CONTEXT.md
 *:Zone.Identifier
+
+# ---- Projetos com repositório PRÓPRIO (clones, não versionados aqui) --------
+# O muda saiu do monorepo (repo: github.com/igorhaf/muda). Cada pasta é um CLONE
+# numa branch: muda=main (prod), mudahomolog=homolog. O meada segue sendo o host
+# de infra (compose + Caddy), mas o CÓDIGO do muda tem deploy próprio — assim dá
+# pra publicar só o muda/homolog sem redeployar o meada inteiro.
+external_projects/muda/
+external_projects/mudahomolog/

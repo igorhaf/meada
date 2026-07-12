@@ -138,9 +138,24 @@ services:
     depends_on: [frontend, backend, muda-nginx, semente-nginx, pindorama-nginx, germinar-nginx, framely-app, conexao-municipio-frontend, soar-frontend]
 
   # ---------------------------------------------------------------------------
-  # Projeto EXTERNO muda (Laravel/PHP) — external_projects/muda. Integrado ao mesmo
-  # compose e à mesma rede; acessível SÓ via Caddy em http://muda.meadadigital.local
-  # (sem portas expostas no host). Postgres dedicado (desacoplado do Supabase do meada).
+  # Projeto EXTERNO muda (Laravel/PHP) — REPOSITÓRIO PRÓPRIO: github.com/igorhaf/muda
+  #
+  # As pastas NÃO são versionadas aqui (ver .gitignore) — são CLONES do repo do muda,
+  # um por ambiente/branch:
+  #   external_projects/muda          → branch main    → muda.meadadigital.com          (PROD)
+  #   external_projects/mudahomolog  → branch homolog → mudahomolog.meadadigital.com  (HOMOLOG)
+  #
+  # O meada segue sendo o HOST DE INFRA (compose + Caddy + rede + TLS); o repo do muda leva
+  # só o código. Assim dá pra deployar muda/homolog sem redeployar o meada inteiro (o deploy
+  # do muda vive no workflow DELE e só reinicia os serviços dele).
+  #
+  # BOOTSTRAP (clone novo do meada): as pastas não existem até você clonar —
+  #   git clone -b main    git@github.com:igorhaf/muda.git external_projects/muda
+  #   git clone -b homolog git@github.com:igorhaf/muda.git external_projects/mudahomolog
+  # e criar o .env de cada uma (não versionado). Sem isso, o build destes serviços falha.
+  #
+  # Postgres dedicado por ambiente (desacoplado do Supabase do meada). Sem portas no host:
+  # o acesso é só via Caddy.
   # ---------------------------------------------------------------------------
   muda-postgres:
     image: postgres:16-alpine
@@ -183,10 +198,65 @@ services:
     image: nginx:1.27-alpine
     container_name: muda-nginx
     restart: unless-stopped
+    environment:
+      # O template do nginx (no repo do muda) resolve o upstream por variável — é o que
+      # permite a MESMA config servir prod e homolog sem as branches divergirem.
+      # O FILTER limita o envsubst a esta variável (senão ele comeria $uri, $realpath_root...).
+      PHP_FPM_HOST: muda-app
+      NGINX_ENVSUBST_FILTER: PHP_FPM_HOST
     volumes:
       - ./external_projects/muda:/var/www/html
-      - ./external_projects/muda/docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./external_projects/muda/docker/nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
     depends_on: [muda-app]
+    networks: [meada]
+
+  # ---- HOMOLOG do muda (branch `homolog`) — espelho exato de prod, dados próprios ------
+  mudahomolog-postgres:
+    image: postgres:16-alpine
+    container_name: mudahomolog-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${MUDAHOMOLOG_DB_DATABASE:-muda_homolog}
+      POSTGRES_USER: ${MUDAHOMOLOG_DB_USERNAME:-muda_homolog}
+      POSTGRES_PASSWORD: ${MUDAHOMOLOG_DB_PASSWORD:-muda_homolog_secret}
+    volumes:
+      - mudahomolog-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${MUDAHOMOLOG_DB_USERNAME:-muda_homolog} -d ${MUDAHOMOLOG_DB_DATABASE:-muda_homolog}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [meada]
+
+  mudahomolog-app:
+    build:
+      context: ./external_projects/mudahomolog
+      dockerfile: docker/php/Dockerfile
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+    container_name: mudahomolog-app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./external_projects/mudahomolog:/var/www/html
+    command: sh -c "[ -f vendor/autoload.php ] || composer install --no-dev --optimize-autoloader --no-interaction; php-fpm"
+    depends_on:
+      mudahomolog-postgres:
+        condition: service_healthy
+    networks: [meada]
+
+  mudahomolog-nginx:
+    image: nginx:1.27-alpine
+    container_name: mudahomolog-nginx
+    restart: unless-stopped
+    environment:
+      PHP_FPM_HOST: mudahomolog-app     # ← a única diferença real entre os dois ambientes
+      NGINX_ENVSUBST_FILTER: PHP_FPM_HOST
+    volumes:
+      - ./external_projects/mudahomolog:/var/www/html
+      - ./external_projects/mudahomolog/docker/nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+    depends_on: [mudahomolog-app]
     networks: [meada]
 
   # ---------------------------------------------------------------------------
@@ -495,6 +565,7 @@ volumes:
   caddy-data:
   embedding-models:
   muda-postgres-data:
+  mudahomolog-postgres-data:   # banco do homolog do muda — isolado do de produção
   semente-postgres-data:
   pindorama-postgres-data:
   germinar-postgres-data:

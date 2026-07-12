@@ -49,9 +49,16 @@ api-demo.meadadigital.com {
 	reverse_proxy demo-backend:8095
 }
 
-# Projeto externo muda (Laravel) — subdomínio próprio.
+# Projeto externo muda (Laravel) — subdomínio próprio. Repo: github.com/igorhaf/muda (branch main).
 muda.meadadigital.com {
 	reverse_proxy muda-nginx:80
+}
+
+# HOMOLOG do muda (branch `homolog` do mesmo repo) — ambiente espelho, banco e credenciais próprios.
+# ⚠ O DNS deste subdomínio precisa estar DNS-ONLY (nuvem CINZA) no Cloudflare: em modo proxied o
+# Let's Encrypt do Caddy falha com 525 (ver nota no topo deste arquivo).
+mudahomolog.meadadigital.com {
+	reverse_proxy mudahomolog-nginx:80
 }
 
 # Projeto externo semente-doce (Laravel — doceria) — subdomínio próprio.

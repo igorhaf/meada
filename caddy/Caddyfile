@@ -41,6 +41,12 @@ http://muda.meadadigital.local {
 	reverse_proxy muda-nginx:80
 }
 
+# HOMOLOG do muda (branch `homolog` do repo github.com/igorhaf/muda).
+# Ambiente espelho, banco e credenciais próprios. Prod: mudahomolog.meadadigital.com.
+http://mudahomolog.meadadigital.local {
+	reverse_proxy mudahomolog-nginx:80
+}
+
 # Túnel ngrok da muda (DEV) — domínio fixo reservado na conta, usado para callbacks
 # externos (Mercado Pago, Google OAuth, MelhorEnvio) e para o webhook do WhatsApp.
 # Cadeia: ngrok (TLS) -> Caddy :80 -> muda-nginx:80.
