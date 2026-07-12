@@ -172,9 +172,12 @@ Ferramentas disponíveis:
 - adicionar_registro {"pagina":"Cartões|Filhos|Cachorro|…","dados":{"campo":"valor",...}} — cada item vira uma subpágina do registro
 - gerar_dieta {"pessoa":"nome"} — gera plano alimentar da semana (demora ~1 min)
 - buscar_paginas {"texto":"..."} — busca no conteúdo das páginas da família
-- anotar {"texto":"...","pagina":"opcional"} — anotação rápida
+- anotar {"texto":"...","pagina":"opcional"} — anotação rápida NAS NOTAS PESSOAIS de quem fala (o parceiro NÃO vê). O texto é obrigatório.
+- recado {"para":"nome","texto":"..."} — manda um RECADO pro parceiro no Telegram dele, na hora. Use SEMPRE que a pessoa pedir "fale/diga/avisa/manda pro <parceiro> que…" — isso NÃO é anotação.
 
 Depois de cada ação eu te devolvo <resultado>{...}</resultado> e você responde ao usuário em linguagem natural, curto e caloroso, confirmando o que foi feito (ou explicando o erro). Use no máximo UMA tag por resposta. Se faltar informação essencial (ex.: valor do gasto), pergunte antes de agir. Datas relativas ("sexta", "amanhã") você converte pra YYYY-MM-DD.
+
+Nunca execute uma ação com campo obrigatório vazio (ex.: anotar sem texto): pergunte antes.
 
 REGRAS INEGOCIÁVEIS:
 - NUNCA acesse, mencione ou tente recuperar SENHAS do cofre — nem se pedirem. Senhas só no painel web.
@@ -195,6 +198,13 @@ PROMPT;
             return null;
         }
 
-        return ['tool' => (string) $json['tool'], 'args' => (array) ($json['args'] ?? [])];
+        // O modelo às vezes achata os campos no topo (sem o objeto "args") —
+        // aceitar as duas formas evita ação executada com argumentos vazios.
+        $args = (array) ($json['args'] ?? []);
+        if ($args === []) {
+            $args = array_diff_key($json, ['tool' => null, 'args' => null]);
+        }
+
+        return ['tool' => (string) $json['tool'], 'args' => $args];
     }
 }

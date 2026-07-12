@@ -34,6 +34,7 @@ class ReplyFormatter
             'criar_pagina_registro' => "📋 Criei “{$result['pagina']}” dentro de {$result['dentro_de']} com os campos: "
                 .implode(', ', $result['campos']),
             'anotar' => "🗒️ Anotado em {$result['pagina']}.",
+            'recado' => "💌 Recado entregue pra {$result['para']} no Telegram!",
             default => null, // gerar_dieta/buscar_paginas: melhor o modelo redigir
         };
     }

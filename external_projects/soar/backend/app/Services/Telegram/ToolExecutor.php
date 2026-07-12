@@ -18,8 +18,10 @@ use Illuminate\Support\Str;
  */
 class ToolExecutor
 {
-    public function __construct(private readonly DietGenerator $dietGenerator)
-    {
+    public function __construct(
+        private readonly DietGenerator $dietGenerator,
+        private readonly TelegramClient $telegram,
+    ) {
     }
 
     /** @param array<string, mixed> $args */
@@ -40,6 +42,7 @@ class ToolExecutor
             'gerar_dieta' => $this->gerarDieta($user, $args),
             'buscar_paginas' => $this->buscarPaginas($user, $args),
             'anotar' => $this->anotar($user, $args),
+            'recado' => $this->recado($user, $args),
             default => ['erro' => "Ação desconhecida: $tool"],
         };
     }
@@ -394,7 +397,10 @@ class ToolExecutor
 
     private function anotar(User $user, array $args): array
     {
-        $texto = $args['texto'] ?? '';
+        $texto = trim((string) ($args['texto'] ?? ''));
+        if ($texto === '') {
+            return ['erro' => 'Faltou o texto da anotação — pergunte ao usuário o que anotar.'];
+        }
         if (! empty($args['pagina'])) {
             $page = Page::accessibleBy($user)
                 ->where('kind', 'note')
@@ -412,6 +418,33 @@ class ToolExecutor
         $page->update(['content' => trim(($page->content ?? '')."\n\n[$stamp] $texto")]);
 
         return ['ok' => true, 'pagina' => $page->title];
+    }
+
+    /** Recado de um pro outro: entrega NA HORA no Telegram do parceiro. */
+    private function recado(User $user, array $args): array
+    {
+        $texto = trim((string) ($args['texto'] ?? ''));
+        if ($texto === '') {
+            return ['erro' => 'Faltou o conteúdo do recado — pergunte o que a pessoa quer dizer.'];
+        }
+
+        $partner = User::where('id', '!=', $user->id)
+            ->when(! empty($args['para']), fn ($q) => $q->where('name', 'ilike', '%'.$args['para'].'%'))
+            ->first();
+
+        if (! $partner) {
+            return ['erro' => 'Não encontrei essa pessoa.'];
+        }
+        if (! $partner->telegram_chat_id) {
+            return ['erro' => $partner->name.' ainda não vinculou o Telegram — o recado não pode ser entregue.'];
+        }
+
+        $this->telegram->sendMessage(
+            $partner->telegram_chat_id,
+            "💌 Recado de {$user->name}:\n\n{$texto}",
+        );
+
+        return ['ok' => true, 'para' => $partner->name, 'texto' => $texto];
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────
