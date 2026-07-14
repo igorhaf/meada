@@ -5,12 +5,11 @@
 @section('content')
 <div class="mx-auto max-w-3xl">
     <div class="mb-6 flex items-center justify-between">
-        <h1 class="text-2xl font-extrabold text-neutral-900">Meus eventos</h1>
-        <a href="{{ route('professional.events.create') }}" class="btn-brand">Novo evento</a>
+        <div><h1 class="text-2xl font-extrabold text-neutral-900">Eventos em que atuo</h1><p class="text-sm text-neutral-500">A programação é administrada pela equipe Pindorama.</p></div>
     </div>
 
     @if($events->isEmpty())
-        <div class="card p-10 text-center text-neutral-500">Você ainda não criou eventos (rodas, cursos, certificações).</div>
+        <div class="card p-10 text-center text-neutral-500">Você ainda não está vinculado a eventos.</div>
     @else
         <div class="space-y-3">
             @foreach($events as $event)
@@ -26,7 +25,7 @@
                     </div>
                     <div class="flex items-center gap-3 text-sm">
                         <a href="{{ route('professional.events.registrations', $event) }}" class="font-medium text-brand-700 hover:underline">Inscritos</a>
-                        <a href="{{ route('professional.events.edit', $event) }}" class="font-medium text-brand-700 hover:underline">Editar</a>
+                        <a href="{{ route('events.show', $event) }}" class="font-medium text-neutral-500 hover:underline">Página pública</a>
                     </div>
                 </div>
             @endforeach

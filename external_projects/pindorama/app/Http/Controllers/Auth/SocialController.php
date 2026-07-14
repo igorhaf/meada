@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Socialite\Facades\Socialite;
+use Illuminate\Support\Str;
 
 class SocialController extends Controller
 {
@@ -44,6 +45,7 @@ class SocialController extends Controller
         $user = User::where('email', $email)->first();
 
         if ($user) {
+            if (! $user->is_active) return redirect()->route('login')->withErrors(['email'=>'Esta conta está desativada.']);
             $user->update([
                 'google_id' => $googleUser->getId(),
                 'avatar' => $googleUser->getAvatar(),
@@ -56,6 +58,7 @@ class SocialController extends Controller
                 'google_id' => $googleUser->getId(),
                 'avatar' => $googleUser->getAvatar(),
                 'role' => 'customer',
+                'password' => Str::random(64),
             ]);
         }
 
@@ -65,6 +68,6 @@ class SocialController extends Controller
 
         Auth::login($user, remember: true);
 
-        return redirect()->intended(route('home'));
+        return $user->privacy_accepted_at ? redirect()->intended(route('home')) : redirect()->route('account.consent');
     }
 }

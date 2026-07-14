@@ -27,6 +27,8 @@ RUN apk add --no-cache \
 
 # Composer (for running artisan/composer inside the container)
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+COPY docker/php/start.sh /usr/local/bin/start-pindorama
+RUN chmod +x /usr/local/bin/start-pindorama
 
 # Match host user so bind-mounted files stay writable
 ARG UID=1000
@@ -38,4 +40,4 @@ WORKDIR /var/www/html
 USER app
 
 EXPOSE 9000
-CMD ["php-fpm"]
+CMD ["/usr/local/bin/start-pindorama"]

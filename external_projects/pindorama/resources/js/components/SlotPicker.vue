@@ -12,6 +12,7 @@ const props = defineProps({
     bookingUrl: { type: String, default: '/agendar' },
     csrf: { type: String, default: '' },
     patient: { type: Object, default: () => ({ name: '', email: '' }) },
+    privacyUrl: { type: String, default: '/privacidade' },
 });
 
 const locationId = ref(props.locations.length ? props.locations[0].id : null);
@@ -25,10 +26,11 @@ const email = ref(props.patient.email || '');
 const phone = ref('');
 const notes = ref('');
 const submitting = ref(false);
+const consent = ref(false);
 
 const today = new Date().toISOString().slice(0, 10);
 
-const canSubmit = computed(() => locationId.value && date.value && time.value && name.value.trim());
+const canSubmit = computed(() => locationId.value && date.value && time.value && name.value.trim() && consent.value);
 
 watch([locationId, date], fetchSlots);
 onMounted(() => { if (props.locations.length === 1) fetchSlots(); });
@@ -72,6 +74,7 @@ function submit() {
         patient_email: email.value,
         patient_phone: phone.value,
         notes: notes.value,
+        health_data_consent: consent.value ? '1' : '',
     };
     for (const [k, v] of Object.entries(fields)) {
         const input = document.createElement('input');
@@ -126,6 +129,7 @@ function submit() {
                 <input v-model="name" placeholder="Seu nome" class="w-full rounded-xl border border-neutral-300 px-3 py-2 text-sm" />
                 <input v-model="phone" placeholder="Telefone / WhatsApp" class="w-full rounded-xl border border-neutral-300 px-3 py-2 text-sm" />
                 <textarea v-model="notes" rows="2" placeholder="Motivo / observações (opcional)" class="w-full rounded-xl border border-neutral-300 px-3 py-2 text-sm"></textarea>
+                <label class="flex items-start gap-2 text-xs text-neutral-600"><input v-model="consent" type="checkbox" class="mt-0.5"><span>Autorizo o tratamento dos dados informados para realizar o atendimento, conforme a <a :href="privacyUrl" class="text-brand-700 underline">política de privacidade</a>.</span></label>
                 <p v-if="requiresPrepayment" class="text-xs text-neutral-500">💳 Pagamento antecipado para confirmar o horário.</p>
             </div>
 

@@ -29,6 +29,7 @@
             <div class="flex justify-between py-3 text-sm"><dt class="text-neutral-500">Pagamento</dt><dd class="font-medium text-neutral-800">{{ $appointment->payment_status_label }}</dd></div>
         </dl>
         <div class="flex flex-wrap gap-3 border-t border-neutral-100 p-6">
+            @if($pass=$appointment->accessPasses->first())<a href="{{ URL::temporarySignedRoute('passes.show',now()->addYear(),['pass'=>$pass]) }}" class="btn-brand">Ver passaporte</a>@endif
             @if(! $appointment->isPaid() && $appointment->status === 'pending' && $appointment->service?->requires_prepayment)
                 <a href="{{ route('payment.show', $appointment) }}" class="btn-brand">Pagar agora</a>
             @endif
@@ -39,6 +40,7 @@
                 </form>
             @endif
         </div>
+        @if(in_array($appointment->status,['pending','confirmed']))<form method="POST" action="{{ route('appointments.reschedule',$appointment) }}" class="grid gap-3 border-t p-6 sm:grid-cols-3">@csrf<input type="date" name="date" required class="rounded-xl border px-3 py-2 text-sm"><input type="time" name="time" required class="rounded-xl border px-3 py-2 text-sm"><button class="btn-outline">Reagendar</button></form>@endif
     </div>
 </div>
 @endsection

@@ -347,9 +347,9 @@ services:
     working_dir: /var/www/html
     volumes:
       - ./external_projects/pindorama:/var/www/html
-    # self-heal: instala vendor se faltar (deploy novo), depois php-fpm. Assets (Vite) são
-    # buildados à parte (persistem no bind mount).
-    command: sh -c "[ -f vendor/autoload.php ] || composer install --no-dev --optimize-autoloader --no-interaction; php-fpm"
+    # self-heal: instala vendor se faltar (deploy novo), depois inicia FPM e o scheduler
+    # do Pindorama. Assets (Vite) são buildados à parte (persistem no bind mount).
+    command: sh -c "[ -f vendor/autoload.php ] || composer install --no-dev --optimize-autoloader --no-interaction; exec /usr/local/bin/start-pindorama"
     depends_on:
       pindorama-postgres:
         condition: service_healthy

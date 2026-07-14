@@ -3,13 +3,8 @@
 @section('title', $user->display_name)
 @section('description', $user->headline ?: ('Agende uma sessão com ' . $user->display_name . ' na Pindorama.'))
 
-@php
-    $primary = $user->brand_primary ?: '#3b7a57';
-    $secondary = $user->brand_secondary ?: '#1f513a';
-@endphp
-
 @section('content')
-<div style="--brand: {{ $primary }}; --brand-2: {{ $secondary }}">
+<div style="--brand: #b0552c; --brand-2: #173c34">
     {{-- Banner --}}
     <div class="relative h-48 w-full sm:h-60 md:h-72"
          style="background: @if($user->banner_url) center/cover no-repeat url('{{ $user->banner_url }}') @else linear-gradient(120deg, var(--brand), var(--brand-2)) @endif;">
@@ -81,6 +76,10 @@
                         </div>
                     @endif
                 </section>
+
+                @if($events->isNotEmpty())
+                <section><h2 class="mb-4 text-lg font-bold text-neutral-900">Próximos eventos e cursos</h2><div class="grid gap-4 sm:grid-cols-2">@foreach($events as $event)<a href="{{ $event->url }}" class="card overflow-hidden hover:border-brand-300"><img src="{{ $event->cover_url }}" class="aspect-[3/1] w-full object-cover" alt=""><div class="p-4"><p class="font-bold">{{ $event->title }}</p><p class="mt-1 text-sm text-neutral-500">{{ $event->starts_at->setTimezone($event->timezone)->format('d/m/Y H:i') }}</p></div></a>@endforeach</div></section>
+                @endif
             </div>
 
             {{-- Sidebar: agenda + locais --}}
@@ -107,6 +106,9 @@
                             @endforeach
                         </ul>
                     </div>
+                @endif
+                @if(collect([$user->instagram_url,$user->facebook_url,$user->youtube_url,$user->website_url])->filter()->isNotEmpty())
+                    <div class="card p-5"><h3 class="mb-3 text-sm font-bold uppercase tracking-wide text-neutral-500">Redes e site</h3><div class="flex flex-wrap gap-2">@foreach(['instagram_url'=>'Instagram','facebook_url'=>'Facebook','youtube_url'=>'YouTube','website_url'=>'Site'] as $field=>$label)@if($user->{$field})<a href="{{ $user->{$field} }}" target="_blank" rel="noopener" class="chip bg-neutral-100 text-neutral-700 hover:bg-brand-50">{{ $label }} ↗</a>@endif @endforeach</div></div>
                 @endif
             </aside>
         </div>

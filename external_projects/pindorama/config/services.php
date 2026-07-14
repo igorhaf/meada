@@ -55,6 +55,7 @@ return [
         'access_token' => env('MP_ACCESS_TOKEN'),
         'public_key' => env('MP_PUBLIC_KEY'),
         'webhook_secret' => env('MP_WEBHOOK_SECRET'),
+        'webhook_tolerance' => (int) env('MP_WEBHOOK_TOLERANCE', 300),
         // Base pública para back_urls/webhook (use um túnel tipo ngrok em dev).
         'base_url' => env('MP_BACK_URL_BASE', env('APP_URL')),
     ],

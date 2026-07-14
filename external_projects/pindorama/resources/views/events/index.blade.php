@@ -18,7 +18,7 @@
                         <span class="chip bg-brand-50 text-brand-700">{{ $event->type_label }}</span>
                         <h2 class="mt-2 font-bold text-neutral-900">{{ $event->title }}</h2>
                         <p class="mt-1 text-sm text-neutral-500">🗓️ {{ $event->starts_at->setTimezone($event->timezone)->format('d/m/Y H:i') }}</p>
-                        <p class="text-sm text-neutral-500">{{ $event->professional?->display_name }}</p>
+                        <p class="text-sm text-neutral-500">{{ $event->instructors->pluck('display_name')->join(', ') }}</p>
                         <div class="mt-3 flex items-center justify-between">
                             <span class="font-extrabold text-neutral-900">{{ $event->is_free ? 'Gratuito' : money($event->price) }}</span>
                             @if($event->capacity > 0)<span class="text-xs text-neutral-400">{{ max(0, $event->capacity - $event->taken) }} vagas</span>@endif

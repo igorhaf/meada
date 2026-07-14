@@ -18,7 +18,7 @@ use Illuminate\Notifications\Notifiable;
     'phone', 'whatsapp', 'avatar_path', 'banner_path', 'brand_primary', 'brand_secondary',
     'timezone', 'registration_council', 'is_verified',
     'billing_monthly_fee', 'billing_discount_percent', 'billing_free', 'billing_active', 'billing_day',
-    'google_id', 'avatar',
+    'google_id', 'avatar', 'instagram_url', 'facebook_url', 'youtube_url', 'website_url', 'is_active', 'terms_accepted_at', 'privacy_accepted_at',
 ])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
@@ -37,6 +37,9 @@ class User extends Authenticatable
             'billing_discount_percent' => 'decimal:2',
             'billing_free' => 'boolean',
             'billing_active' => 'boolean',
+            'is_active' => 'boolean',
+            'terms_accepted_at' => 'datetime',
+            'privacy_accepted_at' => 'datetime',
         ];
     }
 
@@ -94,6 +97,29 @@ class User extends Authenticatable
     public function events(): HasMany
     {
         return $this->hasMany(Event::class, 'professional_id');
+    }
+
+    /** Events this professional teaches or facilitates. */
+    public function instructedEvents(): BelongsToMany
+    {
+        return $this->belongsToMany(Event::class, 'event_professional', 'professional_id', 'event_id')
+            ->withPivot(['role', 'can_view_financials', 'can_manage_attendance', 'revenue_percentage', 'position'])
+            ->withTimestamps();
+    }
+
+    public function eventSessions(): BelongsToMany
+    {
+        return $this->belongsToMany(EventSession::class, 'event_session_professional', 'professional_id', 'event_session_id');
+    }
+
+    public function transactions(): HasMany
+    {
+        return $this->hasMany(Transaction::class, 'professional_id');
+    }
+
+    public function eventRegistrations(): HasMany
+    {
+        return $this->hasMany(EventRegistration::class, 'customer_id');
     }
 
     /* ------------------------------------------------------------------- Roles */

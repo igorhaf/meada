@@ -7,6 +7,7 @@ use App\Exceptions\SlotUnavailableException;
 use App\Models\AttendanceLocation;
 use App\Models\Service;
 use App\Services\BookingService;
+use App\Services\NotificationService;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -45,7 +46,7 @@ class BookingController extends Controller
     }
 
     /** Create the appointment (auth). Server recomputes price; conflict-checked. */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, NotificationService $notifications): RedirectResponse
     {
         $data = $request->validate([
             'service_id' => ['required', 'integer'],
@@ -56,6 +57,7 @@ class BookingController extends Controller
             'patient_email' => ['nullable', 'email', 'max:255'],
             'patient_phone' => ['nullable', 'string', 'max:40'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            'health_data_consent' => ['accepted'],
         ]);
 
         $service = Service::active()->findOrFail($data['service_id']);
@@ -71,12 +73,14 @@ class BookingController extends Controller
                 'email' => $data['patient_email'] ?? null,
                 'phone' => $data['patient_phone'] ?? null,
                 'notes' => $data['notes'] ?? null,
+                'consent' => true,
             ], $request->user());
         } catch (OutsideHoursException $e) {
             return back()->withInput()->with('error', $e->getMessage());
         } catch (SlotUnavailableException $e) {
             return back()->withInput()->with('error', $e->getMessage());
         }
+        $notifications->appointmentCreated($appointment);
 
         // Pagamento (P8): se requires_prepayment e MP ligado → Brick; senão nasce pending
         // aguardando aceite do terapeuta. Por ora, segue para o agendamento.

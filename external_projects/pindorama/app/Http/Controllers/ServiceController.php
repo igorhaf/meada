@@ -9,7 +9,8 @@ class ServiceController extends Controller
 {
     public function show(Service $service): View
     {
-        abort_unless($service->is_active || auth()->user()?->isRoot(), 404);
+        $service->loadMissing('professional');
+        abort_unless(($service->is_active && $service->professional?->is_active) || auth()->user()?->isRoot(), 404);
 
         $service->load(['images', 'category', 'professional']);
         $service->incrementQuietly('views');

@@ -33,7 +33,7 @@ class LoginController extends Controller
             ]);
         }
 
-        if (! Auth::attempt($credentials, $request->boolean('remember'))) {
+        if (! Auth::attempt($credentials + ['is_active' => true], $request->boolean('remember'))) {
             RateLimiter::hit($key, 60);
 
             throw ValidationException::withMessages([

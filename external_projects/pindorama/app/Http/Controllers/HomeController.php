@@ -34,7 +34,7 @@ class HomeController extends Controller
         // Terapeutas em destaque. A coluna is_verified pode ainda não existir
         // (migração de store_* -> professional_* é fase posterior): cai para
         // apenas is_professional quando ausente.
-        $professionalsQuery = User::where('is_professional', true);
+        $professionalsQuery = User::where('is_professional', true)->where('is_active', true);
         if (Schema::hasColumn('users', 'is_verified')) {
             $professionalsQuery->where('is_verified', true);
         }

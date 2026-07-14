@@ -23,7 +23,6 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'role' => \App\Http\Middleware\EnsureUserHasRole::class,
-            'professionals' => \App\Http\Middleware\EnsureProfessionalsEnabled::class,
         ]);
 
         // Webhooks externos (Mercado Pago) não enviam token CSRF.

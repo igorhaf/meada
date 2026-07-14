@@ -58,15 +58,7 @@
         </div>
 
         <div class="card grid gap-4 p-6 sm:grid-cols-2">
-            <h2 class="col-span-full font-bold text-neutral-800">Marca & imagens</h2>
-            <div>
-                <label class="mb-1 block text-sm font-medium text-neutral-700">Cor primária</label>
-                <input type="color" name="brand_primary" value="{{ old('brand_primary', $user->brand_primary ?: '#3b7a57') }}" class="h-11 w-full rounded-xl border border-neutral-300">
-            </div>
-            <div>
-                <label class="mb-1 block text-sm font-medium text-neutral-700">Cor secundária</label>
-                <input type="color" name="brand_secondary" value="{{ old('brand_secondary', $user->brand_secondary ?: '#1f513a') }}" class="h-11 w-full rounded-xl border border-neutral-300">
-            </div>
+            <h2 class="col-span-full font-bold text-neutral-800">Imagens</h2>
             <div>
                 <label class="mb-1 block text-sm font-medium text-neutral-700">Foto (avatar)</label>
                 <input type="file" name="avatar" accept="image/*" class="{{ $input }}">
@@ -77,6 +69,13 @@
                 <input type="file" name="banner" accept="image/*" class="{{ $input }}">
                 @if($user->banner_url)<p class="mt-1 text-xs text-neutral-500">Enviado ✓</p>@endif
             </div>
+        </div>
+
+        <div class="card grid gap-4 p-6 sm:grid-cols-2">
+            <h2 class="col-span-full font-bold text-neutral-800">Redes sociais</h2>
+            @foreach(['instagram_url'=>'Instagram','facebook_url'=>'Facebook','youtube_url'=>'YouTube','website_url'=>'Site pessoal'] as $field=>$label)
+                <div><label class="mb-1 block text-sm font-medium text-neutral-700">{{ $label }}</label><input type="url" name="{{ $field }}" value="{{ old($field,$user->{$field}) }}" placeholder="https://" class="{{ $input }}"></div>
+            @endforeach
         </div>
 
         <div class="card p-6">

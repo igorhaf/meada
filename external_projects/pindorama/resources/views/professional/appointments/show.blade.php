@@ -43,6 +43,7 @@
                 <form method="POST" action="{{ route('professional.appointments.complete', $appointment) }}">@csrf<button class="rounded-xl bg-neutral-700 px-4 py-2 font-semibold text-white hover:bg-neutral-800">Concluir</button></form>
             @endif
             @if(in_array($appointment->status, ['pending', 'confirmed']))
+                <form method="POST" action="{{ route('professional.appointments.no-show', $appointment) }}">@csrf<button class="btn-outline">Registrar falta</button></form>
                 <form method="POST" action="{{ route('professional.appointments.cancel', $appointment) }}" onsubmit="return confirm('Cancelar este agendamento?')">@csrf<button class="btn-outline text-red-600">Cancelar</button></form>
             @endif
         </div>

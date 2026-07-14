@@ -17,6 +17,7 @@ class Appointment extends Model
         'payment_status', 'payment_method', 'mp_payment_id', 'paid_at', 'total',
         'commission_amount', 'professional_amount',
         'confirmed_at', 'completed_at', 'cancelled_at', 'cancelled_by',
+        'health_data_consent', 'consent_at', 'reminded_at',
     ];
 
     protected $casts = [
@@ -28,6 +29,9 @@ class Appointment extends Model
         'cancelled_at' => 'datetime',
         'service_price' => 'decimal:2',
         'total' => 'decimal:2',
+        'health_data_consent' => 'boolean',
+        'consent_at' => 'datetime',
+        'reminded_at' => 'datetime',
     ];
 
     /** Fulfillment states. pending = aguardando aceite do terapeuta. */
@@ -73,6 +77,16 @@ class Appointment extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'customer_id');
+    }
+
+    public function transactions(): \Illuminate\Database\Eloquent\Relations\MorphMany
+    {
+        return $this->morphMany(Transaction::class, 'payable');
+    }
+
+    public function accessPasses(): \Illuminate\Database\Eloquent\Relations\MorphMany
+    {
+        return $this->morphMany(AccessPass::class, 'passable');
     }
 
     /* ------------------------------------------------------------------- Scopes */

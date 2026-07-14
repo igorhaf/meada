@@ -12,10 +12,12 @@ use RuntimeException;
 
 class EventService
 {
+    public function __construct(private AccessPassService $passes, private NotificationService $notifications) {}
+
     /**
      * Inscreve um participante num evento com controle de vagas TRANSACIONAL.
      *
-     * @param  array{name:string,email?:string|null,phone?:string|null}  $participant
+     * @param  array{name:string,email?:string|null,phone?:string|null,consent?:bool}  $participant
      *
      * @throws EventFullException  quando não há vagas (409 sold_out)
      * @throws RuntimeException     quando o participante já está inscrito
@@ -24,7 +26,7 @@ class EventService
     {
         abort_unless($event->status === 'published', 404);
 
-        return DB::transaction(function () use ($event, $participant, $customer) {
+        $registration = DB::transaction(function () use ($event, $participant, $customer) {
             if (DB::getDriverName() === 'pgsql') {
                 DB::statement("SELECT pg_advisory_xact_lock(hashtext('event:' || ?))", [$event->id]);
             }
@@ -59,8 +61,14 @@ class EventService
                 'payment_status' => $free ? 'approved' : 'pending',
                 'payment_method' => $free ? 'gratuito' : null,
                 'paid_at' => $free ? now() : null,
+                'consent_at' => ($participant['consent'] ?? false) ? now() : null,
             ]);
         });
+
+        if ($registration->isPaid()) $this->passes->issue($registration);
+        $this->notifications->eventRegistered($registration);
+
+        return $registration;
     }
 
     /** @return array{0:float,1:float} [amount, discount] */

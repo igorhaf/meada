@@ -7,6 +7,7 @@
 @php($start = $event->starts_at->setTimezone($event->timezone))
 <div class="container-site max-w-xl py-10">
     @if(session('status'))<div class="mb-4 rounded-xl bg-brand-50 px-4 py-3 text-sm font-medium text-brand-800">{{ session('status') }}</div>@endif
+    @if(session('error'))<div class="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{{ session('error') }}</div>@endif
 
     <div class="card overflow-hidden">
         <div class="bg-brand-700 p-6 text-white">
@@ -26,6 +27,8 @@
                 </form>
             </div>
         @endunless
+        @if($pass=$registration->accessPasses()->first())<div class="border-t p-6"><a href="{{ URL::temporarySignedRoute('passes.show',now()->addYear(),['pass'=>$pass]) }}" class="btn-brand block text-center">Ver passaporte / QR</a></div>@endif
+        @if(!in_array($registration->status,['cancelled','attended']))<div class="border-t p-6"><form method="POST" action="{{ route('events.registration.cancel',$registration) }}" onsubmit="return confirm('Cancelar esta inscrição? Pagamentos do Mercado Pago serão estornados quando possível.')">@csrf<button class="btn-outline w-full text-red-600">Cancelar inscrição</button></form></div>@endif
     </div>
 </div>
 @endsection

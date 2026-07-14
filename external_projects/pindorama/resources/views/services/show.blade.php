@@ -78,6 +78,7 @@
                         'loginUrl' => route('login'),
                         'slotsUrl' => route('booking.slots'),
                         'bookingUrl' => route('booking.store'),
+                        'privacyUrl' => route('pages.privacy'),
                         'csrf' => csrf_token(),
                         'patient' => [
                             'name' => auth()->user()->name ?? '',

@@ -116,14 +116,14 @@
                 </label>
             @empty
                 <p class="text-xs text-neutral-500">Você ainda não tem locais.
-                    <a href="{{ route('professional.locations.create') }}" class="font-medium text-brand-700 hover:underline">Cadastrar um local</a> para receber agendamentos.
+                    <a href="{{ $locationCreateRoute ?? route('professional.locations.create') }}" class="font-medium text-brand-700 hover:underline">Cadastrar um local</a> para receber agendamentos.
                 </p>
             @endforelse
         </div>
 
         <div class="flex gap-2">
             <button type="submit" class="btn-brand flex-1">{{ $submitLabel }}</button>
-            <a href="{{ route('professional.services.index') }}" class="btn-outline">Cancelar</a>
+            <a href="{{ $cancelRoute ?? route('professional.services.index') }}" class="btn-outline">Cancelar</a>
         </div>
     </div>
 </form>

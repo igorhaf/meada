@@ -3,8 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Appointment;
-use App\Services\CommissionService;
+use App\Models\EventRegistration;
 use App\Services\MercadoPagoService;
+use App\Services\TransactionService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -12,7 +13,7 @@ use Illuminate\Http\Request;
 
 class PaymentController extends Controller
 {
-    public function __construct(private CommissionService $commission) {}
+    public function __construct(private TransactionService $transactions) {}
 
     /** Página de pagamento (Checkout Transparente — Payment Brick do MP). */
     public function show(Appointment $appointment, MercadoPagoService $mp): View|RedirectResponse
@@ -24,11 +25,12 @@ class PaymentController extends Controller
         }
 
         if (! $mp->enabled()) {
-            $appointment->markSimulatedPaid();
-            $this->settle($appointment);
+            $this->transactions->apply($appointment, 'approved', null, 'simulado');
 
             return redirect()->route('appointments.show', $appointment)->with('status', 'Pagamento simulado aprovado (MP desligado).');
         }
+
+        $this->transactions->prepareAttempt($appointment);
 
         return view('payment.show', ['appointment' => $appointment, 'publicKey' => $mp->publicKey()]);
     }
@@ -43,7 +45,8 @@ class PaymentController extends Controller
         }
 
         try {
-            $payment = $mp->createPayment($appointment, $request->all());
+            $transaction = $this->transactions->for($appointment);
+            $payment = $mp->createPayment($appointment, $request->all(), $transaction->idempotency_key);
         } catch (\Throwable $e) {
             report($e);
 
@@ -51,8 +54,7 @@ class PaymentController extends Controller
         }
 
         $status = (string) ($payment['status'] ?? 'rejected');
-        $appointment->applyPaymentStatus($status, (string) ($payment['id'] ?? ''));
-        $this->settle($appointment);
+        $this->transactions->apply($appointment, $status, (string) ($payment['id'] ?? ''), data_get($payment, 'payment_method_id'));
 
         $pix = data_get($payment, 'point_of_interaction.transaction_data');
 
@@ -76,12 +78,12 @@ class PaymentController extends Controller
         }
 
         if (! $mp->enabled()) {
-            $appointment->markSimulatedPaid();
-            $this->settle($appointment);
+            $this->transactions->apply($appointment, 'approved', null, 'simulado');
 
             return redirect()->route('appointments.show', $appointment)->with('status', 'Pagamento simulado aprovado (MP desligado).');
         }
 
+        $this->transactions->prepareAttempt($appointment);
         return redirect()->route('payment.show', $appointment);
     }
 
@@ -91,30 +93,23 @@ class PaymentController extends Controller
      */
     public function webhook(Request $request, MercadoPagoService $mp): JsonResponse
     {
+        if (! $mp->validateWebhook($request)) return response()->json(['error' => 'invalid_signature'], 401);
         $type = $request->input('type', $request->query('topic'));
-        $paymentId = $request->input('data.id', $request->query('id') ?: $request->query('data.id'));
+        $paymentId = $mp->webhookDataId($request) ?: $request->query('id');
 
-        if (($type === 'payment' || $type === 'merchant_order') && $paymentId) {
+        if ($type === 'payment' && $paymentId) {
             $payment = $mp->getPayment((string) $paymentId);
 
             if ($payment && ($reference = $payment['external_reference'] ?? null)) {
-                $appointment = Appointment::where('reference', $reference)->first();
-                if ($appointment) {
-                    $appointment->applyPaymentStatus((string) $payment['status'], (string) $payment['id']);
-                    $this->settle($appointment);
+                $payable = Appointment::where('reference', $reference)->first()
+                    ?: EventRegistration::where('reference', $reference)->first();
+                if ($payable) {
+                    $this->transactions->apply($payable, (string) $payment['status'], (string) $payment['id'], data_get($payment, 'payment_method_id'));
                 }
             }
         }
 
         return response()->json(['received' => true]);
-    }
-
-    /** Grava o split da plataforma (comissão/aluguel) uma vez, quando pago. */
-    private function settle(Appointment $appointment): void
-    {
-        if ($appointment->isPaid() && $appointment->commission_amount === null) {
-            $this->commission->apply($appointment);
-        }
     }
 
     private function authorizeOwner(Appointment $appointment): void

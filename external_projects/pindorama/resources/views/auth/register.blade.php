@@ -5,7 +5,7 @@
 @section('content')
     <div class="rounded-3xl border border-neutral-200 bg-white p-8 shadow-sm">
         <h1 class="text-2xl font-extrabold text-neutral-900">Criar conta</h1>
-        <p class="mt-1 text-sm text-neutral-500">Junte-se à moda circular.</p>
+        <p class="mt-1 text-sm text-neutral-500">Crie sua conta para agendar terapias e participar de eventos.</p>
 
         @if ($errors->any())
             <div class="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -42,21 +42,7 @@
                 </div>
             </div>
 
-            @if(config('pindorama.professionals_enabled'))
-                <div class="rounded-xl bg-brand-50 p-4">
-                    <label class="flex items-start gap-2 text-sm text-neutral-700">
-                        <input type="checkbox" name="become_professional" value="1" id="become_professional" {{ old('become_professional') ? 'checked' : '' }}
-                            class="mt-0.5 rounded border-neutral-300 text-brand-600 focus:ring-brand-500">
-                        <span><strong>Quero ser terapeuta</strong> — crie sua página e receba agendamentos.</span>
-                    </label>
-                    <div id="store_field" class="mt-3 {{ old('become_professional') ? '' : 'hidden' }}">
-                        <label class="mb-1 block text-sm font-medium text-neutral-700">Seu nome público / consultório</label>
-                        <input type="text" name="professional_name" value="{{ old('professional_name') }}"
-                            class="w-full rounded-xl border border-neutral-300 px-4 py-2.5 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
-                            placeholder="Ex.: Espaço Zen · Ana Prado">
-                    </div>
-                </div>
-            @endif
+            <label class="flex items-start gap-2 text-sm text-neutral-600"><input type="checkbox" name="accept_terms" value="1" required class="mt-1"><span>Li e aceito os <a href="{{ route('pages.terms') }}" class="text-brand-700 underline">termos de uso</a> e a <a href="{{ route('pages.privacy') }}" class="text-brand-700 underline">política de privacidade</a>.</span></label>
 
             <button type="submit" class="btn-brand w-full">Criar conta</button>
         </form>
@@ -67,9 +53,4 @@
         </p>
     </div>
 
-    <script>
-        document.getElementById('become_professional')?.addEventListener('change', function () {
-            document.getElementById('store_field').classList.toggle('hidden', !this.checked);
-        });
-    </script>
 @endsection

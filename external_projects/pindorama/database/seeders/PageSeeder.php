@@ -26,6 +26,11 @@ class PageSeeder extends Seeder
                     . "terapeuta — em caso de dúvida, fale diretamente com o profissional.",
             ],
             [
+                'slug' => 'termos',
+                'title' => 'Termos de uso',
+                'body' => "Ao usar o Pindorama, você concorda em fornecer dados verdadeiros e respeitar as regras de agendamento, pagamento, cancelamento e participação informadas em cada serviço ou evento.\n\nOs profissionais são responsáveis pelo conteúdo técnico de seus atendimentos. A plataforma administra divulgação, agenda e pagamentos conforme as condições apresentadas no checkout.",
+            ],
+            [
                 'slug' => 'privacidade',
                 'title' => 'Privacidade',
                 'body' => "Levamos sua privacidade a sério. Seus dados são usados apenas para viabilizar os "

@@ -72,9 +72,6 @@
                 <li><a href="#" class="text-forest-300 hover:text-gold-300">Como funciona</a></li>
                 <li><a href="{{ route('professionals.index') }}" class="text-forest-300 hover:text-gold-300">Terapeutas</a></li>
                 <li><a href="{{ route('events.index') }}" class="text-forest-300 hover:text-gold-300">Eventos</a></li>
-                @if(config('pindorama.professionals_enabled'))
-                    <li><a href="{{ route('onboarding.create') }}" class="text-forest-300 hover:text-gold-300">Seja um terapeuta</a></li>
-                @endif
             </ul>
         </div>
 
@@ -84,6 +81,7 @@
                 <li><a href="{{ route('pages.help') }}" class="text-forest-300 hover:text-gold-300">Central de ajuda</a></li>
                 <li><a href="{{ route('pages.returns') }}" class="text-forest-300 hover:text-gold-300">Trocas e devoluções</a></li>
                 <li><a href="{{ route('pages.privacy') }}" class="text-forest-300 hover:text-gold-300">Privacidade</a></li>
+                <li><a href="{{ route('pages.terms') }}" class="text-forest-300 hover:text-gold-300">Termos de uso</a></li>
                 <li><a href="{{ route('contact.show') }}" class="text-forest-300 hover:text-gold-300">Contato</a></li>
                 @if($settings->contact_email)
                     <li><a href="mailto:{{ $settings->contact_email }}" class="text-forest-300 hover:text-gold-300">{{ $settings->contact_email }}</a></li>

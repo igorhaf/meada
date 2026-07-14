@@ -40,22 +40,26 @@
                 @php($tab = fn ($pattern) => request()->routeIs($pattern) ? 'border-white text-white' : 'border-transparent text-white/70 hover:text-white')
                 <a href="{{ route('professional.dashboard') }}" class="whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium {{ $tab('professional.dashboard') }}">Visão geral</a>
                 <a href="{{ route('professional.agenda') }}" class="whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium {{ $tab('professional.agenda*') }}">Agenda</a>
+                <a href="{{ route('professional.passes.lookup.form') }}" class="whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium {{ $tab('professional.passes.*') }}">Check-in</a>
                 <a href="{{ route('professional.services.index') }}" class="whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium {{ $tab('professional.services.*') }}">Meus serviços</a>
                 <a href="{{ route('professional.locations.index') }}" class="whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium {{ $tab('professional.locations.*') }}">Locais</a>
                 <a href="{{ route('professional.availability.edit') }}" class="whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium {{ $tab('professional.availability.*') }}">Disponibilidade</a>
                 <a href="{{ route('professional.profile.edit') }}" class="whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium {{ $tab('professional.profile.*') }}">Meu perfil</a>
                 <a href="{{ route('professional.events.index') }}" class="whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium {{ $tab('professional.events.*') }}">Eventos</a>
                 <a href="{{ route('professional.charges.index') }}" class="whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium {{ $tab('professional.charges.*') }}">Cobranças</a>
+                <a href="{{ route('professional.finance.index') }}" class="whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium {{ $tab('professional.finance.*') }}">Financeiro</a>
 
                 @if($user->isRoot())
                     <span class="mx-2 h-5 w-px bg-white/20"></span>
                     <span class="whitespace-nowrap py-3 text-xs font-bold uppercase tracking-wide text-gold-300">Admin</span>
                     <a href="{{ route('admin.dashboard') }}" class="whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium {{ $tab('admin.dashboard') }}">Site</a>
+                    <a href="{{ route('admin.calendar') }}" class="whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium {{ $tab('admin.calendar') }}">Calendário global</a>
                     <a href="{{ route('admin.settings.edit') }}" class="whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium {{ $tab('admin.settings.*') }}">Configurações</a>
                     <a href="{{ route('admin.banners.index') }}" class="whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium {{ $tab('admin.banners.*') }}">Banners</a>
                     <a href="{{ route('admin.featured') }}" class="whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium {{ $tab('admin.featured') }}">Destaques</a>
                     <a href="{{ route('admin.practices.index') }}" class="whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium {{ $tab('admin.practices.*') }}">Práticas</a>
                     <a href="{{ route('admin.professionals.index') }}" class="whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium {{ $tab('admin.professionals.*') }}">Terapeutas</a>
+                    <a href="{{ route('admin.events.index') }}" class="whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium {{ $tab('admin.events.*') }}">Eventos</a>
                     <a href="{{ route('admin.rooms.index') }}" class="whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium {{ $tab('admin.rooms.*') }}">Salas</a>
                     <a href="{{ route('admin.commission.index') }}" class="whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium {{ $tab('admin.commission.*') }}">Comissão</a>
                     <a href="{{ route('admin.pages.index') }}" class="whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium {{ $tab('admin.pages.*') }}">Páginas</a>

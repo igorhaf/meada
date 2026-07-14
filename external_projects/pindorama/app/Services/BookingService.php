@@ -9,6 +9,7 @@ use App\Models\AttendanceLocation;
 use App\Models\AvailabilityBlock;
 use App\Models\Service;
 use App\Models\User;
+use App\Models\EventSession;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
@@ -73,7 +74,7 @@ class BookingService
     /**
      * Create an appointment (transactional, conflict-checked). Born `pending`.
      *
-     * @param  array{name:string,email?:string|null,phone?:string|null,notes?:string|null}  $patient
+     * @param  array{name:string,email?:string|null,phone?:string|null,notes?:string|null,consent?:bool}  $patient
      *
      * @throws OutsideHoursException  when outside the location's working hours (422)
      * @throws SlotUnavailableException  when the slot conflicts on the agenda (409)
@@ -102,10 +103,11 @@ class BookingService
             // Serializa a AGENDA INTEIRA do profissional (cobre a corrida de phantom-insert).
             if (DB::getDriverName() === 'pgsql') {
                 DB::statement("SELECT pg_advisory_xact_lock(hashtext('appt:' || ?))", [$professional->id]);
+                if ($location->room_id) DB::statement("SELECT pg_advisory_xact_lock(hashtext('room:' || ?))", [$location->room_id]);
             }
 
             // Re-verifica conflito por PROFISSIONAL (sem filtro de local) — meia-aberta.
-            if ($this->hasConflict($professional, $start, $end)) {
+            if ($this->hasConflict($professional, $location, $start, $end)) {
                 throw new SlotUnavailableException;
             }
 
@@ -129,6 +131,8 @@ class BookingService
                 'status' => 'pending',
                 'meeting_link' => null,
                 'notes' => $patient['notes'] ?? null,
+                'health_data_consent' => (bool) ($patient['consent'] ?? false),
+                'consent_at' => ($patient['consent'] ?? false) ? now() : null,
                 'payment_status' => 'pending',
                 'total' => $service->price,
             ]);
@@ -160,6 +164,27 @@ class BookingService
         if (in_array($appointment->status, ['pending', 'confirmed'], true)) {
             $appointment->update(['status' => 'cancelled', 'cancelled_at' => now(), 'cancelled_by' => $by]);
         }
+    }
+
+    public function noShow(Appointment $appointment): void
+    {
+        if (in_array($appointment->status, ['pending', 'confirmed'], true)) {
+            $appointment->update(['status' => 'no_show', 'completed_at' => now()]);
+        }
+    }
+
+    public function reschedule(Appointment $appointment, CarbonInterface $newStart): void
+    {
+        $appointment->loadMissing('professional', 'service', 'location');
+        abort_unless(in_array($appointment->status, ['pending', 'confirmed'], true), 422, 'Este agendamento não pode ser reagendado.');
+        $start = CarbonImmutable::parse($newStart)->setTimezone($this->tz($appointment->professional));
+        $end = $start->addMinutes($appointment->duration_minutes);
+        if ($start->isPast() || ! $this->isWithinHours($appointment->professional, $appointment->location, $start, $end)) throw new OutsideHoursException;
+        DB::transaction(function () use ($appointment, $start, $end) {
+            if (DB::getDriverName() === 'pgsql') DB::statement("SELECT pg_advisory_xact_lock(hashtext('appt:' || ?))", [$appointment->professional_id]);
+            if ($this->hasConflict($appointment->professional, $appointment->location, $start, $end, $appointment->id)) throw new SlotUnavailableException;
+            $appointment->update(['start_at' => $start, 'end_at' => $end, 'status' => $appointment->isPaid() ? 'confirmed' : 'pending', 'confirmed_at' => $appointment->isPaid() ? ($appointment->confirmed_at ?: now()) : null]);
+        });
     }
 
     /* --------------------------------------------------------------- internals */
@@ -217,6 +242,10 @@ class BookingService
             $intervals[] = [CarbonImmutable::parse($a->start_at), CarbonImmutable::parse($a->end_at)];
         }
 
+        $sessions = EventSession::whereHas('professionals', fn ($q) => $q->whereKey($professional->id))
+            ->where('status', '!=', 'cancelled')->where('starts_at', '<', $dayEnd->utc())->where('ends_at', '>', $dayStart->utc())->get();
+        foreach ($sessions as $session) $intervals[] = [CarbonImmutable::parse($session->starts_at), CarbonImmutable::parse($session->ends_at)];
+
         return $intervals;
     }
 
@@ -258,13 +287,25 @@ class BookingService
         return ! $blocked;
     }
 
-    private function hasConflict(User $professional, CarbonInterface $start, CarbonInterface $end): bool
+    private function hasConflict(User $professional, AttendanceLocation $location, CarbonInterface $start, CarbonInterface $end, ?int $ignoreAppointmentId = null): bool
     {
         // NOT (end_at <= start OR start_at >= end)  ≡  (start_at < end AND end_at > start)
-        return Appointment::where('professional_id', $professional->id)
+        $appointmentConflict = Appointment::where('professional_id', $professional->id)
+            ->when($ignoreAppointmentId, fn ($q) => $q->whereKeyNot($ignoreAppointmentId))
             ->whereIn('status', Appointment::BLOCKING_STATUSES)
             ->where('start_at', '<', CarbonImmutable::parse($end)->utc())
             ->where('end_at', '>', CarbonImmutable::parse($start)->utc())
+            ->exists();
+        if ($appointmentConflict) return true;
+
+        if ($location->room_id && Appointment::blocking()->when($ignoreAppointmentId, fn ($q) => $q->whereKeyNot($ignoreAppointmentId))->whereHas('location', fn ($q) => $q->where('room_id', $location->room_id))->where('start_at', '<', CarbonImmutable::parse($end)->utc())->where('end_at', '>', CarbonImmutable::parse($start)->utc())->exists()) return true;
+
+        if ($location->room_id && EventSession::where('room_id', $location->room_id)->where('status', '!=', 'cancelled')->where('starts_at', '<', CarbonImmutable::parse($end)->utc())->where('ends_at', '>', CarbonImmutable::parse($start)->utc())->exists()) return true;
+
+        return EventSession::whereHas('professionals', fn ($q) => $q->whereKey($professional->id))
+            ->where('status', '!=', 'cancelled')
+            ->where('starts_at', '<', CarbonImmutable::parse($end)->utc())
+            ->where('ends_at', '>', CarbonImmutable::parse($start)->utc())
             ->exists();
     }
 

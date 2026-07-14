@@ -26,6 +26,7 @@ class ProfessionalDirectoryController extends Controller
 
         $professionals = User::query()
             ->where('is_professional', true)
+            ->where('is_active', true)
             ->whereHas('services', fn ($q) => $q->active())
             ->when($city, fn ($q, $c) => $q->whereHas(
                 'services',

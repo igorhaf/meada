@@ -71,6 +71,7 @@ class SearchController extends Controller
 
         $professionals = User::query()
             ->where('is_professional', true)
+            ->where('is_active', true)
             ->where(function (Builder $q) use ($like, $nameCol) {
                 $q->where('name', 'ilike', $like)
                     ->orWhere($nameCol, 'ilike', $like);

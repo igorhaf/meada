@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Event extends Model
 {
@@ -14,6 +15,7 @@ class Event extends Model
         'professional_id', 'title', 'slug', 'description', 'type', 'modality', 'location_label',
         'starts_at', 'ends_at', 'timezone', 'capacity', 'price', 'is_free', 'allow_discount',
         'discount_percent', 'cover_path', 'status', 'reminder_hours', 'reminded_at',
+        'created_by', 'room_id', 'house_percentage',
     ];
 
     protected $casts = [
@@ -24,6 +26,7 @@ class Event extends Model
         'discount_percent' => 'decimal:2',
         'is_free' => 'boolean',
         'allow_discount' => 'boolean',
+        'house_percentage' => 'decimal:2',
     ];
 
     public const TYPES = [
@@ -42,6 +45,34 @@ class Event extends Model
     public function registrations(): HasMany
     {
         return $this->hasMany(EventRegistration::class);
+    }
+
+    public function instructors(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'event_professional', 'event_id', 'professional_id')
+            ->withPivot(['role', 'can_view_financials', 'can_manage_attendance', 'revenue_percentage', 'position'])
+            ->withTimestamps()
+            ->orderByPivot('position');
+    }
+
+    public function sessions(): HasMany
+    {
+        return $this->hasMany(EventSession::class)->orderBy('starts_at');
+    }
+
+    public function room(): BelongsTo
+    {
+        return $this->belongsTo(Room::class);
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function transactions(): \Illuminate\Database\Eloquent\Relations\MorphMany
+    {
+        return $this->morphMany(Transaction::class, 'payable');
     }
 
     /** Inscrições que ocupam vaga (não canceladas). */

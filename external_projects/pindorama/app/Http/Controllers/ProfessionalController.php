@@ -11,12 +11,13 @@ class ProfessionalController extends Controller
     /** Public therapist landing page: /terapeuta/{slug}. */
     public function show(User $user): View
     {
-        abort_unless($user->is_professional, 404);
+        abort_unless($user->is_professional && $user->is_active, 404);
 
         $user->load('specialties');
 
         $services = $user->services()->active()->with('images')
             ->orderByDesc('is_featured')->orderByDesc('bookings_count')->get();
+        $events = $user->instructedEvents()->published()->upcoming()->with('instructors')->orderBy('starts_at')->get();
 
         // Locais de atendimento chegam na P5 — guardamos enquanto a tabela não existe.
         $locations = collect();
@@ -24,6 +25,6 @@ class ProfessionalController extends Controller
             $locations = $user->attendanceLocations()->where('is_active', true)->orderBy('position')->get();
         }
 
-        return view('professionals.show', compact('user', 'services', 'locations'));
+        return view('professionals.show', compact('user', 'services', 'locations', 'events'));
     }
 }

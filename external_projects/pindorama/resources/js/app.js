@@ -1,4 +1,5 @@
 import { createApp } from 'vue';
+import QRCode from 'qrcode';
 
 import HeroCarousel from './components/HeroCarousel.vue';
 import SearchBar from './components/SearchBar.vue';
@@ -27,4 +28,8 @@ document.querySelectorAll('[data-island]').forEach((el) => {
     }
 
     createApp(Component, props).mount(el);
+});
+
+document.querySelectorAll('canvas[data-qr]').forEach((canvas) => {
+    QRCode.toCanvas(canvas, canvas.dataset.qr, { width: 224, margin: 1, color: { dark: '#173c34', light: '#ffffff' } });
 });

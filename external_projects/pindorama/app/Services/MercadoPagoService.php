@@ -3,8 +3,10 @@
 namespace App\Services;
 
 use App\Models\Appointment;
+use App\Models\EventRegistration;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Illuminate\Http\Request;
 
 /**
  * Thin wrapper around the Mercado Pago REST API (Checkout Transparente / Payment
@@ -43,6 +45,40 @@ class MercadoPagoService
         return $this->isSandbox() ? 'Teste (sandbox)' : 'Produção';
     }
 
+    public function validateWebhook(Request $request): bool
+    {
+        $secret = (string) config('services.mercadopago.webhook_secret');
+        if ($secret === '') return ! $this->enabled();
+
+        $parts = [];
+        foreach (explode(',', (string) $request->header('x-signature')) as $part) {
+            [$key, $value] = array_pad(explode('=', trim($part), 2), 2, null);
+            if ($key && $value) $parts[$key] = $value;
+        }
+        $ts = $parts['ts'] ?? null; $signature = $parts['v1'] ?? null;
+        if (! $ts || ! $signature) return false;
+
+        $timestamp = (int) $ts;
+        if ($timestamp > 9999999999) $timestamp = (int) floor($timestamp / 1000);
+        if (abs(now()->timestamp - $timestamp) > (int) config('services.mercadopago.webhook_tolerance', 300)) return false;
+
+        $dataId = $this->webhookDataId($request);
+        if (is_string($dataId) && ! ctype_digit($dataId)) $dataId = strtolower($dataId);
+        $manifest = '';
+        if (filled($dataId)) $manifest .= 'id:'.$dataId.';';
+        if ($requestId = $request->header('x-request-id')) $manifest .= 'request-id:'.$requestId.';';
+        $manifest .= 'ts:'.$ts.';';
+
+        return hash_equals(hash_hmac('sha256', $manifest, $secret), $signature);
+    }
+
+    public function webhookDataId(Request $request): ?string
+    {
+        $raw = (string) $request->server('QUERY_STRING');
+        if (preg_match('/(?:^|&)data\.id=([^&]*)/', $raw, $match)) return urldecode($match[1]);
+        return $request->query('data.id') ?: $request->query('data_id') ?: $request->input('data.id');
+    }
+
     private function baseUrl(): string
     {
         return rtrim((string) (config('services.mercadopago.base_url') ?: config('app.url')), '/');
@@ -62,16 +98,20 @@ class MercadoPagoService
      * @param  array<string,mixed>  $data
      * @return array<string,mixed>
      */
-    public function createPayment(Appointment $appointment, array $data): array
+    public function createPayment(Appointment|EventRegistration $payable, array $data, string $idempotencyKey): array
     {
         $base = $this->baseUrl();
+        $amount = $payable instanceof Appointment ? (float) $payable->total : (float) $payable->amount;
+        $kind = $payable instanceof Appointment ? 'Agendamento' : 'Inscrição';
+        $email = $payable instanceof Appointment ? $payable->patient_email : $payable->participant_email;
 
         $payload = array_merge($data, [
-            'transaction_amount' => (float) $appointment->total,
-            'description' => 'Agendamento ' . $appointment->reference,
-            'external_reference' => $appointment->reference,
+            'transaction_amount' => $amount,
+            'description' => $kind . ' ' . $payable->reference,
+            'external_reference' => $payable->reference,
             'statement_descriptor' => 'PINDORAMA',
-            'metadata' => ['appointment_id' => $appointment->id],
+            'metadata' => [$payable instanceof Appointment ? 'appointment_id' : 'event_registration_id' => $payable->id],
+            'payer' => array_merge((array) ($data['payer'] ?? []), ['email' => $email]),
         ]);
 
         if ($this->hasPublicBase()) {
@@ -80,7 +120,7 @@ class MercadoPagoService
 
         $response = Http::withToken($this->token())
             ->acceptJson()
-            ->withHeaders(['X-Idempotency-Key' => $appointment->reference . '-' . Str::random(8)])
+            ->withHeaders(['X-Idempotency-Key' => $idempotencyKey])
             ->post(self::API . '/v1/payments', $payload);
 
         $response->throw();
@@ -100,5 +140,16 @@ class MercadoPagoService
             ->get(self::API . "/v1/payments/{$paymentId}");
 
         return $response->successful() ? $response->json() : null;
+    }
+
+    /** @return array<string,mixed> */
+    public function refund(string $paymentId, string $idempotencyKey): array
+    {
+        $response = Http::withToken($this->token())->acceptJson()
+            ->withHeaders(['X-Idempotency-Key' => $idempotencyKey])
+            ->post(self::API . "/v1/payments/{$paymentId}/refunds");
+        $response->throw();
+
+        return $response->json();
     }
 }

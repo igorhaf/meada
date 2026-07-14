@@ -17,6 +17,8 @@ use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\ServiceCategoryController;
 use App\Http\Controllers\ServiceController;
+use App\Http\Controllers\AccessPassController;
+use App\Http\Controllers\ProfessionalInviteController;
 use Illuminate\Support\Facades\Route;
 
 /* ------------------------------------------------------------- Storefront */
@@ -41,6 +43,7 @@ Route::get('/evento/{event:slug}', [App\Http\Controllers\EventController::class,
 Route::get('/central-de-ajuda', [PageController::class, 'show'])->defaults('slug', 'central-de-ajuda')->name('pages.help');
 Route::get('/trocas-e-devolucoes', [PageController::class, 'show'])->defaults('slug', 'trocas-e-devolucoes')->name('pages.returns');
 Route::get('/privacidade', [PageController::class, 'show'])->defaults('slug', 'privacidade')->name('pages.privacy');
+Route::get('/termos', [PageController::class, 'show'])->defaults('slug', 'termos')->name('pages.terms');
 Route::get('/contato', [ContactController::class, 'show'])->name('contact.show');
 Route::post('/contato', [ContactController::class, 'store'])->name('contact.store');
 
@@ -49,6 +52,11 @@ Route::get('/ph', [PlaceholderController::class, 'show'])->name('placeholder');
 
 // Mercado Pago server-to-server webhook (público, isento de CSRF em bootstrap/app.php).
 Route::post('/webhooks/mercadopago', [PaymentController::class, 'webhook'])->name('mp.webhook');
+Route::get('/convite-profissional/{token}', [ProfessionalInviteController::class, 'show'])->name('professional-invites.show');
+Route::post('/convite-profissional/{token}', [ProfessionalInviteController::class, 'accept'])->name('professional-invites.accept');
+Route::get('/convite-cliente/{token}', [\App\Http\Controllers\CustomerInviteController::class, 'show'])->name('customer-invites.show');
+Route::post('/convite-cliente/{token}', [\App\Http\Controllers\CustomerInviteController::class, 'accept'])->name('customer-invites.accept');
+Route::get('/passaporte/{pass}', [AccessPassController::class, 'show'])->name('passes.show');
 
 /* ------------------------------------------------------------------ Auth */
 Route::middleware('guest')->group(function () {
@@ -75,20 +83,25 @@ Route::middleware('auth')->group(function () {
     Route::get('/meus-agendamentos/{appointment}', [AppointmentController::class, 'show'])->name('appointments.show');
     Route::post('/meus-agendamentos/{appointment}/pagar', [PaymentController::class, 'retry'])->name('appointments.retry');
     Route::post('/meus-agendamentos/{appointment}/cancelar', [AppointmentController::class, 'cancel'])->name('appointments.cancel');
-
-    Route::middleware('professionals')->group(function () {
-        Route::get('/seja-terapeuta', [Professional\OnboardingController::class, 'create'])->name('onboarding.create');
-        Route::post('/seja-terapeuta', [Professional\OnboardingController::class, 'store'])->name('onboarding.store');
-    });
+    Route::post('/meus-agendamentos/{appointment}/reagendar', [AppointmentController::class, 'reschedule'])->name('appointments.reschedule');
 
     // Inscrição em evento + pagamento da inscrição
     Route::post('/evento/{event:slug}/inscrever', [App\Http\Controllers\EventController::class, 'register'])->name('events.register');
+    Route::get('/minhas-inscricoes', [App\Http\Controllers\EventController::class, 'myRegistrations'])->name('events.registrations.index');
     Route::get('/minhas-inscricoes/{registration}', [App\Http\Controllers\EventController::class, 'registration'])->name('events.registration');
     Route::post('/minhas-inscricoes/{registration}/pagar', [App\Http\Controllers\EventController::class, 'pay'])->name('events.registration.pay');
+    Route::post('/minhas-inscricoes/{registration}/pagamento', [App\Http\Controllers\EventController::class, 'processPayment'])->name('events.registration.process');
+    Route::post('/minhas-inscricoes/{registration}/cancelar', [App\Http\Controllers\EventController::class, 'cancel'])->name('events.registration.cancel');
+    Route::post('/passaporte/{pass}/check-in', [AccessPassController::class, 'checkIn'])->name('passes.check-in');
+    Route::get('/minha-conta/privacidade', [\App\Http\Controllers\AccountPrivacyController::class, 'show'])->name('account.privacy');
+    Route::get('/minha-conta/privacidade/exportar', [\App\Http\Controllers\AccountPrivacyController::class, 'export'])->name('account.privacy.export');
+    Route::delete('/minha-conta/privacidade', [\App\Http\Controllers\AccountPrivacyController::class, 'destroy'])->name('account.privacy.destroy');
+    Route::get('/minha-conta/consentimento', [\App\Http\Controllers\AccountPrivacyController::class, 'consentForm'])->name('account.consent');
+    Route::post('/minha-conta/consentimento', [\App\Http\Controllers\AccountPrivacyController::class, 'consent'])->name('account.consent.store');
 });
 
 /* --------------------------------------------- Painel do terapeuta (tenant) */
-Route::middleware(['auth', 'role:professional', 'professionals'])->prefix('painel')->name('professional.')->group(function () {
+Route::middleware(['auth', 'role:professional'])->prefix('painel')->name('professional.')->group(function () {
     Route::get('/', [Professional\DashboardController::class, 'index'])->name('dashboard');
 
     // Serviços (catálogo do tenant)
@@ -116,11 +129,18 @@ Route::middleware(['auth', 'role:professional', 'professionals'])->prefix('paine
 
     // Agenda (P9)
     Route::get('/agenda', [Professional\AgendaController::class, 'index'])->name('agenda');
+    Route::get('/agendar-cliente', [\App\Http\Controllers\StaffBookingController::class, 'create'])->name('bookings.create');
+    Route::post('/agendar-cliente', [\App\Http\Controllers\StaffBookingController::class, 'store'])->name('bookings.store');
+    Route::get('/clientes/novo', [\App\Http\Controllers\StaffCustomerController::class, 'create'])->name('customers.create');
+    Route::post('/clientes', [\App\Http\Controllers\StaffCustomerController::class, 'store'])->name('customers.store');
+    Route::get('/check-in', [AccessPassController::class, 'lookupForm'])->name('passes.lookup.form');
+    Route::post('/check-in', [AccessPassController::class, 'lookup'])->name('passes.lookup');
     Route::get('/api/agenda/eventos', [Professional\AgendaController::class, 'events'])->name('agenda.events');
     Route::get('/agendamentos/{appointment}', [Professional\AppointmentController::class, 'show'])->name('appointments.show');
     Route::post('/agendamentos/{appointment}/confirmar', [Professional\AppointmentController::class, 'confirm'])->name('appointments.confirm');
     Route::post('/agendamentos/{appointment}/concluir', [Professional\AppointmentController::class, 'complete'])->name('appointments.complete');
     Route::post('/agendamentos/{appointment}/cancelar', [Professional\AppointmentController::class, 'cancel'])->name('appointments.cancel');
+    Route::post('/agendamentos/{appointment}/falta', [Professional\AppointmentController::class, 'noShow'])->name('appointments.no-show');
 
     // Perfil público / branding (P4)
     Route::get('/perfil', [Professional\ProfileController::class, 'edit'])->name('profile.edit');
@@ -128,21 +148,25 @@ Route::middleware(['auth', 'role:professional', 'professionals'])->prefix('paine
 
     // Minhas cobranças da plataforma (Epic B)
     Route::get('/cobrancas', [Professional\ChargeController::class, 'index'])->name('charges.index');
+    Route::get('/financeiro', [Professional\FinanceController::class, 'index'])->name('finance.index');
     Route::post('/cobrancas/{charge}/pagar', [Professional\ChargeController::class, 'pay'])->name('charges.pay');
 
     // Eventos do terapeuta (Epic C)
     Route::get('/eventos', [Professional\EventController::class, 'index'])->name('events.index');
-    Route::get('/eventos/novo', [Professional\EventController::class, 'create'])->name('events.create');
-    Route::post('/eventos', [Professional\EventController::class, 'store'])->name('events.store');
-    Route::get('/eventos/{event}/editar', [Professional\EventController::class, 'edit'])->name('events.edit');
-    Route::put('/eventos/{event}', [Professional\EventController::class, 'update'])->name('events.update');
-    Route::delete('/eventos/{event}', [Professional\EventController::class, 'destroy'])->name('events.destroy');
     Route::get('/eventos/{event}/inscritos', [Professional\EventController::class, 'registrations'])->name('events.registrations');
+    Route::post('/eventos/{event}/inscritos', [Professional\EventController::class, 'addRegistration'])->name('events.registrations.store');
 });
 
 /* --------------------------------------------------- Root admin (site-wide) */
 Route::middleware(['auth', 'role:root'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [Admin\DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/calendario', [Admin\CalendarController::class, 'index'])->name('calendar');
+    Route::get('/agendar-cliente', [\App\Http\Controllers\StaffBookingController::class, 'create'])->name('bookings.create');
+    Route::post('/agendar-cliente', [\App\Http\Controllers\StaffBookingController::class, 'store'])->name('bookings.store');
+    Route::get('/clientes/novo', [\App\Http\Controllers\StaffCustomerController::class, 'create'])->name('customers.create');
+    Route::post('/clientes', [\App\Http\Controllers\StaffCustomerController::class, 'store'])->name('customers.store');
+    Route::get('/check-in', [AccessPassController::class, 'lookupForm'])->name('passes.lookup.form');
+    Route::post('/check-in', [AccessPassController::class, 'lookup'])->name('passes.lookup');
 
     Route::get('/config', [Admin\SettingsController::class, 'edit'])->name('settings.edit');
     Route::put('/config', [Admin\SettingsController::class, 'update'])->name('settings.update');
@@ -167,12 +191,41 @@ Route::middleware(['auth', 'role:root'])->prefix('admin')->name('admin.')->group
 
     // Terapeutas (verificação + cobrança/Epic B)
     Route::get('/terapeutas', [Admin\ProfessionalController::class, 'index'])->name('professionals.index');
+    Route::get('/terapeutas/novo', [Admin\ProfessionalController::class, 'create'])->name('professionals.create');
+    Route::post('/terapeutas', [Admin\ProfessionalController::class, 'store'])->name('professionals.store');
     Route::get('/terapeutas/{user}', [Admin\ProfessionalController::class, 'show'])->name('professionals.show');
+    Route::get('/terapeutas/{user}/editar', [Admin\ProfessionalController::class, 'edit'])->name('professionals.edit');
+    Route::put('/terapeutas/{user}', [Admin\ProfessionalController::class, 'update'])->name('professionals.update');
+    Route::post('/terapeutas/{user}/status', [Admin\ProfessionalController::class, 'toggleActive'])->name('professionals.active');
+    Route::post('/terapeutas/{user}/convite', [Admin\ProfessionalController::class, 'resendInvite'])->name('professionals.invite');
+    Route::get('/terapeutas/{professional}/servicos/novo', [Admin\ProfessionalWorkspaceController::class, 'createService'])->name('professionals.services.create');
+    Route::post('/terapeutas/{professional}/servicos', [Admin\ProfessionalWorkspaceController::class, 'storeService'])->name('professionals.services.store');
+    Route::get('/terapeutas/{professional}/servicos/{service}/editar', [Admin\ProfessionalWorkspaceController::class, 'editService'])->name('professionals.services.edit');
+    Route::put('/terapeutas/{professional}/servicos/{service}', [Admin\ProfessionalWorkspaceController::class, 'updateService'])->name('professionals.services.update');
+    Route::delete('/terapeutas/{professional}/servicos/{service}', [Admin\ProfessionalWorkspaceController::class, 'deleteService'])->name('professionals.services.destroy');
+    Route::get('/terapeutas/{professional}/locais/novo', [Admin\ProfessionalWorkspaceController::class, 'createLocation'])->name('professionals.locations.create');
+    Route::post('/terapeutas/{professional}/locais', [Admin\ProfessionalWorkspaceController::class, 'storeLocation'])->name('professionals.locations.store');
+    Route::get('/terapeutas/{professional}/locais/{location}/editar', [Admin\ProfessionalWorkspaceController::class, 'editLocation'])->name('professionals.locations.edit');
+    Route::put('/terapeutas/{professional}/locais/{location}', [Admin\ProfessionalWorkspaceController::class, 'updateLocation'])->name('professionals.locations.update');
+    Route::delete('/terapeutas/{professional}/locais/{location}', [Admin\ProfessionalWorkspaceController::class, 'deleteLocation'])->name('professionals.locations.destroy');
+    Route::get('/terapeutas/{professional}/disponibilidade', [Admin\ProfessionalWorkspaceController::class, 'availability'])->name('professionals.availability');
+    Route::put('/terapeutas/{professional}/disponibilidade', [Admin\ProfessionalWorkspaceController::class, 'updateAvailability'])->name('professionals.availability.update');
+    Route::post('/terapeutas/{professional}/bloqueios', [Admin\ProfessionalWorkspaceController::class, 'storeBlock'])->name('professionals.blocks.store');
+    Route::delete('/terapeutas/{professional}/bloqueios/{block}', [Admin\ProfessionalWorkspaceController::class, 'deleteBlock'])->name('professionals.blocks.destroy');
     Route::post('/terapeutas/{user}/verificar', [Admin\ProfessionalController::class, 'toggleVerified'])->name('professionals.verify');
     Route::put('/terapeutas/{user}/cobranca', [Admin\ProfessionalController::class, 'updateBilling'])->name('professionals.billing');
     Route::post('/terapeutas/{user}/cobranca/mensalidade', [Admin\ProfessionalController::class, 'generateMonthly'])->name('professionals.charge.monthly');
     Route::post('/terapeutas/{user}/cobranca', [Admin\ProfessionalController::class, 'createCharge'])->name('professionals.charge.create');
     Route::post('/cobrancas/{charge}/status', [Admin\ProfessionalController::class, 'chargeStatus'])->name('charges.status');
+
+    Route::get('/eventos', [Admin\EventController::class, 'index'])->name('events.index');
+    Route::get('/eventos/novo', [Admin\EventController::class, 'create'])->name('events.create');
+    Route::post('/eventos', [Admin\EventController::class, 'store'])->name('events.store');
+    Route::get('/eventos/{event}/editar', [Admin\EventController::class, 'edit'])->name('events.edit');
+    Route::put('/eventos/{event}', [Admin\EventController::class, 'update'])->name('events.update');
+    Route::delete('/eventos/{event}', [Admin\EventController::class, 'destroy'])->name('events.destroy');
+    Route::get('/eventos/{event}/inscritos', [Admin\EventController::class, 'registrations'])->name('events.registrations');
+    Route::post('/eventos/{event}/inscritos', [Admin\EventController::class, 'addRegistration'])->name('events.registrations.store');
 
     // Salas do espaço Pindorama (Epic A)
     Route::get('/salas', [Admin\RoomController::class, 'index'])->name('rooms.index');
@@ -194,4 +247,8 @@ Route::middleware(['auth', 'role:root'])->prefix('admin')->name('admin.')->group
     Route::delete('/mensagens/{message}', [Admin\MessageController::class, 'destroy'])->name('messages.destroy');
 
     Route::get('/pagamentos', [Admin\PaymentController::class, 'index'])->name('payments');
+    Route::get('/pagamentos/exportar', [Admin\PaymentController::class, 'export'])->name('payments.export');
+    Route::get('/pagamentos/exportar-pdf', [Admin\PaymentController::class, 'pdf'])->name('payments.pdf');
+    Route::post('/repasses', [Admin\PaymentController::class, 'payout'])->name('payouts.store');
+    Route::post('/repasses/{payout}/status', [Admin\PaymentController::class, 'payoutStatus'])->name('payouts.status');
 });

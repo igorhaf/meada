@@ -105,7 +105,7 @@ class DatabaseSeeder extends Seeder
 
         $strip = [
             ['Atendimento online', 'Bem-estar sem sair de casa', 'Buscar sessões', '/busca', '#274a39', '#3f7357', null],
-            ['Seja um terapeuta', 'Atenda no espaço Pindorama ou online', 'Começar agora', '/seja-terapeuta', '#93421f', '#cd8c5e', null],
+            ['Encontre seu terapeuta', 'Conheça profissionais e práticas disponíveis', 'Ver profissionais', '/terapeutas', '#93421f', '#cd8c5e', null],
             ['Eventos abertos', 'Rodas de cura e meditações gratuitas', 'Ver eventos', '/eventos', '#815816', '#d2a63f', null],
         ];
 

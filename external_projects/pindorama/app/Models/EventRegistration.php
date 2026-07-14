@@ -11,6 +11,7 @@ class EventRegistration extends Model
         'reference', 'event_id', 'customer_id', 'participant_name', 'participant_email', 'participant_phone',
         'status', 'amount', 'discount_amount',
         'payment_status', 'payment_method', 'mp_payment_id', 'paid_at', 'reminded',
+        'house_amount', 'professional_amount', 'cancelled_at', 'checked_in_at', 'checked_in_by', 'consent_at',
     ];
 
     protected $casts = [
@@ -18,6 +19,11 @@ class EventRegistration extends Model
         'discount_amount' => 'decimal:2',
         'paid_at' => 'datetime',
         'reminded' => 'boolean',
+        'house_amount' => 'decimal:2',
+        'professional_amount' => 'decimal:2',
+        'cancelled_at' => 'datetime',
+        'checked_in_at' => 'datetime',
+        'consent_at' => 'datetime',
     ];
 
     public const STATUSES = [
@@ -40,6 +46,28 @@ class EventRegistration extends Model
     public function isPaid(): bool
     {
         return in_array($this->payment_status, ['approved', 'authorized'], true);
+    }
+
+    public function transactions(): \Illuminate\Database\Eloquent\Relations\MorphMany
+    {
+        return $this->morphMany(Transaction::class, 'payable');
+    }
+
+    public function accessPasses(): \Illuminate\Database\Eloquent\Relations\MorphMany
+    {
+        return $this->morphMany(AccessPass::class, 'passable');
+    }
+
+    public function applyPaymentStatus(string $status, ?string $paymentId = null, ?string $method = null): void
+    {
+        $this->payment_status = $status;
+        if ($paymentId) $this->mp_payment_id = $paymentId;
+        if ($method) $this->payment_method = $method;
+        if ($this->isPaid()) {
+            $this->paid_at ??= now();
+            if ($this->status === 'registered') $this->status = 'confirmed';
+        }
+        $this->save();
     }
 
     public function getStatusLabelAttribute(): string

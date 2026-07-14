@@ -20,6 +20,8 @@ class EnsureUserHasRole
             return redirect()->route('login');
         }
 
+        abort_unless($user->is_active ?? true, 403, 'Seu acesso está desativado.');
+
         $allowed = match ($role) {
             'root' => $user->isRoot(),
             'professional' => $user->isProfessional(),

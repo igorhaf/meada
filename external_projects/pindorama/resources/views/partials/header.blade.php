@@ -43,12 +43,11 @@
                             <p class="text-sm font-semibold text-neutral-900">{{ $u->name }}</p>
                             <p class="truncate text-xs text-neutral-500">{{ $u->email }}</p>
                         </div>
-                        @php($selling = config('pindorama.professionals_enabled'))
                         <a href="{{ route('appointments.index') }}" class="menu-item">🗓️ Meus agendamentos</a>
-                        @if($u->isProfessional() && ($selling || $u->isRoot()))
+                        <a href="{{ route('events.registrations.index') }}" class="menu-item">🎟️ Minhas inscrições</a>
+                        <a href="{{ route('account.privacy') }}" class="menu-item">🔐 Privacidade da conta</a>
+                        @if($u->isProfessional())
                             <a href="{{ route('professional.dashboard') }}" class="menu-item">🩺 Meu painel</a>
-                        @elseif(! $u->isProfessional() && $selling)
-                            <a href="{{ route('onboarding.create') }}" class="menu-item">✨ Seja um terapeuta</a>
                         @endif
                         @if($u->isRoot())
                             <a href="{{ route('admin.dashboard') }}" class="menu-item font-semibold text-gold-700">⚙️ Administração</a>

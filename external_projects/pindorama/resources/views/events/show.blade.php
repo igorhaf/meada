@@ -15,7 +15,7 @@
             <span class="chip bg-brand-50 text-brand-700">{{ $event->type_label }}</span>
             @if($event->status !== 'published')<span class="chip ml-1 bg-amber-100 text-amber-800">{{ \App\Models\Event::STATUSES[$event->status] }}</span>@endif
             <h1 class="mt-2 text-2xl font-extrabold text-neutral-900">{{ $event->title }}</h1>
-            <p class="mt-1 text-neutral-500">com {{ $event->professional?->display_name }}</p>
+            <p class="mt-1 text-neutral-500">com @foreach($event->instructors as $instructor)<a href="{{ $instructor->professional_url }}" class="font-medium text-brand-700 hover:underline">{{ $instructor->display_name }}</a>{{ !$loop->last ? ', ' : '' }}@endforeach</p>
 
             <dl class="mt-4 grid gap-2 text-sm sm:grid-cols-2">
                 <div><dt class="text-neutral-400">Quando</dt><dd class="font-medium">{{ $start->format('d/m/Y \à\s H:i') }}</dd></div>
@@ -25,6 +25,7 @@
             </dl>
 
             @if($event->description)<p class="mt-5 whitespace-pre-line leading-relaxed text-neutral-600">{{ $event->description }}</p>@endif
+            @if($event->sessions->count()>1)<div class="mt-5 rounded-xl bg-sand-100 p-4"><h2 class="font-bold">Encontros do curso</h2><ul class="mt-2 space-y-2 text-sm">@foreach($event->sessions as $session)<li><strong>{{ $session->title ?: 'Encontro '.$loop->iteration }}</strong> · {{ $session->starts_at->setTimezone($event->timezone)->format('d/m/Y H:i') }}–{{ $session->ends_at->setTimezone($event->timezone)->format('H:i') }} @if($session->room)· {{ $session->room->name }}@endif</li>@endforeach</ul></div>@endif
 
             <div class="mt-6 border-t border-neutral-100 pt-6">
                 @if($event->isFull())
@@ -37,6 +38,7 @@
                         @auth
                             <input name="participant_name" value="{{ auth()->user()->name }}" placeholder="Seu nome" required class="w-full rounded-xl border border-neutral-300 px-4 py-2.5 text-sm">
                             <input name="participant_phone" placeholder="Telefone / WhatsApp" class="w-full rounded-xl border border-neutral-300 px-4 py-2.5 text-sm">
+                            <label class="flex items-start gap-2 text-xs text-neutral-600"><input type="checkbox" name="privacy_consent" value="1" required class="mt-0.5"><span>Autorizo o uso dos dados para esta inscrição conforme a <a href="{{ route('pages.privacy') }}" class="text-brand-700 underline">política de privacidade</a>.</span></label>
                             <button class="btn-brand w-full">{{ $event->is_free ? 'Inscrever-se gratuitamente' : 'Inscrever-se e pagar' }}</button>
                         @else
                             <a href="{{ route('login') }}" class="btn-brand block w-full text-center">Entrar para se inscrever</a>

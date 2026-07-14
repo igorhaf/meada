@@ -1,5 +1,13 @@
 # Pindorama — Especificação do sistema
 
+> **Atualização de 14/07/2026:** a implementação atual foi ampliada para governança exclusiva do
+> root, eventos com múltiplos instrutores e encontros, agenda global, conflitos por profissional e
+> sala, checkout real de eventos, razão financeiro unificado, repasses, passaporte/QR, check-in,
+> notificações e direitos de privacidade. O relatório vigente e validado é
+> [`RELATORIO_ADERENCIA_PRODUTO.md`](../RELATORIO_ADERENCIA_PRODUTO.md). As seções históricas abaixo
+> permanecem como registro da especificação de origem e não devem ser usadas para inferir lacunas no
+> estado atual.
+
 > **Recuperado em 2026-07-10** das sessões próprias do projeto pindorama
 > (`~/.claude/projects/-home-igorhaf-meada-external-projects-pindorama/`), depois que o
 > prompt-mestre e a fila de prompts que definiam o sistema quebraram no meio da execução.
