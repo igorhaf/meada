@@ -5,8 +5,10 @@
 # Nomes de serviço (frontend/backend) resolvem pela rede interna do docker-compose.
 
 {
-	# dev local: sem HTTPS automático (não há certificado pra *.meadadigital.local).
-	auto_https off
+	# dev local: todo site http:// explícito fica em texto plano (sem redirect nem
+	# cert). Para os vhosts https:// (dev.mudabrecho.com.br), local_certs emite
+	# pela CA INTERNA do Caddy — nunca tenta ACME/Let's Encrypt em dev.
+	local_certs
 	# sem o endpoint de admin do Caddy (não precisamos; reduz superfície).
 	admin off
 }
