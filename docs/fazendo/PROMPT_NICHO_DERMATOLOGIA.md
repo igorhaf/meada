@@ -6,7 +6,7 @@
 [TAREFA — SUB-MARATONA: PERFIL DERMATOLOGIA / Dermatologia (camada 8.11)]
 
 [CONTEXTO]
-PROJETO MEADA em /home/igorhaf/meada.
+PROJETO MEADA em /home/meada/meadadigital.
 17+ perfis verticais reais hoje (… comida 8.4, floricultura 8.5, pizzaria em draft) + generic.
 Lê CLAUDE.md, CONTEXT.md e o filesystem no arranque pra cravar convenções, nº de migration,
 contagem do Surefire e numeração de tenant ANTES de escrever qualquer código. NÃO hardcodar a

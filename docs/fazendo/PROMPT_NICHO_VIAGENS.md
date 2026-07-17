@@ -7,7 +7,7 @@
 [TAREFA — SUB-MARATONA: PERFIL VIAGENS / Viagens (Agência de viagens) (camada 8.18)]
 
 [CONTEXTO]
-PROJETO MEADA em /home/igorhaf/meada.
+PROJETO MEADA em /home/meada/meadadigital.
 Monolito multi-tenant que se apresenta como N produtos verticais ("perfis"). Os perfis são
 HARDCODED em dois arquivos espelhados — `src/main/java/com/meada/profiles/ProfileType.java`
 (enum Java) e `frontend/lib/profiles/profile-type.ts` (const TS) — e o `ProfileTypeParityTest` falha

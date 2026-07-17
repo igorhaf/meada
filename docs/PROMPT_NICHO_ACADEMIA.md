@@ -11,7 +11,7 @@ testes — não é um pedido de implementação. Reconstruído a partir das font
 src/main/java/com/meada/profiles/academia/).
 
 [CONTEXTO]
-PROJETO MEADA em /home/igorhaf/meada.
+PROJETO MEADA em /home/meada/meadadigital.
 O tenant academia (`profile_id='academia'`) vira um produto de ACADEMIA / STUDIO de fitness dentro
 do mesmo dashboard Meada. O tenant gerencia planos mensais e aulas semanais recorrentes, matricula
 alunos (assinatura), registra pagamentos manuais; a IA atende clientes via WhatsApp oferecendo

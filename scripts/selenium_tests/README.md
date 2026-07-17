@@ -32,7 +32,7 @@ envs reais do projeto em runtime — nada de segredo commitado aqui.
 ## Rodar
 
 ```bash
-cd /home/igorhaf/meada
+cd /home/meada/meadadigital
 python3 -m pytest scripts/selenium_tests/ -v
 ```
 

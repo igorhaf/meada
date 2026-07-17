@@ -154,21 +154,26 @@ services:
   #   git clone -b homolog git@github.com:igorhaf/muda.git external_projects/mudahomolog
   # e criar o .env de cada uma (não versionado). Sem isso, o build destes serviços falha.
   #
-  # Postgres dedicado por ambiente (desacoplado do Supabase do meada). Sem portas no host:
-  # o acesso é só via Caddy.
+  # Postgres COMPARTILHADO entre os projetos de DEV LOCAL (homolog e prod do muda
+  # continuam no Supabase deles — isso aqui não toca nenhum dos dois). Um único
+  # container, um banco por projeto (ver ./postgres/shared-init). Sem porta no
+  # host: acesso só via rede `meada`.
   # ---------------------------------------------------------------------------
-  muda-postgres:
+  shared-postgres:
     image: postgres:16-alpine
-    container_name: muda-postgres
+    container_name: shared-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${MUDA_DB_DATABASE:-muda}
-      POSTGRES_USER: ${MUDA_DB_USERNAME:-muda}
-      POSTGRES_PASSWORD: ${MUDA_DB_PASSWORD:-muda_secret}
+      POSTGRES_USER: ${SHARED_DB_USERNAME:-shared}
+      POSTGRES_PASSWORD: ${SHARED_DB_PASSWORD:-shared_secret}
+      POSTGRES_DB: postgres
     volumes:
-      - muda-postgres-data:/var/lib/postgresql/data
+      - shared-postgres-data:/var/lib/postgresql/data
+      # Roda só na primeira inicialização (data dir vazio): cria um banco por
+      # projeto de dev local. Pra adicionar outro projeto, é só um novo arquivo aqui.
+      - ./postgres/shared-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${MUDA_DB_USERNAME:-muda} -d ${MUDA_DB_DATABASE:-muda}"]
+      test: ["CMD-SHELL", "pg_isready -U ${SHARED_DB_USERNAME:-shared}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -190,7 +195,7 @@ services:
     # buildados à parte (persistem no bind mount) — ver docs/DEPLOY.md.
     command: sh -c "[ -f vendor/autoload.php ] || composer install --no-dev --optimize-autoloader --no-interaction; php-fpm"
     depends_on:
-      muda-postgres:
+      shared-postgres:
         condition: service_healthy
     networks: [meada]
 
@@ -542,7 +547,7 @@ volumes:
   # maven-cache é só de DEV (mvn spring-boot:run) — declarado no docker-compose.override.yml.
   caddy-data:
   embedding-models:
-  muda-postgres-data:
+  shared-postgres-data:   # postgres compartilhado dos projetos de dev local (muda incluso)
   mudahomolog-postgres-data:   # banco do homolog do muda — isolado do de produção
   semente-postgres-data:
   pindorama-postgres-data:

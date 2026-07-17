@@ -10,7 +10,7 @@ retroativa do prompt de nicho que teria gerado o que existe hoje no código. Tod
 estado REAL no filesystem/banco; nada aqui é especulação.
 
 [CONTEXTO]
-PROJETO MEADA em /home/igorhaf/meada.
+PROJETO MEADA em /home/meada/meadadigital.
 Pousada é o template de nicho pra POUSADA / HOSPEDAGEM PEQUENA dentro do mesmo dashboard Meada.
 O tenant acessa pousada.meadadigital.local e vê o produto "PousadaBot". A IA atende hóspedes via
 WhatsApp com tom acolhedor-turístico: mostra os quartos por número de pessoas e datas, calcula o

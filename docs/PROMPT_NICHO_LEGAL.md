@@ -11,7 +11,7 @@ Este documento descreve o que REALMENTE está no código/banco (migration 31_leg
 Segundo perfil vertical real do projeto (depois do SushiBot, camada 7.1), no mesmo padrão do sushi.
 
 [CONTEXTO]
-PROJETO MEADA em /home/igorhaf/meada.
+PROJETO MEADA em /home/meada/meadadigital.
 O tenant `legal` (`companies.profile_id='legal'`) vira um produto de ESCRITÓRIO DE ADVOCACIA: gerencia
 clientes e processos, registra andamentos manuais, e a IA atende os clientes via WhatsApp consultando
 os processos deles. O tenant acessa pelo subdomínio do perfil e vê o produto "ProcessoBot". A IA

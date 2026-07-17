@@ -11,7 +11,7 @@ que JÁ existe no código, no banco e no frontend, do jeito real. É o 12º perf
 contando generic.
 
 [CONTEXTO]
-PROJETO MEADA em /home/igorhaf/meada. O tenant eventos
+PROJETO MEADA em /home/meada/meadadigital. O tenant eventos
 (`profile_id='eventos'`) vira um produto de CASA DE FESTAS / BUFFET / CERIMONIAL / ESPAÇO DE
 EVENTOS dentro do mesmo dashboard Meada. O tenant acessa eventos.meadadigital.local e vê o produto
 "Eventos". A IA atende clientes via WhatsApp com tom prestativo-consultivo de organizador de festa:

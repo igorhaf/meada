@@ -1,5 +1,0 @@
-@extends('layouts.dashboard')
-@section('title','Novo cliente')
-@section('content')
-<div class="mx-auto max-w-md"><h1 class="text-2xl font-extrabold">Cadastrar cliente/aluno</h1><p class="mt-1 text-sm text-neutral-500">O cliente receberá um convite para definir a senha.</p>@if(session('invite_url'))<div class="mt-4 rounded-xl bg-amber-50 p-3 text-sm"><p class="font-bold">Link do convite</p><input readonly value="{{ session('invite_url') }}" class="mt-1 w-full rounded border px-2 py-2 text-xs"></div>@endif<form method="POST" action="{{ $root?route('admin.customers.store'):route('professional.customers.store') }}" class="card mt-5 space-y-4 p-6">@csrf<input name="name" placeholder="Nome completo" required class="w-full rounded-xl border px-4 py-2.5"><input type="email" name="email" placeholder="E-mail" required class="w-full rounded-xl border px-4 py-2.5"><input name="phone" placeholder="Telefone / WhatsApp" class="w-full rounded-xl border px-4 py-2.5"><button class="btn-brand w-full">Criar e enviar convite</button></form></div>
-@endsection

@@ -11,7 +11,7 @@ vertical real e PRIMEIRA sub-maratona da camada 8.x. Migration `39_nutri.sql`. T
 `src/main/java/com/meada/profiles/nutri/`.
 
 [CONTEXTO]
-PROJETO MEADA em /home/igorhaf/meada.
+PROJETO MEADA em /home/meada/meadadigital.
 O tenant nutri (`profile_id='nutri'`) vira um produto de CONSULTÓRIO DE NUTRIÇÃO: gerencia
 nutricionistas, pacientes e os planos alimentares, e a IA atende pacientes via WhatsApp com tom
 acolhedor e profissional — AGENDA consultas e ENTREGA o plano alimentar que o nutricionista gravou.

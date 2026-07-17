@@ -46,7 +46,7 @@ gerada" como dizia um comentário antigo de migration).
 
 ## Convenção de leitura
 
-- Caminhos de arquivo são relativos à raiz do repo (`/home/igorhaf/meada/`).
+- Caminhos de arquivo são relativos à raiz do repo (`/home/meada/meadadigital/`).
 - "Tenant" = empresa cliente. "Contato" = cliente final que fala via WhatsApp. "Root/super-admin" = operador da plataforma Meada.
 - "Escapada estrutural" = a característica que diferencia um nicho do chassi que ele clona.
 - "Tag" = marcação em texto livre que a IA emite (`<pedido>`, `<consulta_nutri>`, ...) e o backend parseia/remove antes de enviar ao cliente.

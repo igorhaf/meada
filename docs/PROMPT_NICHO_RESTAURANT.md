@@ -13,7 +13,7 @@ está em CLAUDE.md, na migration 32_restaurant.sql, em docs/PERFIL_MESABOT.md e 
 `src/main/java/com/meada/profiles/restaurant/`.
 
 [CONTEXTO]
-PROJETO MEADA em /home/igorhaf/meada.
+PROJETO MEADA em /home/meada/meadadigital.
 Monolito que se apresenta como N produtos verticais ("perfis"). Tenant restaurant acessa o produto
 "Restaurante" (subdomínio `mesa`, paleta `tijolo`) e vê o produto de RESERVAS DE MESA. A IA atende
 clientes em linguagem natural via WhatsApp: conhece as mesas disponíveis e as reservas já marcadas

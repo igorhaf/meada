@@ -8,7 +8,7 @@
 [TAREFA — SUB-MARATONA: PERFIL SUPLEMENTOS / Suplementos (Loja de saúde) (camada 8.24)]
 
 [CONTEXTO]
-PROJETO MEADA em /home/igorhaf/meada.
+PROJETO MEADA em /home/meada/meadadigital.
 Monolito multi-tenant que se apresenta como N produtos verticais ("perfis"). Cada tenant tem
 EXATAMENTE 1 perfil (companies.profile_id, NOT NULL, CHECK). Perfis são HARDCODED em dois arquivos
 espelhados — enum Java `ProfileType.java` + const TS `frontend/lib/profiles/profile-type.ts` — e o

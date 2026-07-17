@@ -6,7 +6,7 @@
 [TAREFA — SUB-MARATONA: PERFIL LINGERIE / Lingerie (Moda íntima) (camada 8.21)]
 
 [CONTEXTO]
-PROJETO MEADA em /home/igorhaf/meada.
+PROJETO MEADA em /home/meada/meadadigital.
 Vários perfis verticais reais hoje (… comida 8.4, floricultura 8.5, pizzaria 8.6, e a fila de nichos
 em sequência) + generic. Lê CONTEXT.md e o filesystem no arranque pra cravar convenções, nº de
 migration, contagem do Surefire e numeração de tenant ANTES de escrever qualquer código. NÃO

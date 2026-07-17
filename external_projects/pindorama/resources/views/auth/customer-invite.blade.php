@@ -1,5 +1,0 @@
-@extends('layouts.auth')
-@section('title','Ativar acesso')
-@section('content')
-<div class="mx-auto max-w-md"><h1 class="text-2xl font-extrabold">Olá, {{ $invite->customer->name }}</h1><p class="mt-1 text-sm text-neutral-500">Defina sua senha para acompanhar agendamentos, inscrições e passaportes.</p><form method="POST" action="{{ route('customer-invites.accept',$token) }}" class="mt-5 space-y-4">@csrf<input type="password" name="password" placeholder="Senha" required class="w-full rounded-xl border px-4 py-3"><input type="password" name="password_confirmation" placeholder="Confirmar senha" required class="w-full rounded-xl border px-4 py-3"><label class="flex items-start gap-2 text-xs"><input type="checkbox" name="accept_terms" value="1" required class="mt-0.5"><span>Li e aceito os <a class="underline" href="{{ route('pages.terms') }}" target="_blank">termos de uso</a> e a <a class="underline" href="{{ route('pages.privacy') }}" target="_blank">política de privacidade</a>.</span></label><button class="btn-brand w-full">Ativar acesso</button></form></div>
-@endsection
