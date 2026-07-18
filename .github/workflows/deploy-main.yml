@@ -1,0 +1,40 @@
+# Deploy do meadadigital (host de infra) — branch main → ~/meadadigital
+# (usuário meada, autenticação por CHAVE — a era login/senha acabou).
+#
+# git reset + compose -f docker-compose.yml (base = modo PROD, sem o override de dev)
+# --profile demo: rebuilda tudo que mudou. Os projetos externos NÃO são tocados aqui —
+# cada um tem seu próprio workflow no seu repo; external_projects/ são symlinks para
+# ~/<projeto>/web/<branch>, fora do alcance deste git reset.
+
+name: Deploy (meadadigital · main)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-meadadigital-main
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH (chave)
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_SSH_HOST }}
+          username: ${{ secrets.SERVER_SSH_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          command_timeout: 30m
+          script: |
+            set -e
+            cd "$HOME/meadadigital"
+            echo "== git fetch + reset --hard origin/main =="
+            git fetch origin main
+            git reset --hard origin/main
+            echo "== docker compose up -d --build (base + profile demo, sem override de dev) =="
+            docker compose -f docker-compose.yml --profile demo up -d --build
+            echo "== Status =="
+            docker compose -f docker-compose.yml --profile demo ps
