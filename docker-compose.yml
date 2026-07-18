@@ -106,7 +106,9 @@ services:
 
   embeddings:
     build:
-      context: ./docker/embedding-sidecar
+      # Sidecar de embeddings vive no shared (serviço compartilhado, repo igorhaf/shared),
+      # clonado ao lado deste repo: ~/shared/python — mesmo layout local e no servidor.
+      context: ../shared/python
     container_name: meada-embeddings
     restart: unless-stopped
     ports:
