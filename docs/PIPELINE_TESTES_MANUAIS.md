@@ -23,7 +23,7 @@ de qualquer teste fazer sentido.
 | 0.7 | `frontend/.env.local` preenchido | `cp frontend/.env.example frontend/.env.local` | **atenção ao IP do WSL** (abaixo) |
 | 0.8 | Usuários de teste no Supabase Auth | painel Auth ou seeds | super-admin na allowlist SEM linha em `public.users`; tenant-admin COM linha |
 | 0.9 | Google Chrome (para a suíte Selenium) | `google-chrome --version` | Selenium Manager resolve o driver |
-| 0.10 | Evolution local (SÓ para fluxo WhatsApp) | `cd evolution-local && docker compose up -d` | API `:8086` |
+| 0.10 | Evolution local (SÓ para fluxo WhatsApp) | `cd ~/shared/evolution-local && docker compose up -d` | API `:8086` |
 
 **⚠️ IP do WSL e o cookie de auth:** o `NEXT_PUBLIC_SUPABASE_URL` do frontend usa
 o IP do WSL (ex.: `http://172.27.153.135:54321`) para alinhar o nome do cookie

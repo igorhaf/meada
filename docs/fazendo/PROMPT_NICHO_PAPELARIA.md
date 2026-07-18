@@ -325,7 +325,7 @@ mvn final = relatar contagem REAL do Surefire (Tests run: N), NUNCA grep @Test.
 - NÃO mexer em outros perfis nem em system-template.txt. Webhook OFF.
 - Cache de catálogo TTL 60s + invalidação em toda mutação do catálogo.
 - 529 → inline. Gate 3× → pausar. Working tree sujo → pausar. git add EXPLÍCITO (nunca git add .);
-  .env/.env.local/CONTEXT.md/evolution-local/.env/secrets NUNCA staged.
+  .env/.env.local/CONTEXT.md/secrets NUNCA staged (Evolution agora em ~/shared/evolution-local, fora do repo).
 - SEED com timestamptz/date: `at time zone 'America/Sao_Paulo'`. IDs de namespace com sufixo NOVO (-13x).
 - Tabela nova entra na migration ANTES de tocar o banco (lição os_config). Adicionar as tabelas ao
   TRUNCATE/SCRIPTS do AbstractIntegrationTest. Pool Hikari de teste minúsculo já em application-dev.yml

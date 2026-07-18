@@ -29,7 +29,7 @@ services:
       # e rejeitava TODO token de tenant com 401 invalid_claims (stack dev inutilizável).
       - SUPABASE_ISSUER=http://127.0.0.1:54321/auth/v1
       - ADMIN_CORS_ALLOWED_ORIGINS=http://meadadigital.local,http://*.meadadigital.local,http://localhost:3000
-      # Evolution LOCAL (evolution-local/docker-compose.yml, host :8086). O backend roda em
+      # Evolution LOCAL (~/shared/evolution-local/docker-compose.yml, host :8086). O backend roda em
       # container → 'localhost' seria ele mesmo; alcança o host pelo host.docker.internal.
       - EVOLUTION_BASE_URL=http://host.docker.internal:8086
       # Conexão do WhatsApp pelo painel (Fase 0). A chave GLOBAL é SEGREDO — vem do ambiente
@@ -89,6 +89,27 @@ services:
       - ./external_projects/soar/backend:/var/www/html
       - soar-bot-vendor:/var/www/html/vendor
     command: sh -c "composer install --no-interaction && (php artisan schedule:work &) && php artisan telegram:poll"
+
+  caddy:
+    volumes:
+      # Caddyfile saiu do repo → vive em ../shared/caddy (infra local compartilhada).
+      # Compose faz merge de volumes por caminho de DESTINO: esta entrada substitui a
+      # do base (./caddy/Caddyfile, que não existe mais) em dev.
+      - ../shared/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: meada-cloudflared
+    restart: unless-stopped
+    # Túnel Cloudflare (Zero Trust) do dev — develop.mudabrecho.com.br. Conexão OUTBOUND
+    # (nenhuma porta aberta no host); o mapeamento hostname→serviço vive no dashboard
+    # (Public Hostname → http://caddy:80). Token é SEGREDO: vem do .env
+    # (CLOUDFLARE_TUNNEL_TOKEN), nunca hardcoded aqui.
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN:-}
+    networks: [meada]
+    depends_on: [caddy]
 
 volumes:
   maven-cache:

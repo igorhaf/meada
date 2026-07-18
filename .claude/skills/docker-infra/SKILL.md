@@ -1,6 +1,6 @@
 ---
 name: docker-infra
-description: Padrões de Docker e infra local do Meada. Use ao editar Dockerfile, frontend/Dockerfile, docker-compose.yml, caddy/Caddyfile, evolution-local/ ou a estrutura de variáveis de ambiente (nunca os valores) — multi-stage, volumes de hot-reload, rede interna do compose, portas.
+description: Padrões de Docker e infra local do Meada. Use ao editar Dockerfile, frontend/Dockerfile, docker-compose.yml, caddy/Caddyfile, ~/shared/evolution-local/ ou a estrutura de variáveis de ambiente (nunca os valores) — multi-stage, volumes de hot-reload, rede interna do compose, portas.
 ---
 
 # Docker e infra local
@@ -30,8 +30,8 @@ o dev usa; NUNCA copiar `.env*` para dentro da imagem.
 | caddy | 80 | proxy reverso, vhosts `*.meadadigital.local` + `api.meadadigital.local` |
 
 - O BANCO fica FORA do compose: Supabase local via CLI (`supabase start` — API/Auth :54321,
-  Postgres :54322). A Evolution local também é compose SEPARADO (`evolution-local/`:
-  API :8086, Postgres :5433, Redis :6380).
+  Postgres :54322). A Evolution local também é compose SEPARADO e COMPARTILHADO entre
+  projetos (`~/shared/evolution-local/`: API :8086, Postgres :5433, Redis :6380).
 - Rede interna: backend fala com o sidecar por `embeddings:7080`; o SSR do Next fala com o
   backend por `CMS_BACKEND_URL=http://backend:8095`; o browser chama a API por
   `api.meadadigital.local`. Esses overrides vão em `environment` DO COMPOSE — o `.env` NUNCA é

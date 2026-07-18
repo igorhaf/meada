@@ -43,7 +43,8 @@ das migrations aplicado. (Antes era Supabase remoto via Session pooler — não 
    (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` — anon é pública por design,
    protegida por RLS; NUNCA service_role aqui —, `NEXT_PUBLIC_API_URL=http://localhost:8095`).
 3. **Evolution local (opcional, só p/ fluxo WhatsApp):**
-   `cd evolution-local && docker compose up -d` (API :8086, Postgres :5433, Redis :6380).
+   `cd ~/shared/evolution-local && docker compose up -d` (serviço compartilhado, fora
+   do repo; API :8086, Postgres :5433, Redis :6380).
 4. **Backend:** `./scripts/run-local.sh` (porta 8095). Sanity: `GET /admin/me` sem token →
    401 `missing_auth_header` (não há rota raiz/actuator — 404 na raiz é saudável).
 5. **Frontend:** `cd frontend && npm install && npm run dev` (porta 3000).
@@ -93,8 +94,8 @@ realista: 30-50% por sessão — a revisão do arquiteto continua sendo o limite
 - **Sanity de staging antes de todo commit:** `git status -s` + `git diff --staged --stat`
   + grep por segredo (`eyJ`, `password`, `secret=`) + confirmar `.env`/`.env.local` FORA.
   Confirmar com o Igor antes do commit (salvo empreitada com autonomia cravada).
-- **Segredos nunca são commitados.** `.env`, `frontend/.env.local`, `evolution-local/.env`
-  e `CONTEXT.md` são gitignored. Validar presença de env sem expor valor. **Senhas nunca
+- **Segredos nunca são commitados.** `.env`, `frontend/.env.local` e `CONTEXT.md` são
+  gitignored (o `.env` da Evolution vive em `~/shared/evolution-local/`, fora do repo). Validar presença de env sem expor valor. **Senhas nunca
   vão em arquivo.**
 - **Tag anotada por sub-fase fechada:** `git tag -a fase-N.M-fechada -F <msg>`.
 - **Trailer obrigatório:** `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`.
