@@ -542,8 +542,13 @@ services:
     networks: [meada]
 
 networks:
+  # Rede COMPARTILHADA entre os composes (shared, meadadigital, conexao-municipio…).
+  # Externa e de nome fixo `meada`: criada uma vez (`docker network create meada`, ou
+  # pelo compose do shared) e referenciada por todos, para os serviços de projetos
+  # diferentes se enxergarem por nome. Vale igual nos três ambientes.
   meada:
-    driver: bridge
+    external: true
+    name: meada
 
 volumes:
   # maven-cache é só de DEV (mvn spring-boot:run) — declarado no docker-compose.override.yml.

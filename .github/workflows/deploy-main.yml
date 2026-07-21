@@ -34,6 +34,8 @@ jobs:
             echo "== git fetch + reset --hard origin/main =="
             git fetch origin main
             git reset --hard origin/main
+            echo "== garante a rede externa compartilhada (idempotente) =="
+            docker network create meada 2>/dev/null || true
             echo "== docker compose up -d --build (base + profile demo, sem override de dev) =="
             docker compose -f docker-compose.yml --profile demo up -d --build
             echo "== Status =="
