@@ -1,25 +1,17 @@
-# docker-compose do Meada — fase 0.5 (dockerização + DevX local).
+# docker-compose do meadadigital — SÓ os serviços do próprio meada.
 #
-# Orquestra única do dev local: backend (Spring), frontend (Next), embeddings (sidecar Python)
-# e caddy (proxy reverso na porta 80). O BANCO é o Supabase REMOTO (não há Postgres aqui) —
-# lido do .env via env_file. Hot-reload por volumes mapeando o código-fonte.
+# O meada deixou de ser monólito: cada projeto (muda, germinar, pindorama, conexao,
+# soar, semente) tem o SEU docker-compose no próprio repo, e o INGRESS (Caddy) + a
+# infra (rede `meada`, MinIO/Postgres de dev) vivem no `shared`. Não há mais
+# external_projects. Todos os composes compartilham a rede externa `meada`.
 #
-# Subir:   ./scripts/meada-up.sh      (para o Apache, sobe os containers)
-# Parar:   ./scripts/meada-down.sh    (derruba os containers)
+# Aqui ficam: backend (Spring), frontend (Next), embeddings (sidecar) e o ambiente demo.
+#   Banco: Supabase remoto (via .env). Rede: `meada` (externa). Ingress: Caddy do shared.
 #
-# Notas de rede:
-#  - O backend alcança o sidecar pelo NOME do serviço (embeddings:7080), não localhost
-#    (dentro do container, localhost é o próprio container). Override via environment abaixo.
-#  - NEXT_PUBLIC_API_URL é var de BROWSER (o navegador do usuário chama a API): aponta para
-#    http://api.meadadigital.local (Caddy resolve via /etc/hosts no host). Override aqui para
-#    não alterar o frontend/.env.local.
-#  - ADMIN_CORS_ALLOWED_ORIGINS inclui os subdomínios de produto (senão o browser é bloqueado).
-
+# DEV: docker-compose.override.yml troca os targets para `dev` (hot-reload).
 services:
   backend:
-    # PRODUÇÃO: target `runtime` = JRE + jar precompilado (java -jar). Leve, sem Maven.
-    # DEV: docker-compose.override.yml troca pra target `dev` (JDK+Maven, mvn spring-boot:run
-    # com hot-reload via volume). Assim prod é enxuto e dev mantém o hot-reload.
+    # PROD: target `runtime` (JRE + jar). DEV: override troca pra `dev` (JDK+Maven, hot-reload).
     build:
       context: .
       target: runtime
@@ -27,11 +19,7 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      # sidecar pelo nome do serviço (universal dev+prod — rede interna do compose).
       - KNOWLEDGE_EMBEDDING_ENDPOINT=http://embeddings:7080
-      # SPRING_DATASOURCE_URL / SUPABASE_URL / SUPABASE_JWKS_URL / ADMIN_CORS_ALLOWED_ORIGINS
-      # vêm do env_file (.env): em PROD apontam pro Supabase remoto + CORS .com. Em DEV, o
-      # override sobrepõe pro Supabase LOCAL (IP do WSL).
     ports:
       - "8095:8095"
     extra_hosts:
@@ -39,9 +27,7 @@ services:
     networks: [meada]
 
   frontend:
-    # PRODUÇÃO: target `prod` = build Next standalone (`node server.js`). Leve, sem next dev.
-    # As NEXT_PUBLIC_* são inlinadas no build → passadas por build.args (valores de prod vêm
-    # do .env do compose no servidor). DEV: override troca pra target `dev` (next dev + volume).
+    # PROD: target `prod` (Next standalone). As NEXT_PUBLIC_* são inlinadas no build.
     build:
       context: ./frontend
       target: prod
@@ -52,7 +38,6 @@ services:
     container_name: meada-frontend
     restart: unless-stopped
     environment:
-      # SSR chama o backend pela rede interna (universal dev+prod).
       - CMS_BACKEND_URL=http://backend:8095
     ports:
       - "3000:3000"
@@ -60,11 +45,8 @@ services:
     depends_on: [backend]
 
   # ---------------------------------------------------------------------------
-  # AMBIENTE DE DEMO — MESMO código (mesma main) que o prod, mas banco Supabase SEPARADO
-  # (isolado do de produção). Só sobe no deploy via `--profile demo`; o dev local ignora.
-  # Auto-sincroniza a cada deploy (mesma fonte); os dados de demonstração (tenants/logins)
-  # vivem no Supabase de demo e PERSISTEM entre deploys. As DEMO_* vêm do .env do servidor
-  # (segredos, nunca commitados). Sem portas no host — acessível só via Caddy (demo./api-demo.).
+  # AMBIENTE DEMO — MESMO código do prod, Supabase SEPARADO. Só sobe com `--profile demo`.
+  # Acessível via Caddy (demo./api-demo.). DEMO_* vêm do .env do servidor (segredos).
   # ---------------------------------------------------------------------------
   demo-backend:
     profiles: [demo]
@@ -76,7 +58,6 @@ services:
     env_file: .env
     environment:
       - KNOWLEDGE_EMBEDDING_ENDPOINT=http://embeddings:7080
-      # override do env_file: aponta pro Supabase de DEMO (isolado do de prod) + CORS do demo.
       - SPRING_DATASOURCE_URL=${DEMO_SPRING_DATASOURCE_URL:-}
       - SPRING_DATASOURCE_USERNAME=${DEMO_SPRING_DATASOURCE_USERNAME:-}
       - SPRING_DATASOURCE_PASSWORD=${DEMO_SPRING_DATASOURCE_PASSWORD:-}
@@ -106,461 +87,29 @@ services:
 
   embeddings:
     build:
-      # Sidecar de embeddings vive no shared (serviço compartilhado, repo igorhaf/shared),
-      # clonado ao lado deste repo: ~/shared/python — mesmo layout local e no servidor.
+      # Sidecar de embeddings — código no repo shared (~/shared/python), ao lado deste.
       context: ../shared/python
     container_name: meada-embeddings
     restart: unless-stopped
     ports:
-      - "7080:7080"   # exposto p/ debugging host-side
+      - "7080:7080"
     volumes:
-      # Cache do modelo HuggingFace, persistente entre rebuilds (evita re-download).
       - embedding-models:/root/.cache/huggingface
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:7080/health"]
       interval: 30s
       timeout: 5s
       retries: 3
-      # start_period largo: o carregamento do modelo no boot leva alguns segundos.
       start_period: 90s
     networks: [meada]
 
-  caddy:
-    image: caddy:2-alpine
-    container_name: meada-caddy
-    ports:
-      - "80:80"
-      - "443:443"     # HTTPS em produção (dev usa auto_https off; a 443 fica ociosa)
-    volumes:
-      # Caddyfile por AMBIENTE: dev usa ./caddy/Caddyfile (.local); produção exporta
-      # CADDYFILE_PATH=./caddy/Caddyfile.prod no .env do compose (.com + HTTPS automático).
-      - ${CADDYFILE_PATH:-./caddy/Caddyfile}:/etc/caddy/Caddyfile:ro
-      - caddy-data:/data
-    networks: [meada]
-    depends_on: [frontend, backend, muda-nginx, semente-nginx, pindorama-nginx, germinar-nginx, conexao-municipio-frontend, soar-frontend]
-
-  # ---------------------------------------------------------------------------
-  # Projeto EXTERNO muda (Laravel/PHP) — REPOSITÓRIO PRÓPRIO: github.com/igorhaf/muda
-  #
-  # As pastas NÃO são versionadas aqui (ver .gitignore) — são CLONES do repo do muda,
-  # um por ambiente/branch:
-  #   external_projects/muda          → branch main    → muda.meadadigital.com          (PROD)
-  #   external_projects/mudahomolog  → branch homolog → mudahomolog.meadadigital.com  (HOMOLOG)
-  #
-  # O meada segue sendo o HOST DE INFRA (compose + Caddy + rede + TLS); o repo do muda leva
-  # só o código. Assim dá pra deployar muda/homolog sem redeployar o meada inteiro (o deploy
-  # do muda vive no workflow DELE e só reinicia os serviços dele).
-  #
-  # BOOTSTRAP (clone novo do meada): as pastas não existem até você clonar —
-  #   git clone -b main    git@github.com:igorhaf/muda.git external_projects/muda
-  #   git clone -b homolog git@github.com:igorhaf/muda.git external_projects/mudahomolog
-  # e criar o .env de cada uma (não versionado). Sem isso, o build destes serviços falha.
-  #
-  # Postgres COMPARTILHADO entre os projetos de DEV LOCAL (homolog e prod do muda
-  # continuam no Supabase deles — isso aqui não toca nenhum dos dois). Um único
-  # container, um banco por projeto (ver ./postgres/shared-init). Sem porta no
-  # host: acesso só via rede `meada`.
-  # ---------------------------------------------------------------------------
-  shared-postgres:
-    image: postgres:16-alpine
-    container_name: shared-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${SHARED_DB_USERNAME:-shared}
-      POSTGRES_PASSWORD: ${SHARED_DB_PASSWORD:-shared_secret}
-      POSTGRES_DB: postgres
-    volumes:
-      - shared-postgres-data:/var/lib/postgresql/data
-      # Roda só na primeira inicialização (data dir vazio): cria um banco por
-      # projeto de dev local. Pra adicionar outro projeto, é só um novo arquivo aqui.
-      - ./postgres/shared-init:/docker-entrypoint-initdb.d:ro
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${SHARED_DB_USERNAME:-shared}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    networks: [meada]
-
-  muda-app:
-    build:
-      context: ./external_projects/muda
-      dockerfile: docker/php/Dockerfile
-      args:
-        UID: ${UID:-1000}
-        GID: ${GID:-1000}
-    container_name: muda-app
-    restart: unless-stopped
-    working_dir: /var/www/html
-    volumes:
-      - ./external_projects/muda:/var/www/html
-    # self-heal: instala vendor se faltar (deploy novo), depois php-fpm. Assets (Vite) são
-    # buildados à parte (persistem no bind mount) — ver docs/DEPLOY.md.
-    command: sh -c "[ -f vendor/autoload.php ] || composer install --no-dev --optimize-autoloader --no-interaction; php-fpm"
-    depends_on:
-      shared-postgres:
-        condition: service_healthy
-    networks: [meada]
-
-  muda-nginx:
-    image: nginx:1.27-alpine
-    container_name: muda-nginx
-    restart: unless-stopped
-    environment:
-      # O template do nginx (no repo do muda) resolve o upstream por variável — é o que
-      # permite a MESMA config servir prod e homolog sem as branches divergirem.
-      # O FILTER limita o envsubst a esta variável (senão ele comeria $uri, $realpath_root...).
-      PHP_FPM_HOST: muda-app
-      NGINX_ENVSUBST_FILTER: PHP_FPM_HOST
-    volumes:
-      - ./external_projects/muda:/var/www/html
-      - ./external_projects/muda/docker/nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
-    depends_on: [muda-app]
-    networks: [meada]
-
-  # ---- HOMOLOG do muda (branch `homolog`) — espelho exato de prod, dados próprios ------
-  mudahomolog-postgres:
-    image: postgres:16-alpine
-    container_name: mudahomolog-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${MUDAHOMOLOG_DB_DATABASE:-muda_homolog}
-      POSTGRES_USER: ${MUDAHOMOLOG_DB_USERNAME:-muda_homolog}
-      POSTGRES_PASSWORD: ${MUDAHOMOLOG_DB_PASSWORD:-muda_homolog_secret}
-    volumes:
-      - mudahomolog-postgres-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${MUDAHOMOLOG_DB_USERNAME:-muda_homolog} -d ${MUDAHOMOLOG_DB_DATABASE:-muda_homolog}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    networks: [meada]
-
-  mudahomolog-app:
-    build:
-      context: ./external_projects/mudahomolog
-      dockerfile: docker/php/Dockerfile
-      args:
-        UID: ${UID:-1000}
-        GID: ${GID:-1000}
-    container_name: mudahomolog-app
-    restart: unless-stopped
-    working_dir: /var/www/html
-    volumes:
-      - ./external_projects/mudahomolog:/var/www/html
-    command: sh -c "[ -f vendor/autoload.php ] || composer install --no-dev --optimize-autoloader --no-interaction; php-fpm"
-    depends_on:
-      mudahomolog-postgres:
-        condition: service_healthy
-    networks: [meada]
-
-  mudahomolog-nginx:
-    image: nginx:1.27-alpine
-    container_name: mudahomolog-nginx
-    restart: unless-stopped
-    environment:
-      PHP_FPM_HOST: mudahomolog-app     # ← a única diferença real entre os dois ambientes
-      NGINX_ENVSUBST_FILTER: PHP_FPM_HOST
-    volumes:
-      - ./external_projects/mudahomolog:/var/www/html
-      - ./external_projects/mudahomolog/docker/nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
-    depends_on: [mudahomolog-app]
-    networks: [meada]
-
-  # ---------------------------------------------------------------------------
-  # Projeto EXTERNO semente-doce (Laravel/PHP) — external_projects/semente-doce.
-  # Doceria & salgaderia. Mesmo compose e mesma rede do muda; acessível SÓ via Caddy
-  # em http://semente-doce.meadadigital.local (sem portas no host). Postgres dedicado.
-  # ---------------------------------------------------------------------------
-  semente-postgres:
-    image: postgres:16-alpine
-    container_name: semente-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${SEMENTE_DB_DATABASE:-semente_doce}
-      POSTGRES_USER: ${SEMENTE_DB_USERNAME:-semente}
-      POSTGRES_PASSWORD: ${SEMENTE_DB_PASSWORD:-semente_secret}
-    volumes:
-      - semente-postgres-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${SEMENTE_DB_USERNAME:-semente} -d ${SEMENTE_DB_DATABASE:-semente_doce}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    networks: [meada]
-
-  semente-app:
-    build:
-      context: ./external_projects/semente-doce/backend
-      dockerfile: docker/php/Dockerfile
-      args:
-        UID: ${UID:-1000}
-        GID: ${GID:-1000}
-    container_name: semente-app
-    restart: unless-stopped
-    working_dir: /var/www/html
-    volumes:
-      - ./external_projects/semente-doce/backend:/var/www/html
-    # self-heal: instala vendor se faltar (deploy novo), depois php-fpm. Assets (Vite) são
-    # buildados à parte (persistem no bind mount).
-    command: sh -c "[ -f vendor/autoload.php ] || composer install --no-dev --optimize-autoloader --no-interaction; php-fpm"
-    depends_on:
-      semente-postgres:
-        condition: service_healthy
-    networks: [meada]
-
-  semente-nginx:
-    image: nginx:1.27-alpine
-    container_name: semente-nginx
-    restart: unless-stopped
-    volumes:
-      - ./external_projects/semente-doce/backend:/var/www/html
-      - ./external_projects/semente-doce/backend/docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-    depends_on: [semente-app]
-    networks: [meada]
-
-  # ---------------------------------------------------------------------------
-  # Projeto EXTERNO pindorama (Laravel/PHP) — external_projects/pindorama.
-  # Marketplace de serviços de saúde integrativa (terapeutas: agendamento, comissão,
-  # cobrança da plataforma). Mesma rede do muda; acessível SÓ via Caddy em
-  # http://pindorama.meadadigital.local (sem portas no host). Postgres dedicado.
-  # Spec: external_projects/pindorama/docs/PINDORAMA.md
-  # ---------------------------------------------------------------------------
-  pindorama-postgres:
-    image: postgres:16-alpine
-    container_name: pindorama-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${PINDORAMA_DB_DATABASE:-pindorama}
-      POSTGRES_USER: ${PINDORAMA_DB_USERNAME:-pindorama}
-      POSTGRES_PASSWORD: ${PINDORAMA_DB_PASSWORD:-pindorama_secret}
-    volumes:
-      - pindorama-postgres-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${PINDORAMA_DB_USERNAME:-pindorama} -d ${PINDORAMA_DB_DATABASE:-pindorama}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    networks: [meada]
-
-  pindorama-app:
-    build:
-      context: ./external_projects/pindorama
-      dockerfile: docker/php/Dockerfile
-      args:
-        UID: ${UID:-1000}
-        GID: ${GID:-1000}
-    container_name: pindorama-app
-    restart: unless-stopped
-    working_dir: /var/www/html
-    volumes:
-      - ./external_projects/pindorama:/var/www/html
-    # self-heal: instala vendor se faltar (deploy novo), depois inicia FPM e o scheduler
-    # do Pindorama. Assets (Vite) são buildados à parte (persistem no bind mount).
-    command: sh -c "[ -f vendor/autoload.php ] || composer install --no-dev --optimize-autoloader --no-interaction; exec /usr/local/bin/start-pindorama"
-    depends_on:
-      pindorama-postgres:
-        condition: service_healthy
-    networks: [meada]
-
-  pindorama-nginx:
-    image: nginx:1.27-alpine
-    container_name: pindorama-nginx
-    restart: unless-stopped
-    volumes:
-      - ./external_projects/pindorama:/var/www/html
-      - ./external_projects/pindorama/docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-    depends_on: [pindorama-app]
-    networks: [meada]
-
-  # ---------------------------------------------------------------------------
-  # Projeto EXTERNO germinar (Laravel/PHP) — external_projects/germinar.
-  # Site institucional de doulas (Germinar) com admin dinâmico. Acessível SÓ via
-  # Caddy em http://germinar.meadadigital.local (sem portas expostas no host).
-  # Postgres dedicado (desacoplado do Supabase do meada).
-  # ---------------------------------------------------------------------------
-  germinar-postgres:
-    image: postgres:16-alpine
-    container_name: germinar-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${GERMINAR_DB_DATABASE:-germinar}
-      POSTGRES_USER: ${GERMINAR_DB_USERNAME:-germinar}
-      POSTGRES_PASSWORD: ${GERMINAR_DB_PASSWORD:-germinar_secret}
-    volumes:
-      - germinar-postgres-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${GERMINAR_DB_USERNAME:-germinar} -d ${GERMINAR_DB_DATABASE:-germinar}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    networks: [meada]
-
-  germinar-app:
-    build:
-      context: ./external_projects/germinar
-      dockerfile: docker/php/Dockerfile
-      args:
-        UID: ${UID:-1000}
-        GID: ${GID:-1000}
-    container_name: germinar-app
-    restart: unless-stopped
-    working_dir: /var/www/html
-    volumes:
-      - ./external_projects/germinar:/var/www/html
-    # self-heal: instala vendor se faltar (deploy novo), depois php-fpm. Assets (Vite) são
-    # buildados à parte (persistem no bind mount).
-    command: sh -c "[ -f vendor/autoload.php ] || composer install --no-dev --optimize-autoloader --no-interaction; php-fpm"
-    depends_on:
-      germinar-postgres:
-        condition: service_healthy
-    networks: [meada]
-
-  germinar-nginx:
-    image: nginx:1.27-alpine
-    container_name: germinar-nginx
-    restart: unless-stopped
-    volumes:
-      - ./external_projects/germinar:/var/www/html
-      - ./external_projects/germinar/docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-    depends_on: [germinar-app]
-    networks: [meada]
-
-  # ---------------------------------------------------------------------------
-  # Projeto EXTERNO conexao-municipio (Laravel API + Next) — external_projects/.
-  # Acessível SÓ via Caddy em http://conexao-municipio.meadadigital.local
-  # (path /api/* -> backend; resto -> frontend; mesma origem, sem CORS).
-  # ---------------------------------------------------------------------------
-  conexao-municipio-db:
-    image: postgres:16-alpine
-    container_name: conexao-municipio-db
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: conexao_municipio
-      POSTGRES_USER: conexao
-      POSTGRES_PASSWORD: conexao_secret
-    volumes:
-      - conexao-municipio-db-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U conexao -d conexao_municipio"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    networks: [meada]
-
-  conexao-municipio-backend:
-    build:
-      context: ./external_projects/conexao-municipio/backend
-      dockerfile: Dockerfile
-    container_name: conexao-municipio-backend
-    restart: unless-stopped
-    depends_on:
-      conexao-municipio-db:
-        condition: service_healthy
-    environment:
-      # PROD por padrão; o override deixa local/debug em dev.
-      APP_ENV: production
-      APP_DEBUG: "false"
-      APP_URL: https://conexao-municipio.meadadigital.com
-      DB_CONNECTION: pgsql
-      DB_HOST: conexao-municipio-db
-      DB_PORT: 5432
-      DB_DATABASE: conexao_municipio
-      DB_USERNAME: conexao
-      DB_PASSWORD: conexao_secret
-      LOG_CHANNEL: stderr
-      CACHE_STORE: file
-      SESSION_DRIVER: file
-      QUEUE_CONNECTION: sync
-    volumes:
-      - ./external_projects/conexao-municipio/backend:/var/www/html
-      - conexao-municipio-backend-vendor:/var/www/html/vendor
-    command: sh -c "composer install --no-interaction && ([ -f .env ] || cp .env.example .env) && (grep -q '^APP_KEY=.' .env || php artisan key:generate --force) && php artisan migrate --force && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=8000"
-    networks: [meada]
-
-  conexao-municipio-frontend:
-    build:
-      context: ./external_projects/conexao-municipio/frontend
-      dockerfile: Dockerfile
-    container_name: conexao-municipio-frontend
-    restart: unless-stopped
-    depends_on:
-      - conexao-municipio-backend
-    environment:
-      # SSR (server-side) fala com o backend pela rede interna do compose.
-      API_URL: http://conexao-municipio-backend:8000
-      # var de BROWSER: mesma origem via Caddy (path /api roteia pro backend). PROD = .com;
-      # o override deixa .local em dev. Inlinada no build (next build lê o env do container).
-      NEXT_PUBLIC_API_URL: https://conexao-municipio.meadadigital.com
-    volumes:
-      - ./external_projects/conexao-municipio/frontend:/app
-      - conexao-municipio-frontend-node_modules:/app/node_modules
-    # PROD: build + next start (leve). DEV: override troca pra `npm run dev`.
-    command: sh -c "npm install && npm run build && npm run start"
-    networks: [meada]
-
-  # ---------------------------------------------------------------------------
-  # Projeto EXTERNO soar (Laravel API + React/Vite) — external_projects/soar.
-  # Dashboard colaborativo estilo Notion (árvore compartilhada + pessoal por usuário).
-  # Acessível SÓ via Caddy em http://soar.meadadigital.local (path /api → backend,
-  # resto → frontend, mesma origem). Postgres dedicado. Prod: soar.meadadigital.com.
-  # ---------------------------------------------------------------------------
-  soar-backend:
-    build:
-      context: ./external_projects/soar/backend
-      dockerfile: Dockerfile
-    container_name: soar-backend
-    restart: unless-stopped
-    # Banco = Supabase (nuvem); credenciais SÓ no backend/.env (gitignored).
-    # artisan serve não repassa env do processo → o .env é a fonte única.
-    environment:
-      APP_ENV: production
-      APP_DEBUG: "false"
-    extra_hosts:
-      - "host.docker.internal:host-gateway" # Elo (proxy Claude) roda no host, porta 8200
-    volumes:
-      - ./external_projects/soar/backend:/var/www/html
-      - soar-backend-vendor:/var/www/html/vendor
-    command: sh -c "composer install --no-interaction && ([ -f .env ] || cp .env.example .env) && (grep -q '^APP_KEY=.' .env || php artisan key:generate --force) && php artisan migrate --force && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=8000"
-    networks: [meada]
-
-  soar-frontend:
-    build:
-      context: ./external_projects/soar/frontend
-      dockerfile: Dockerfile
-    container_name: soar-frontend
-    restart: unless-stopped
-    depends_on:
-      - soar-backend
-    environment:
-      # SPA fala com a API na MESMA ORIGEM (Caddy roteia /api). Vazio = fetch relativo.
-      VITE_API_URL: ""
-    volumes:
-      - ./external_projects/soar/frontend:/app
-      - soar-frontend-node_modules:/app/node_modules
-    # PROD: build + vite preview (estático). DEV: override troca pra `npm run dev`.
-    command: sh -c "npm install && npm run build && npm run preview -- --host 0.0.0.0 --port 3130"
-    networks: [meada]
-
 networks:
-  # Rede COMPARTILHADA entre os composes (shared, meadadigital, conexao-municipio…).
-  # Externa e de nome fixo `meada`: criada uma vez (`docker network create meada`, ou
-  # pelo compose do shared) e referenciada por todos, para os serviços de projetos
-  # diferentes se enxergarem por nome. Vale igual nos três ambientes.
+  # Rede externa compartilhada do ecossistema (criada pelo shared / `docker network create meada`).
   meada:
     external: true
     name: meada
 
 volumes:
-  # maven-cache é só de DEV (mvn spring-boot:run) — declarado no docker-compose.override.yml.
-  caddy-data:
+  # Cache dos modelos HuggingFace — nome fixo meada_* para reusar o volume de produção.
   embedding-models:
-  shared-postgres-data:   # postgres compartilhado dos projetos de dev local (muda incluso)
-  mudahomolog-postgres-data:   # banco do homolog do muda — isolado do de produção
-  semente-postgres-data:
-  pindorama-postgres-data:
-  germinar-postgres-data:
-  conexao-municipio-db-data:
-  conexao-municipio-backend-vendor:
-  conexao-municipio-frontend-node_modules:
-  soar-backend-vendor:
-  soar-frontend-node_modules:
+    name: meada_embedding-models
